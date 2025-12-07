@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Plus, Loader2, BookOpen, FileText, AlertCircle } from "lucide-react";
+import { ArrowLeft, Plus, Loader2, BookOpen, FileText, Mic, AlertCircle } from "lucide-react";
+import { VoiceRecorder } from "@/components/VoiceRecorder";
 import {
   Select,
   SelectContent,
@@ -41,29 +42,34 @@ interface DuplicateWarning {
   title: string;
 }
 
+type ContentType = "text" | "voice_note" | "scripture";
+
 export default function CreateBreadcrumb() {
-  const { profile, isLoading: authLoading } = useAuth();
+  const { profile, user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [isNewTopicDialogOpen, setIsNewTopicDialogOpen] = useState(false);
   const [newTopicName, setNewTopicName] = useState("");
   const [duplicateWarning, setDuplicateWarning] = useState<DuplicateWarning | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
 
   const [formData, setFormData] = useState({
     recipient_id: "",
     topic_id: "",
     title: "",
-    content_type: "text",
+    content_type: "text" as ContentType,
     text_body: "",
     is_scripture: false,
     scripture_reference: "",
     scripture_text: "",
     include_commentary: false,
     commentary_text: "",
+    audio_url: "",
   });
 
   useEffect(() => {
@@ -176,6 +182,50 @@ export default function CreateBreadcrumb() {
     }
   };
 
+  const uploadAudio = async (blob: Blob): Promise<string | null> => {
+    if (!user) return null;
+    
+    setIsUploading(true);
+    try {
+      const fileExt = blob.type.includes("webm") ? "webm" : "mp4";
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from("audio")
+        .upload(fileName, blob, {
+          contentType: blob.type,
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("audio")
+        .getPublicUrl(fileName);
+
+      return urlData.publicUrl;
+    } catch (error: any) {
+      console.error("Error uploading audio:", error);
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload voice note.",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRecordingComplete = (blob: Blob) => {
+    setAudioBlob(blob);
+  };
+
+  const handleRemoveRecording = () => {
+    setAudioBlob(null);
+    setFormData({ ...formData, audio_url: "" });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile) return;
@@ -198,16 +248,43 @@ export default function CreateBreadcrumb() {
       return;
     }
 
+    // Validate voice note has audio
+    if (formData.content_type === "voice_note" && !audioBlob) {
+      toast({
+        title: "Recording required",
+        description: "Please record a voice note before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSaving(true);
 
     try {
+      let audioUrl = formData.audio_url;
+
+      // Upload audio if we have a new recording
+      if (formData.content_type === "voice_note" && audioBlob) {
+        const uploadedUrl = await uploadAudio(audioBlob);
+        if (!uploadedUrl) {
+          setIsSaving(false);
+          return;
+        }
+        audioUrl = uploadedUrl;
+      }
+
+      const contentType = formData.is_scripture 
+        ? "scripture" 
+        : formData.content_type;
+
       const { error } = await supabase.from("breadcrumbs").insert({
         creator_id: profile.id,
         recipient_id: formData.recipient_id,
         topic_id: formData.topic_id || null,
         title: formData.title.trim(),
-        content_type: formData.is_scripture ? "scripture" : formData.content_type,
+        content_type: contentType,
         text_body: formData.text_body || null,
+        audio_url: audioUrl || null,
         is_scripture: formData.is_scripture,
         scripture_reference: formData.scripture_reference || null,
         scripture_text: formData.scripture_text || null,
@@ -372,24 +449,66 @@ export default function CreateBreadcrumb() {
             />
           </div>
 
-          {/* Content Type Toggle */}
-          <div className="flex items-center gap-4 py-2">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${!formData.is_scripture ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'}`}>
-                <FileText className="w-5 h-5" />
-              </div>
-              <Switch
-                checked={formData.is_scripture}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_scripture: checked })}
-              />
-              <div className={`p-2 rounded-lg ${formData.is_scripture ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'}`}>
-                <BookOpen className="w-5 h-5" />
-              </div>
+          {/* Content Type Selector */}
+          <div className="space-y-3">
+            <Label>Content Type</Label>
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, content_type: "text", is_scripture: false })}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                  formData.content_type === "text" && !formData.is_scripture
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                <FileText className={`w-6 h-6 ${
+                  formData.content_type === "text" && !formData.is_scripture ? "text-primary" : "text-muted-foreground"
+                }`} />
+                <span className="text-sm font-medium">Text</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, content_type: "voice_note", is_scripture: false })}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                  formData.content_type === "voice_note"
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                <Mic className={`w-6 h-6 ${
+                  formData.content_type === "voice_note" ? "text-primary" : "text-muted-foreground"
+                }`} />
+                <span className="text-sm font-medium">Voice Note</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, content_type: "scripture", is_scripture: true })}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                  formData.is_scripture
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                <BookOpen className={`w-6 h-6 ${
+                  formData.is_scripture ? "text-primary" : "text-muted-foreground"
+                }`} />
+                <span className="text-sm font-medium">Scripture</span>
+              </button>
             </div>
-            <span className="text-sm text-muted-foreground">
-              {formData.is_scripture ? "Scripture" : "Text Note"}
-            </span>
           </div>
+
+          {/* Voice Note Recorder */}
+          {formData.content_type === "voice_note" && (
+            <div className="space-y-2">
+              <Label>Voice Recording</Label>
+              <VoiceRecorder
+                onRecordingComplete={handleRecordingComplete}
+                onRemove={handleRemoveRecording}
+                audioUrl={formData.audio_url}
+              />
+            </div>
+          )}
 
           {/* Scripture Fields */}
           {formData.is_scripture && (
@@ -416,22 +535,38 @@ export default function CreateBreadcrumb() {
             </>
           )}
 
-          {/* Main Content */}
-          <div className="space-y-2">
-            <Label htmlFor="text_body">
-              {formData.is_scripture ? "Your Reflection" : "Your Message"}
-            </Label>
-            <Textarea
-              id="text_body"
-              placeholder={formData.is_scripture 
-                ? "What does this scripture mean to you? Why is it important?"
-                : "Write your wisdom, story, or lesson here..."
-              }
-              value={formData.text_body}
-              onChange={(e) => setFormData({ ...formData, text_body: e.target.value })}
-              rows={6}
-            />
-          </div>
+          {/* Main Content for Text */}
+          {(formData.content_type === "text" || formData.is_scripture) && (
+            <div className="space-y-2">
+              <Label htmlFor="text_body">
+                {formData.is_scripture ? "Your Reflection" : "Your Message"}
+              </Label>
+              <Textarea
+                id="text_body"
+                placeholder={formData.is_scripture 
+                  ? "What does this scripture mean to you? Why is it important?"
+                  : "Write your wisdom, story, or lesson here..."
+                }
+                value={formData.text_body}
+                onChange={(e) => setFormData({ ...formData, text_body: e.target.value })}
+                rows={6}
+              />
+            </div>
+          )}
+
+          {/* Optional note for voice notes */}
+          {formData.content_type === "voice_note" && (
+            <div className="space-y-2">
+              <Label htmlFor="text_body">Additional Notes (optional)</Label>
+              <Textarea
+                id="text_body"
+                placeholder="Add any written notes to accompany your voice recording..."
+                value={formData.text_body}
+                onChange={(e) => setFormData({ ...formData, text_body: e.target.value })}
+                rows={3}
+              />
+            </div>
+          )}
 
           {/* Include Commentary */}
           <div className="flex items-center justify-between py-4 border-t border-border">
@@ -470,11 +605,11 @@ export default function CreateBreadcrumb() {
                 Cancel
               </Button>
             </Link>
-            <Button type="submit" variant="hero" disabled={isSaving}>
-              {isSaving ? (
+            <Button type="submit" variant="hero" disabled={isSaving || isUploading}>
+              {isSaving || isUploading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Saving...
+                  {isUploading ? "Uploading..." : "Saving..."}
                 </>
               ) : (
                 "Save Breadcrumb"
@@ -500,22 +635,19 @@ export default function CreateBreadcrumb() {
                   placeholder="e.g., Faith, Money, Relationships"
                   value={newTopicName}
                   onChange={(e) => setNewTopicName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddTopic();
+                    }
+                  }}
                 />
               </div>
-              <div className="flex justify-end gap-3">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsNewTopicDialogOpen(false)}
-                >
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setIsNewTopicDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button 
-                  type="button" 
-                  variant="hero" 
-                  onClick={handleAddTopic}
-                  disabled={!newTopicName.trim()}
-                >
+                <Button type="button" onClick={handleAddTopic}>
                   Create Topic
                 </Button>
               </div>
