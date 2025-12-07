@@ -1,0 +1,305 @@
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Plus, Users, Search, BookOpen, Filter, Loader2 } from "lucide-react";
+import { BreadcrumbCard } from "@/components/BreadcrumbCard";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+
+interface Breadcrumb {
+  id: string;
+  title: string;
+  content_type: string;
+  text_body: string | null;
+  is_scripture: boolean;
+  scripture_reference: string | null;
+  created_at: string;
+  recipient: {
+    id: string;
+    display_name: string;
+  };
+  topic: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+interface Recipient {
+  id: string;
+  display_name: string;
+}
+
+interface Topic {
+  id: string;
+  name: string;
+}
+
+export default function CreatorDashboard() {
+  const { profile, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([]);
+  const [recipients, setRecipients] = useState<Recipient[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedRecipient, setSelectedRecipient] = useState<string>("all");
+  const [selectedTopic, setSelectedTopic] = useState<string>("all");
+  const [scripturesOnly, setScripturesOnly] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && !profile) {
+      navigate("/auth");
+      return;
+    }
+
+    if (profile && profile.role !== "creator") {
+      navigate("/recipient");
+      return;
+    }
+
+    if (profile) {
+      fetchData();
+    }
+  }, [profile, authLoading, navigate]);
+
+  const fetchData = async () => {
+    if (!profile) return;
+
+    try {
+      // Fetch breadcrumbs with related data
+      const { data: breadcrumbsData, error: breadcrumbsError } = await supabase
+        .from("breadcrumbs")
+        .select(`
+          id,
+          title,
+          content_type,
+          text_body,
+          is_scripture,
+          scripture_reference,
+          created_at,
+          recipient:recipients(id, display_name),
+          topic:topics(id, name)
+        `)
+        .eq("creator_id", profile.id)
+        .order("created_at", { ascending: false });
+
+      if (breadcrumbsError) throw breadcrumbsError;
+
+      // Fetch recipients
+      const { data: recipientsData, error: recipientsError } = await supabase
+        .from("recipients")
+        .select("id, display_name")
+        .eq("creator_id", profile.id);
+
+      if (recipientsError) throw recipientsError;
+
+      // Fetch topics
+      const { data: topicsData, error: topicsError } = await supabase
+        .from("topics")
+        .select("id, name")
+        .eq("creator_id", profile.id);
+
+      if (topicsError) throw topicsError;
+
+      setBreadcrumbs(breadcrumbsData as any || []);
+      setRecipients(recipientsData || []);
+      setTopics(topicsData || []);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Filter breadcrumbs
+  const filteredBreadcrumbs = breadcrumbs.filter((b) => {
+    const matchesSearch = 
+      !searchQuery ||
+      b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      b.text_body?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesRecipient = 
+      selectedRecipient === "all" || 
+      b.recipient?.id === selectedRecipient;
+    
+    const matchesTopic = 
+      selectedTopic === "all" || 
+      b.topic?.id === selectedTopic;
+    
+    const matchesScripture = 
+      !scripturesOnly || 
+      b.is_scripture;
+
+    return matchesSearch && matchesRecipient && matchesTopic && matchesScripture;
+  });
+
+  if (authLoading || isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="container-wide flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="container-wide">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 animate-fade-up">
+          <div>
+            <h1 className="text-3xl font-serif font-semibold text-foreground">
+              Welcome, {profile?.name?.split(" ")[0]}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {breadcrumbs.length === 0 
+                ? "Start leaving breadcrumbs for your loved ones."
+                : `You've left ${breadcrumbs.length} breadcrumb${breadcrumbs.length === 1 ? "" : "s"}.`
+              }
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Link to="/creator/recipients">
+              <Button variant="outline" className="gap-2">
+                <Users className="w-4 h-4" />
+                <span className="hidden sm:inline">Manage Recipients</span>
+                <span className="sm:hidden">Recipients</span>
+              </Button>
+            </Link>
+            <Link to="/creator/create">
+              <Button variant="hero" className="gap-2">
+                <Plus className="w-4 h-4" />
+                Create Breadcrumb
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div 
+          className="glass-card p-4 mb-6 animate-fade-up"
+          style={{ animationDelay: "0.1s" }}
+        >
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search breadcrumbs..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Filters Row */}
+            <div className="flex flex-wrap gap-3 items-center">
+              <Select value={selectedRecipient} onValueChange={setSelectedRecipient}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="All Recipients" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Recipients</SelectItem>
+                  {recipients.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.display_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedTopic} onValueChange={setSelectedTopic}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="All Topics" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Topics</SelectItem>
+                  {topics.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="flex items-center gap-2 pl-2">
+                <Switch
+                  id="scriptures-only"
+                  checked={scripturesOnly}
+                  onCheckedChange={setScripturesOnly}
+                />
+                <Label htmlFor="scriptures-only" className="text-sm cursor-pointer flex items-center gap-1.5">
+                  <BookOpen className="w-4 h-4" />
+                  Scriptures
+                </Label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Breadcrumbs List */}
+        {filteredBreadcrumbs.length === 0 ? (
+          <div 
+            className="text-center py-16 animate-fade-up"
+            style={{ animationDelay: "0.2s" }}
+          >
+            {breadcrumbs.length === 0 ? (
+              <>
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-secondary flex items-center justify-center">
+                  <Plus className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="font-serif text-xl font-medium text-foreground mb-2">
+                  No breadcrumbs yet
+                </h3>
+                <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                  {recipients.length === 0 
+                    ? "Add a recipient first, then start leaving wisdom for them."
+                    : "Start leaving wisdom, stories, and scriptures for your loved ones."
+                  }
+                </p>
+                <Link to={recipients.length === 0 ? "/creator/recipients" : "/creator/create"}>
+                  <Button variant="hero">
+                    {recipients.length === 0 ? "Add a Recipient" : "Create Your First Breadcrumb"}
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Filter className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="font-serif text-xl font-medium text-foreground mb-2">
+                  No matching breadcrumbs
+                </h3>
+                <p className="text-muted-foreground">
+                  Try adjusting your filters or search query.
+                </p>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="grid gap-4 animate-fade-up" style={{ animationDelay: "0.2s" }}>
+            {filteredBreadcrumbs.map((breadcrumb, index) => (
+              <BreadcrumbCard
+                key={breadcrumb.id}
+                breadcrumb={breadcrumb}
+                showRecipient
+                style={{ animationDelay: `${0.05 * index}s` }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+}
