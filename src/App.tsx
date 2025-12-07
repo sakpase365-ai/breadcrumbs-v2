@@ -3,7 +3,15 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import Landing from "./pages/Landing";
+import GetStarted from "./pages/GetStarted";
+import Auth from "./pages/Auth";
+import CreatorDashboard from "./pages/creator/CreatorDashboard";
+import ManageRecipients from "./pages/creator/ManageRecipients";
+import CreateBreadcrumb from "./pages/creator/CreateBreadcrumb";
+import RecipientHome from "./pages/recipient/RecipientHome";
+import BreadcrumbDetail from "./pages/BreadcrumbDetail";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -15,8 +23,15 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/" element={<Landing />} />
+          <Route path="/get-started" element={<GetStarted />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/creator" element={<CreatorDashboard />} />
+          <Route path="/creator/recipients" element={<ManageRecipients />} />
+          <Route path="/creator/create" element={<CreateBreadcrumb />} />
+          <Route path="/recipient" element={<RecipientHome />} />
+          <Route path="/breadcrumb/:id" element={<BreadcrumbDetail />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
