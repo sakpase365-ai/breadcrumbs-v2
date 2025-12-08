@@ -77,7 +77,6 @@ export default function CreatorDashboard() {
     if (!profile) return;
 
     try {
-      // Fetch breadcrumbs with related data
       const { data: breadcrumbsData, error: breadcrumbsError } = await supabase
         .from("breadcrumbs")
         .select(`
@@ -96,7 +95,6 @@ export default function CreatorDashboard() {
 
       if (breadcrumbsError) throw breadcrumbsError;
 
-      // Fetch recipients
       const { data: recipientsData, error: recipientsError } = await supabase
         .from("recipients")
         .select("id, display_name")
@@ -104,7 +102,6 @@ export default function CreatorDashboard() {
 
       if (recipientsError) throw recipientsError;
 
-      // Fetch topics
       const { data: topicsData, error: topicsError } = await supabase
         .from("topics")
         .select("id, name")
@@ -122,7 +119,6 @@ export default function CreatorDashboard() {
     }
   };
 
-  // Filter breadcrumbs
   const filteredBreadcrumbs = breadcrumbs.filter((b) => {
     const matchesSearch = 
       !searchQuery ||
@@ -147,8 +143,8 @@ export default function CreatorDashboard() {
   if (authLoading || isLoading) {
     return (
       <DashboardLayout>
-        <div className="container-wide flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-white/60" />
         </div>
       </DashboardLayout>
     );
@@ -156,150 +152,141 @@ export default function CreatorDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="container-wide">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 animate-fade-up">
-          <div>
-            <h1 className="text-3xl font-serif font-semibold text-foreground">
-              Welcome, {profile?.name?.split(" ")[0]}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {breadcrumbs.length === 0 
-                ? "Start leaving breadcrumbs for your loved ones."
-                : `You've left ${breadcrumbs.length} breadcrumb${breadcrumbs.length === 1 ? "" : "s"}.`
-              }
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <Link to="/creator/recipients">
-              <Button variant="outline" className="gap-2">
-                <Users className="w-4 h-4" />
-                <span className="hidden sm:inline">Manage Recipients</span>
-                <span className="sm:hidden">Recipients</span>
-              </Button>
-            </Link>
-            <Link to="/creator/create">
-              <Button variant="hero" className="gap-2">
-                <Plus className="w-4 h-4" />
-                Create Breadcrumb
-              </Button>
-            </Link>
-          </div>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-serif font-semibold text-white">
+            Welcome, {profile?.name?.split(" ")[0]}
+          </h1>
+          <p className="text-white/60 mt-1">
+            {breadcrumbs.length === 0 
+              ? "Start leaving breadcrumbs for your loved ones."
+              : `You've left ${breadcrumbs.length} breadcrumb${breadcrumbs.length === 1 ? "" : "s"}.`
+            }
+          </p>
         </div>
-
-        {/* Filters */}
-        <div 
-          className="glass-card p-4 mb-6 animate-fade-up"
-          style={{ animationDelay: "0.1s" }}
-        >
-          <div className="flex flex-col lg:flex-row gap-4">
-            {/* Search */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search breadcrumbs..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            {/* Filters Row */}
-            <div className="flex flex-wrap gap-3 items-center">
-              <Select value={selectedRecipient} onValueChange={setSelectedRecipient}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="All Recipients" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Recipients</SelectItem>
-                  {recipients.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>
-                      {r.display_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={selectedTopic} onValueChange={setSelectedTopic}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="All Topics" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Topics</SelectItem>
-                  {topics.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <div className="flex items-center gap-2 pl-2">
-                <Switch
-                  id="scriptures-only"
-                  checked={scripturesOnly}
-                  onCheckedChange={setScripturesOnly}
-                />
-                <Label htmlFor="scriptures-only" className="text-sm cursor-pointer flex items-center gap-1.5">
-                  <BookOpen className="w-4 h-4" />
-                  Scriptures
-                </Label>
-              </div>
-            </div>
-          </div>
+        <div className="flex gap-3">
+          <Link to="/creator/recipients">
+            <Button 
+              variant="outline" 
+              className="gap-2 border-white/20 text-white hover:bg-white/10"
+            >
+              <Users className="w-4 h-4" />
+              <span className="hidden sm:inline">Recipients</span>
+            </Button>
+          </Link>
+          <Link to="/creator/create">
+            <Button className="gap-2 bg-amber-100 text-amber-950 hover:bg-amber-200">
+              <Plus className="w-4 h-4" />
+              Create
+            </Button>
+          </Link>
         </div>
-
-        {/* Breadcrumbs List */}
-        {filteredBreadcrumbs.length === 0 ? (
-          <div 
-            className="text-center py-16 animate-fade-up"
-            style={{ animationDelay: "0.2s" }}
-          >
-            {breadcrumbs.length === 0 ? (
-              <>
-                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-secondary flex items-center justify-center">
-                  <Plus className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <h3 className="font-serif text-xl font-medium text-foreground mb-2">
-                  No breadcrumbs yet
-                </h3>
-                <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-                  {recipients.length === 0 
-                    ? "Add a recipient first, then start leaving wisdom for them."
-                    : "Start leaving wisdom, stories, and scriptures for your loved ones."
-                  }
-                </p>
-                <Link to={recipients.length === 0 ? "/creator/recipients" : "/creator/create"}>
-                  <Button variant="hero">
-                    {recipients.length === 0 ? "Add a Recipient" : "Create Your First Breadcrumb"}
-                  </Button>
-                </Link>
-              </>
-            ) : (
-              <>
-                <Filter className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="font-serif text-xl font-medium text-foreground mb-2">
-                  No matching breadcrumbs
-                </h3>
-                <p className="text-muted-foreground">
-                  Try adjusting your filters or search query.
-                </p>
-              </>
-            )}
-          </div>
-        ) : (
-          <div className="grid gap-4 animate-fade-up" style={{ animationDelay: "0.2s" }}>
-            {filteredBreadcrumbs.map((breadcrumb, index) => (
-              <BreadcrumbCard
-                key={breadcrumb.id}
-                breadcrumb={breadcrumb}
-                showRecipient
-                style={{ animationDelay: `${0.05 * index}s` }}
-              />
-            ))}
-          </div>
-        )}
       </div>
+
+      {/* Filters */}
+      <div className="p-4 mb-6 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10">
+        <div className="flex flex-col lg:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+            <Input
+              placeholder="Search breadcrumbs..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-3 items-center">
+            <Select value={selectedRecipient} onValueChange={setSelectedRecipient}>
+              <SelectTrigger className="w-[140px] bg-white/10 border-white/20 text-white">
+                <SelectValue placeholder="All Recipients" />
+              </SelectTrigger>
+              <SelectContent className="bg-black/90 border-white/20">
+                <SelectItem value="all" className="text-white">All Recipients</SelectItem>
+                {recipients.map((r) => (
+                  <SelectItem key={r.id} value={r.id} className="text-white">
+                    {r.display_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedTopic} onValueChange={setSelectedTopic}>
+              <SelectTrigger className="w-[120px] bg-white/10 border-white/20 text-white">
+                <SelectValue placeholder="All Topics" />
+              </SelectTrigger>
+              <SelectContent className="bg-black/90 border-white/20">
+                <SelectItem value="all" className="text-white">All Topics</SelectItem>
+                {topics.map((t) => (
+                  <SelectItem key={t.id} value={t.id} className="text-white">
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-center gap-2 pl-2">
+              <Switch
+                id="scriptures-only"
+                checked={scripturesOnly}
+                onCheckedChange={setScripturesOnly}
+              />
+              <Label htmlFor="scriptures-only" className="text-sm cursor-pointer flex items-center gap-1.5 text-white/80">
+                <BookOpen className="w-4 h-4" />
+                Scriptures
+              </Label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Breadcrumbs List */}
+      {filteredBreadcrumbs.length === 0 ? (
+        <div className="text-center py-16">
+          {breadcrumbs.length === 0 ? (
+            <>
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/10 flex items-center justify-center">
+                <Plus className="w-8 h-8 text-white/60" />
+              </div>
+              <h3 className="font-serif text-xl font-medium text-white mb-2">
+                No breadcrumbs yet
+              </h3>
+              <p className="text-white/60 mb-6 max-w-sm mx-auto">
+                {recipients.length === 0 
+                  ? "Add a recipient first, then start leaving wisdom for them."
+                  : "Start leaving wisdom, stories, and scriptures for your loved ones."
+                }
+              </p>
+              <Link to={recipients.length === 0 ? "/creator/recipients" : "/creator/create"}>
+                <Button className="bg-amber-100 text-amber-950 hover:bg-amber-200">
+                  {recipients.length === 0 ? "Add a Recipient" : "Create Your First Breadcrumb"}
+                </Button>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Filter className="w-12 h-12 mx-auto mb-4 text-white/60" />
+              <h3 className="font-serif text-xl font-medium text-white mb-2">
+                No matching breadcrumbs
+              </h3>
+              <p className="text-white/60">
+                Try adjusting your filters or search query.
+              </p>
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {filteredBreadcrumbs.map((breadcrumb) => (
+            <BreadcrumbCard
+              key={breadcrumb.id}
+              breadcrumb={breadcrumb}
+              showRecipient
+            />
+          ))}
+        </div>
+      )}
     </DashboardLayout>
   );
 }

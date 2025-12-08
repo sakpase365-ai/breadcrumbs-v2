@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Heart, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { MinimalLayout } from "@/components/layout/MinimalLayout";
 import { z } from "zod";
 
 const authSchema = z.object({
@@ -30,11 +31,9 @@ const Auth = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    // Check if user is already logged in
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        // Get user profile to determine redirect
         const { data: profile } = await supabase
           .from("profiles")
           .select("role")
@@ -90,7 +89,6 @@ const Auth = () => {
 
         if (error) throw error;
 
-        // Get profile to determine redirect
         const { data: profile } = await supabase
           .from("profiles")
           .select("role")
@@ -108,7 +106,6 @@ const Auth = () => {
           navigate("/recipient");
         }
       } else {
-        // Sign up
         const userRole = role || "creator";
         
         const { data, error } = await supabase.auth.signUp({
@@ -122,7 +119,6 @@ const Auth = () => {
         if (error) throw error;
 
         if (data.user) {
-          // Create profile
           const { error: profileError } = await supabase
             .from("profiles")
             .insert({
@@ -134,7 +130,6 @@ const Auth = () => {
 
           if (profileError) throw profileError;
 
-          // If recipient, try to link to existing recipient record by email
           if (userRole === "recipient") {
             await supabase
               .from("recipients")
@@ -157,7 +152,6 @@ const Auth = () => {
     } catch (error: any) {
       let message = error.message || "Something went wrong. Please try again.";
       
-      // Handle common auth errors
       if (message.includes("User already registered")) {
         message = "This email is already registered. Try logging in instead.";
       } else if (message.includes("Invalid login credentials")) {
@@ -175,124 +169,115 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen gradient-hero flex flex-col">
+    <MinimalLayout centered maxWidth="sm">
       {/* Back Link */}
-      <div className="container-narrow pt-6">
-        <Link 
-          to={isLogin ? "/" : "/get-started"}
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Link>
+      <Link 
+        to={isLogin ? "/" : "/get-started"}
+        className="inline-flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors mb-8"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back
+      </Link>
+
+      <div className="text-center mb-8">
+        <h1 className="text-2xl md:text-3xl font-serif font-semibold text-white mb-2">
+          {isLogin ? "Welcome Back" : role === "recipient" ? "Join as Recipient" : "Create Your Account"}
+        </h1>
+        <p className="text-white/60 text-sm">
+          {isLogin 
+            ? "Sign in to continue your journey." 
+            : role === "recipient" 
+              ? "Discover the wisdom left for you."
+              : "Start leaving breadcrumbs for your loved ones."
+          }
+        </p>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center py-12">
-        <div className="w-full max-w-md mx-auto px-4">
-          <div className="text-center mb-8 animate-fade-up">
-            <div className="inline-flex items-center justify-center w-12 h-12 mb-4 rounded-xl bg-primary/10">
-              <Heart className="w-6 h-6 text-primary" />
+      <form 
+        onSubmit={handleSubmit} 
+        className="p-6 md:p-8 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10"
+      >
+        <div className="space-y-4">
+          {!isLogin && (
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-white/80">Full Name</Label>
+              <Input
+                id="name"
+                placeholder="Your name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                disabled={isLoading}
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
+              />
+              {errors.name && (
+                <p className="text-sm text-red-400">{errors.name}</p>
+              )}
             </div>
-            <h1 className="text-2xl md:text-3xl font-serif font-semibold text-foreground mb-2">
-              {isLogin ? "Welcome Back" : role === "recipient" ? "Join as Recipient" : "Create Your Account"}
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              {isLogin 
-                ? "Sign in to continue your journey." 
-                : role === "recipient" 
-                  ? "Discover the wisdom left for you."
-                  : "Start leaving breadcrumbs for your loved ones."
-              }
-            </p>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-white/80">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              disabled={isLoading}
+              className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
+            />
+            {errors.email && (
+              <p className="text-sm text-red-400">{errors.email}</p>
+            )}
           </div>
 
-          <form 
-            onSubmit={handleSubmit} 
-            className="glass-card p-6 md:p-8 animate-fade-up"
-            style={{ animationDelay: "0.1s" }}
+          <div className="space-y-2">
+            <Label htmlFor="password" className="text-white/80">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              disabled={isLoading}
+              className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
+            />
+            {errors.password && (
+              <p className="text-sm text-red-400">{errors.password}</p>
+            )}
+          </div>
+
+          <Button 
+            type="submit" 
+            className="w-full mt-6 bg-amber-100 text-amber-950 hover:bg-amber-200"
+            size="lg"
+            disabled={isLoading}
           >
-            <div className="space-y-4">
-              {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    placeholder="Your name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    disabled={isLoading}
-                  />
-                  {errors.name && (
-                    <p className="text-sm text-destructive">{errors.name}</p>
-                  )}
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  disabled={isLoading}
-                />
-                {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  disabled={isLoading}
-                />
-                {errors.password && (
-                  <p className="text-sm text-destructive">{errors.password}</p>
-                )}
-              </div>
-
-              <Button 
-                type="submit" 
-                variant="hero" 
-                size="lg" 
-                className="w-full mt-6"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    {isLogin ? "Signing in..." : "Creating account..."}
-                  </>
-                ) : (
-                  isLogin ? "Sign In" : "Create Account"
-                )}
-              </Button>
-            </div>
-
-            <div className="mt-6 text-center">
-              <button
-                type="button"
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {isLogin 
-                  ? "Don't have an account? Sign up" 
-                  : "Already have an account? Sign in"
-                }
-              </button>
-            </div>
-          </form>
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {isLogin ? "Signing in..." : "Creating account..."}
+              </>
+            ) : (
+              isLogin ? "Sign In" : "Create Account"
+            )}
+          </Button>
         </div>
-      </div>
-    </div>
+
+        <div className="mt-6 text-center">
+          <button
+            type="button"
+            onClick={() => setIsLogin(!isLogin)}
+            className="text-sm text-white/60 hover:text-white transition-colors"
+          >
+            {isLogin 
+              ? "Don't have an account? Sign up" 
+              : "Already have an account? Sign in"
+            }
+          </button>
+        </div>
+      </form>
+    </MinimalLayout>
   );
 };
 

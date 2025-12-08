@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BookOpen, FileText, Calendar, User, Quote, Loader2 } from "lucide-react";
+import { ArrowLeft, BookOpen, FileText, Calendar, User, Quote, Loader2, Mic } from "lucide-react";
 import { format } from "date-fns";
 
 interface BreadcrumbDetail {
@@ -12,6 +12,7 @@ interface BreadcrumbDetail {
   title: string;
   content_type: string;
   text_body: string | null;
+  audio_url: string | null;
   is_scripture: boolean;
   scripture_reference: string | null;
   scripture_text: string | null;
@@ -63,6 +64,7 @@ export default function BreadcrumbDetail() {
           title,
           content_type,
           text_body,
+          audio_url,
           is_scripture,
           scripture_reference,
           scripture_text,
@@ -93,8 +95,8 @@ export default function BreadcrumbDetail() {
   if (authLoading || isLoading) {
     return (
       <DashboardLayout>
-        <div className="container-narrow flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-white/60" />
         </div>
       </DashboardLayout>
     );
@@ -103,12 +105,12 @@ export default function BreadcrumbDetail() {
   if (error || !breadcrumb) {
     return (
       <DashboardLayout>
-        <div className="container-narrow text-center py-16">
-          <h3 className="font-serif text-xl font-medium text-foreground mb-2">
+        <div className="text-center py-16">
+          <h3 className="font-serif text-xl font-medium text-white mb-2">
             {error || "Breadcrumb not found"}
           </h3>
           <Link to={backPath}>
-            <Button variant="outline" className="mt-4">
+            <Button variant="outline" className="mt-4 border-white/20 text-white hover:bg-white/10">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Go Back
             </Button>
@@ -118,113 +120,116 @@ export default function BreadcrumbDetail() {
     );
   }
 
+  const getContentIcon = () => {
+    if (breadcrumb.is_scripture) return <BookOpen className="w-6 h-6" />;
+    if (breadcrumb.content_type === "voice_note") return <Mic className="w-6 h-6" />;
+    return <FileText className="w-6 h-6" />;
+  };
+
   return (
     <DashboardLayout>
-      <div className="container-narrow">
-        {/* Back Link */}
-        <Link 
-          to={backPath}
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 animate-fade-up"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Link>
+      {/* Back Link */}
+      <Link 
+        to={backPath}
+        className="inline-flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors mb-6"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back
+      </Link>
 
-        {/* Header */}
-        <div className="mb-8 animate-fade-up" style={{ animationDelay: "0.05s" }}>
-          <div className="flex items-start gap-4">
-            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
-              {breadcrumb.is_scripture ? (
-                <BookOpen className="w-6 h-6" />
-              ) : (
-                <FileText className="w-6 h-6" />
-              )}
-            </div>
-            <div className="flex-1">
-              <h1 className="text-2xl md:text-3xl font-serif font-semibold text-foreground">
-                {breadcrumb.title}
-              </h1>
-              <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
-                {profile?.role === "creator" && breadcrumb.recipient && (
-                  <span className="flex items-center gap-1">
-                    <User className="w-4 h-4" />
-                    For {breadcrumb.recipient.display_name}
-                  </span>
-                )}
-                {profile?.role === "recipient" && breadcrumb.creator && (
-                  <span className="flex items-center gap-1">
-                    <User className="w-4 h-4" />
-                    From {breadcrumb.creator.name}
-                  </span>
-                )}
-                {breadcrumb.topic && (
-                  <span className="px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs">
-                    {breadcrumb.topic.name}
-                  </span>
-                )}
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-amber-100/20 text-amber-100 flex items-center justify-center">
+            {getContentIcon()}
+          </div>
+          <div className="flex-1">
+            <h1 className="text-2xl md:text-3xl font-serif font-semibold text-white">
+              {breadcrumb.title}
+            </h1>
+            <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-white/60">
+              {profile?.role === "creator" && breadcrumb.recipient && (
                 <span className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
-                  {format(new Date(breadcrumb.created_at), "MMMM d, yyyy")}
+                  <User className="w-4 h-4" />
+                  For {breadcrumb.recipient.display_name}
                 </span>
-              </div>
+              )}
+              {profile?.role === "recipient" && breadcrumb.creator && (
+                <span className="flex items-center gap-1">
+                  <User className="w-4 h-4" />
+                  From {breadcrumb.creator.name}
+                </span>
+              )}
+              {breadcrumb.topic && (
+                <span className="px-2 py-0.5 rounded-full bg-white/10 text-white/80 text-xs">
+                  {breadcrumb.topic.name}
+                </span>
+              )}
+              <span className="flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                {format(new Date(breadcrumb.created_at), "MMMM d, yyyy")}
+              </span>
             </div>
           </div>
         </div>
-
-        {/* Scripture Reference */}
-        {breadcrumb.is_scripture && breadcrumb.scripture_reference && (
-          <div 
-            className="glass-card p-6 mb-6 animate-fade-up"
-            style={{ animationDelay: "0.1s" }}
-          >
-            <div className="flex items-start gap-3">
-              <Quote className="w-5 h-5 text-accent flex-shrink-0 mt-1" />
-              <div>
-                <p className="font-serif text-lg font-medium text-foreground mb-2">
-                  {breadcrumb.scripture_reference}
-                </p>
-                {breadcrumb.scripture_text && (
-                  <p className="text-muted-foreground italic leading-relaxed">
-                    "{breadcrumb.scripture_text}"
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Main Content */}
-        {breadcrumb.text_body && (
-          <div 
-            className="glass-card p-6 mb-6 animate-fade-up"
-            style={{ animationDelay: "0.15s" }}
-          >
-            <h3 className="font-serif text-lg font-medium text-foreground mb-4">
-              {breadcrumb.is_scripture ? "Reflection" : "Message"}
-            </h3>
-            <div className="prose prose-stone max-w-none">
-              <p className="text-foreground leading-relaxed whitespace-pre-wrap">
-                {breadcrumb.text_body}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Commentary */}
-        {breadcrumb.include_commentary && breadcrumb.commentary_text && (
-          <div 
-            className="glass-card p-6 animate-fade-up border-l-4 border-accent"
-            style={{ animationDelay: "0.2s" }}
-          >
-            <h3 className="font-serif text-lg font-medium text-foreground mb-4">
-              Personal Commentary
-            </h3>
-            <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-              {breadcrumb.commentary_text}
-            </p>
-          </div>
-        )}
       </div>
+
+      {/* Voice Note Audio */}
+      {breadcrumb.audio_url && (
+        <div className="p-6 mb-6 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10">
+          <h3 className="font-serif text-lg font-medium text-white mb-4">
+            Voice Note
+          </h3>
+          <audio 
+            controls 
+            src={breadcrumb.audio_url} 
+            className="w-full"
+          />
+        </div>
+      )}
+
+      {/* Scripture Reference */}
+      {breadcrumb.is_scripture && breadcrumb.scripture_reference && (
+        <div className="p-6 mb-6 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10">
+          <div className="flex items-start gap-3">
+            <Quote className="w-5 h-5 text-amber-100 flex-shrink-0 mt-1" />
+            <div>
+              <p className="font-serif text-lg font-medium text-white mb-2">
+                {breadcrumb.scripture_reference}
+              </p>
+              {breadcrumb.scripture_text && (
+                <p className="text-white/70 italic leading-relaxed">
+                  "{breadcrumb.scripture_text}"
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      {breadcrumb.text_body && (
+        <div className="p-6 mb-6 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10">
+          <h3 className="font-serif text-lg font-medium text-white mb-4">
+            {breadcrumb.is_scripture ? "Reflection" : "Message"}
+          </h3>
+          <p className="text-white/80 leading-relaxed whitespace-pre-wrap">
+            {breadcrumb.text_body}
+          </p>
+        </div>
+      )}
+
+      {/* Commentary */}
+      {breadcrumb.include_commentary && breadcrumb.commentary_text && (
+        <div className="p-6 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 border-l-4 border-l-amber-100/50">
+          <h3 className="font-serif text-lg font-medium text-white mb-4">
+            Personal Commentary
+          </h3>
+          <p className="text-white/70 leading-relaxed whitespace-pre-wrap">
+            {breadcrumb.commentary_text}
+          </p>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
