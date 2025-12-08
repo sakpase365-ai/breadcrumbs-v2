@@ -7,16 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Users, Search, BookOpen, Filter, Loader2 } from "lucide-react";
 import { BreadcrumbCard } from "@/components/BreadcrumbCard";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-
 interface Breadcrumb {
   id: string;
   title: string;
@@ -34,19 +27,19 @@ interface Breadcrumb {
     name: string;
   } | null;
 }
-
 interface Recipient {
   id: string;
   display_name: string;
 }
-
 interface Topic {
   id: string;
   name: string;
 }
-
 export default function CreatorDashboard() {
-  const { profile, isLoading: authLoading } = useAuth();
+  const {
+    profile,
+    isLoading: authLoading
+  } = useAuth();
   const navigate = useNavigate();
   const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([]);
   const [recipients, setRecipients] = useState<Recipient[]>([]);
@@ -56,30 +49,26 @@ export default function CreatorDashboard() {
   const [selectedRecipient, setSelectedRecipient] = useState<string>("all");
   const [selectedTopic, setSelectedTopic] = useState<string>("all");
   const [scripturesOnly, setScripturesOnly] = useState(false);
-
   useEffect(() => {
     if (!authLoading && !profile) {
       navigate("/auth");
       return;
     }
-
     if (profile && profile.role !== "creator") {
       navigate("/recipient");
       return;
     }
-
     if (profile) {
       fetchData();
     }
   }, [profile, authLoading, navigate]);
-
   const fetchData = async () => {
     if (!profile) return;
-
     try {
-      const { data: breadcrumbsData, error: breadcrumbsError } = await supabase
-        .from("breadcrumbs")
-        .select(`
+      const {
+        data: breadcrumbsData,
+        error: breadcrumbsError
+      } = await supabase.from("breadcrumbs").select(`
           id,
           title,
           content_type,
@@ -89,26 +78,20 @@ export default function CreatorDashboard() {
           created_at,
           recipient:recipients(id, display_name),
           topic:topics(id, name)
-        `)
-        .eq("creator_id", profile.id)
-        .order("created_at", { ascending: false });
-
+        `).eq("creator_id", profile.id).order("created_at", {
+        ascending: false
+      });
       if (breadcrumbsError) throw breadcrumbsError;
-
-      const { data: recipientsData, error: recipientsError } = await supabase
-        .from("recipients")
-        .select("id, display_name")
-        .eq("creator_id", profile.id);
-
+      const {
+        data: recipientsData,
+        error: recipientsError
+      } = await supabase.from("recipients").select("id, display_name").eq("creator_id", profile.id);
       if (recipientsError) throw recipientsError;
-
-      const { data: topicsData, error: topicsError } = await supabase
-        .from("topics")
-        .select("id, name")
-        .eq("creator_id", profile.id);
-
+      const {
+        data: topicsData,
+        error: topicsError
+      } = await supabase.from("topics").select("id, name").eq("creator_id", profile.id);
       if (topicsError) throw topicsError;
-
       setBreadcrumbs(breadcrumbsData as any || []);
       setRecipients(recipientsData || []);
       setTopics(topicsData || []);
@@ -118,40 +101,21 @@ export default function CreatorDashboard() {
       setIsLoading(false);
     }
   };
-
-  const filteredBreadcrumbs = breadcrumbs.filter((b) => {
-    const matchesSearch = 
-      !searchQuery ||
-      b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.text_body?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesRecipient = 
-      selectedRecipient === "all" || 
-      b.recipient?.id === selectedRecipient;
-    
-    const matchesTopic = 
-      selectedTopic === "all" || 
-      b.topic?.id === selectedTopic;
-    
-    const matchesScripture = 
-      !scripturesOnly || 
-      b.is_scripture;
-
+  const filteredBreadcrumbs = breadcrumbs.filter(b => {
+    const matchesSearch = !searchQuery || b.title.toLowerCase().includes(searchQuery.toLowerCase()) || b.text_body?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRecipient = selectedRecipient === "all" || b.recipient?.id === selectedRecipient;
+    const matchesTopic = selectedTopic === "all" || b.topic?.id === selectedTopic;
+    const matchesScripture = !scripturesOnly || b.is_scripture;
     return matchesSearch && matchesRecipient && matchesTopic && matchesScripture;
   });
-
   if (authLoading || isLoading) {
-    return (
-      <DashboardLayout>
+    return <DashboardLayout>
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-white/60" />
         </div>
-      </DashboardLayout>
-    );
+      </DashboardLayout>;
   }
-
-  return (
-    <DashboardLayout>
+  return <DashboardLayout>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
@@ -159,18 +123,12 @@ export default function CreatorDashboard() {
             Welcome, {profile?.name?.split(" ")[0]}
           </h1>
           <p className="text-white/60 mt-1">
-            {breadcrumbs.length === 0 
-              ? "Start leaving breadcrumbs for your loved ones."
-              : `You've left ${breadcrumbs.length} breadcrumb${breadcrumbs.length === 1 ? "" : "s"}.`
-            }
+            {breadcrumbs.length === 0 ? "Start leaving breadcrumbs for your loved ones." : `You've left ${breadcrumbs.length} breadcrumb${breadcrumbs.length === 1 ? "" : "s"}.`}
           </p>
         </div>
         <div className="flex gap-3">
           <Link to="/creator/recipients">
-            <Button 
-              variant="outline" 
-              className="gap-2 border-white/20 text-white hover:bg-white/10"
-            >
+            <Button variant="outline" className="gap-2 text-white hover:bg-white/10 border-muted">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">Recipients</span>
             </Button>
@@ -189,12 +147,7 @@ export default function CreatorDashboard() {
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-            <Input
-              placeholder="Search breadcrumbs..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40"
-            />
+            <Input placeholder="Search breadcrumbs..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40" />
           </div>
 
           <div className="flex flex-wrap gap-3 items-center">
@@ -204,11 +157,9 @@ export default function CreatorDashboard() {
               </SelectTrigger>
               <SelectContent className="bg-black/90 border-white/20">
                 <SelectItem value="all" className="text-white">All Recipients</SelectItem>
-                {recipients.map((r) => (
-                  <SelectItem key={r.id} value={r.id} className="text-white">
+                {recipients.map(r => <SelectItem key={r.id} value={r.id} className="text-white">
                     {r.display_name}
-                  </SelectItem>
-                ))}
+                  </SelectItem>)}
               </SelectContent>
             </Select>
 
@@ -218,20 +169,14 @@ export default function CreatorDashboard() {
               </SelectTrigger>
               <SelectContent className="bg-black/90 border-white/20">
                 <SelectItem value="all" className="text-white">All Topics</SelectItem>
-                {topics.map((t) => (
-                  <SelectItem key={t.id} value={t.id} className="text-white">
+                {topics.map(t => <SelectItem key={t.id} value={t.id} className="text-white">
                     {t.name}
-                  </SelectItem>
-                ))}
+                  </SelectItem>)}
               </SelectContent>
             </Select>
 
             <div className="flex items-center gap-2 pl-2">
-              <Switch
-                id="scriptures-only"
-                checked={scripturesOnly}
-                onCheckedChange={setScripturesOnly}
-              />
+              <Switch id="scriptures-only" checked={scripturesOnly} onCheckedChange={setScripturesOnly} />
               <Label htmlFor="scriptures-only" className="text-sm cursor-pointer flex items-center gap-1.5 text-white/80">
                 <BookOpen className="w-4 h-4" />
                 Scriptures
@@ -242,10 +187,8 @@ export default function CreatorDashboard() {
       </div>
 
       {/* Breadcrumbs List */}
-      {filteredBreadcrumbs.length === 0 ? (
-        <div className="text-center py-16">
-          {breadcrumbs.length === 0 ? (
-            <>
+      {filteredBreadcrumbs.length === 0 ? <div className="text-center py-16">
+          {breadcrumbs.length === 0 ? <>
               <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/10 flex items-center justify-center">
                 <Plus className="w-8 h-8 text-white/60" />
               </div>
@@ -253,19 +196,14 @@ export default function CreatorDashboard() {
                 No breadcrumbs yet
               </h3>
               <p className="text-white/60 mb-6 max-w-sm mx-auto">
-                {recipients.length === 0 
-                  ? "Add a recipient first, then start leaving wisdom for them."
-                  : "Start leaving wisdom, stories, and scriptures for your loved ones."
-                }
+                {recipients.length === 0 ? "Add a recipient first, then start leaving wisdom for them." : "Start leaving wisdom, stories, and scriptures for your loved ones."}
               </p>
               <Link to={recipients.length === 0 ? "/creator/recipients" : "/creator/create"}>
                 <Button className="bg-amber-100 text-amber-950 hover:bg-amber-200">
                   {recipients.length === 0 ? "Add a Recipient" : "Create Your First Breadcrumb"}
                 </Button>
               </Link>
-            </>
-          ) : (
-            <>
+            </> : <>
               <Filter className="w-12 h-12 mx-auto mb-4 text-white/60" />
               <h3 className="font-serif text-xl font-medium text-white mb-2">
                 No matching breadcrumbs
@@ -273,20 +211,9 @@ export default function CreatorDashboard() {
               <p className="text-white/60">
                 Try adjusting your filters or search query.
               </p>
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="grid gap-4">
-          {filteredBreadcrumbs.map((breadcrumb) => (
-            <BreadcrumbCard
-              key={breadcrumb.id}
-              breadcrumb={breadcrumb}
-              showRecipient
-            />
-          ))}
-        </div>
-      )}
-    </DashboardLayout>
-  );
+            </>}
+        </div> : <div className="grid gap-4">
+          {filteredBreadcrumbs.map(breadcrumb => <BreadcrumbCard key={breadcrumb.id} breadcrumb={breadcrumb} showRecipient />)}
+        </div>}
+    </DashboardLayout>;
 }
