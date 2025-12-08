@@ -5,11 +5,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Users, Search, BookOpen, Filter, Loader2 } from "lucide-react";
+import { Plus, Users, Search, Filter, Loader2 } from "lucide-react";
 import { BreadcrumbCard } from "@/components/BreadcrumbCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 interface Breadcrumb {
   id: string;
   title: string;
@@ -48,7 +46,7 @@ export default function CreatorDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRecipient, setSelectedRecipient] = useState<string>("all");
   const [selectedTopic, setSelectedTopic] = useState<string>("all");
-  const [scripturesOnly, setScripturesOnly] = useState(false);
+  
   useEffect(() => {
     if (!authLoading && !profile) {
       navigate("/auth");
@@ -105,8 +103,7 @@ export default function CreatorDashboard() {
     const matchesSearch = !searchQuery || b.title.toLowerCase().includes(searchQuery.toLowerCase()) || b.text_body?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRecipient = selectedRecipient === "all" || b.recipient?.id === selectedRecipient;
     const matchesTopic = selectedTopic === "all" || b.topic?.id === selectedTopic;
-    const matchesScripture = !scripturesOnly || b.is_scripture;
-    return matchesSearch && matchesRecipient && matchesTopic && matchesScripture;
+    return matchesSearch && matchesRecipient && matchesTopic;
   });
   if (authLoading || isLoading) {
     return <DashboardLayout>
@@ -175,13 +172,6 @@ export default function CreatorDashboard() {
               </SelectContent>
             </Select>
 
-            <div className="flex items-center gap-2 pl-2">
-              <Switch id="scriptures-only" checked={scripturesOnly} onCheckedChange={setScripturesOnly} />
-              <Label htmlFor="scriptures-only" className="text-sm cursor-pointer flex items-center gap-1.5 text-white/80">
-                <BookOpen className="w-4 h-4" />
-                Scriptures
-              </Label>
-            </div>
           </div>
         </div>
       </div>
