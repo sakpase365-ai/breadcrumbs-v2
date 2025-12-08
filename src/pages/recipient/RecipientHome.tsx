@@ -60,7 +60,6 @@ export default function RecipientHome() {
   const [selectedTopic, setSelectedTopic] = useState<string>("all");
   const [scripturesOnly, setScripturesOnly] = useState(false);
 
-  // AI Question state
   const [question, setQuestion] = useState("");
   const [aiAnswer, setAiAnswer] = useState("");
   const [isAsking, setIsAsking] = useState(false);
@@ -85,7 +84,6 @@ export default function RecipientHome() {
     if (!user) return;
 
     try {
-      // First, find the recipient record linked to this user
       const { data: recipientData, error: recipientError } = await supabase
         .from("recipients")
         .select("id, display_name, creator_id")
@@ -93,7 +91,6 @@ export default function RecipientHome() {
         .single();
 
       if (recipientError || !recipientData) {
-        // No recipient record found
         setRecipientRecord(null);
         setIsLoading(false);
         return;
@@ -101,7 +98,6 @@ export default function RecipientHome() {
 
       setRecipientRecord(recipientData);
 
-      // Fetch breadcrumbs for this recipient with creator info
       const { data: breadcrumbsData, error: breadcrumbsError } = await supabase
         .from("breadcrumbs")
         .select(`
@@ -120,7 +116,6 @@ export default function RecipientHome() {
 
       if (breadcrumbsError) throw breadcrumbsError;
 
-      // Extract unique topics
       const uniqueTopics = new Map<string, Topic>();
       breadcrumbsData?.forEach((b: any) => {
         if (b.topic) {
@@ -144,8 +139,6 @@ export default function RecipientHome() {
     setAiAnswer("");
 
     try {
-      // For now, we'll show a placeholder. 
-      // The AI functionality will be implemented with an edge function
       const response = await supabase.functions.invoke("ask-breadcrumbs", {
         body: {
           question: question.trim(),
@@ -157,7 +150,6 @@ export default function RecipientHome() {
 
       setAiAnswer(response.data?.answer || "I couldn't find an answer in the breadcrumbs left for you.");
 
-      // Save the question
       await supabase.from("questions").insert({
         recipient_id: recipientRecord.id,
         question_text: question.trim(),
@@ -175,7 +167,6 @@ export default function RecipientHome() {
     }
   };
 
-  // Filter breadcrumbs
   const filteredBreadcrumbs = breadcrumbs.filter((b) => {
     const matchesSearch = 
       !searchQuery ||
@@ -196,8 +187,8 @@ export default function RecipientHome() {
   if (authLoading || isLoading) {
     return (
       <DashboardLayout>
-        <div className="container-wide flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-white/60" />
         </div>
       </DashboardLayout>
     );
@@ -206,15 +197,15 @@ export default function RecipientHome() {
   if (!recipientRecord) {
     return (
       <DashboardLayout>
-        <div className="container-narrow text-center py-16">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-secondary flex items-center justify-center">
-            <MessageCircle className="w-8 h-8 text-muted-foreground" />
+        <div className="text-center py-16">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/10 flex items-center justify-center">
+            <MessageCircle className="w-8 h-8 text-white/60" />
           </div>
-          <h3 className="font-serif text-xl font-medium text-foreground mb-2">
+          <h3 className="font-serif text-xl font-medium text-white mb-2">
             No breadcrumbs yet
           </h3>
-          <p className="text-muted-foreground max-w-sm mx-auto">
-            It looks like no one has added you as a recipient yet. Ask your loved ones to add you using your email: <strong>{profile?.email}</strong>
+          <p className="text-white/60 max-w-sm mx-auto">
+            It looks like no one has added you as a recipient yet. Ask your loved ones to add you using your email: <strong className="text-white">{profile?.email}</strong>
           </p>
         </div>
       </DashboardLayout>
@@ -223,164 +214,151 @@ export default function RecipientHome() {
 
   return (
     <DashboardLayout>
-      <div className="container-wide">
-        {/* Header */}
-        <div className="mb-8 animate-fade-up">
-          <h1 className="text-3xl font-serif font-semibold text-foreground">
-            Hi, {profile?.name?.split(" ")[0]}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Here are breadcrumbs that were left for you.
-          </p>
-        </div>
-
-        {/* Ask a Question */}
-        <div 
-          className="glass-card p-6 mb-8 animate-fade-up"
-          style={{ animationDelay: "0.05s" }}
-        >
-          <div className="flex items-start gap-4">
-            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-serif text-lg font-medium text-foreground mb-1">
-                Ask a Question
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Get answers based only on the wisdom that was left for you.
-              </p>
-              <div className="space-y-4">
-                <Textarea
-                  placeholder="What question do you have? (e.g., What did they say about handling money?)"
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  rows={3}
-                />
-                <div className="flex justify-end">
-                  <Button 
-                    variant="hero" 
-                    onClick={handleAskQuestion}
-                    disabled={!question.trim() || isAsking}
-                  >
-                    {isAsking ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Thinking...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4" />
-                        Get Answer
-                      </>
-                    )}
-                  </Button>
-                </div>
-
-                {aiAnswer && (
-                  <div className="p-4 rounded-lg bg-secondary/50 border border-border">
-                    <p className="text-sm font-medium text-foreground mb-2">Answer:</p>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                      {aiAnswer}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div 
-          className="glass-card p-4 mb-6 animate-fade-up"
-          style={{ animationDelay: "0.1s" }}
-        >
-          <div className="flex flex-col lg:flex-row gap-4">
-            {/* Search */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search breadcrumbs..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            {/* Filters Row */}
-            <div className="flex flex-wrap gap-3 items-center">
-              <Select value={selectedTopic} onValueChange={setSelectedTopic}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="All Topics" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Topics</SelectItem>
-                  {topics.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <div className="flex items-center gap-2 pl-2">
-                <Switch
-                  id="scriptures-only"
-                  checked={scripturesOnly}
-                  onCheckedChange={setScripturesOnly}
-                />
-                <Label htmlFor="scriptures-only" className="text-sm cursor-pointer flex items-center gap-1.5">
-                  <BookOpen className="w-4 h-4" />
-                  Scriptures
-                </Label>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Breadcrumbs List */}
-        {filteredBreadcrumbs.length === 0 ? (
-          <div 
-            className="text-center py-16 animate-fade-up"
-            style={{ animationDelay: "0.2s" }}
-          >
-            {breadcrumbs.length === 0 ? (
-              <>
-                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-secondary flex items-center justify-center">
-                  <MessageCircle className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <h3 className="font-serif text-xl font-medium text-foreground mb-2">
-                  No breadcrumbs yet
-                </h3>
-                <p className="text-muted-foreground max-w-sm mx-auto">
-                  Your loved ones haven't left any breadcrumbs for you yet. Check back soon!
-                </p>
-              </>
-            ) : (
-              <>
-                <Filter className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="font-serif text-xl font-medium text-foreground mb-2">
-                  No matching breadcrumbs
-                </h3>
-                <p className="text-muted-foreground">
-                  Try adjusting your filters or search query.
-                </p>
-              </>
-            )}
-          </div>
-        ) : (
-          <div className="grid gap-4 animate-fade-up" style={{ animationDelay: "0.2s" }}>
-            {filteredBreadcrumbs.map((breadcrumb, index) => (
-              <BreadcrumbCard
-                key={breadcrumb.id}
-                breadcrumb={breadcrumb}
-                showCreator
-                style={{ animationDelay: `${0.05 * index}s` }}
-              />
-            ))}
-          </div>
-        )}
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-serif font-semibold text-white">
+          Hi, {profile?.name?.split(" ")[0]}
+        </h1>
+        <p className="text-white/60 mt-1">
+          Here are breadcrumbs that were left for you.
+        </p>
       </div>
+
+      {/* Ask a Question */}
+      <div className="p-6 mb-8 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10">
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-amber-100/20 text-amber-100 flex items-center justify-center">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-serif text-lg font-medium text-white mb-1">
+              Ask a Question
+            </h3>
+            <p className="text-sm text-white/60 mb-4">
+              Get answers based only on the wisdom that was left for you.
+            </p>
+            <div className="space-y-4">
+              <Textarea
+                placeholder="What question do you have? (e.g., What did they say about handling money?)"
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                rows={3}
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
+              />
+              <div className="flex justify-end">
+                <Button 
+                  className="bg-amber-100 text-amber-950 hover:bg-amber-200"
+                  onClick={handleAskQuestion}
+                  disabled={!question.trim() || isAsking}
+                >
+                  {isAsking ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Thinking...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      Get Answer
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {aiAnswer && (
+                <div className="p-4 rounded-lg bg-white/5 border border-white/10">
+                  <p className="text-sm font-medium text-white mb-2">Answer:</p>
+                  <p className="text-sm text-white/80 whitespace-pre-wrap">
+                    {aiAnswer}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="p-4 mb-6 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10">
+        <div className="flex flex-col lg:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+            <Input
+              placeholder="Search breadcrumbs..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-3 items-center">
+            <Select value={selectedTopic} onValueChange={setSelectedTopic}>
+              <SelectTrigger className="w-[120px] bg-white/10 border-white/20 text-white">
+                <SelectValue placeholder="All Topics" />
+              </SelectTrigger>
+              <SelectContent className="bg-black/90 border-white/20">
+                <SelectItem value="all" className="text-white">All Topics</SelectItem>
+                {topics.map((t) => (
+                  <SelectItem key={t.id} value={t.id} className="text-white">
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-center gap-2 pl-2">
+              <Switch
+                id="scriptures-only"
+                checked={scripturesOnly}
+                onCheckedChange={setScripturesOnly}
+              />
+              <Label htmlFor="scriptures-only" className="text-sm cursor-pointer flex items-center gap-1.5 text-white/80">
+                <BookOpen className="w-4 h-4" />
+                Scriptures
+              </Label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Breadcrumbs List */}
+      {filteredBreadcrumbs.length === 0 ? (
+        <div className="text-center py-16">
+          {breadcrumbs.length === 0 ? (
+            <>
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/10 flex items-center justify-center">
+                <MessageCircle className="w-8 h-8 text-white/60" />
+              </div>
+              <h3 className="font-serif text-xl font-medium text-white mb-2">
+                No breadcrumbs yet
+              </h3>
+              <p className="text-white/60 max-w-sm mx-auto">
+                Your loved ones haven't left any breadcrumbs for you yet. Check back soon!
+              </p>
+            </>
+          ) : (
+            <>
+              <Filter className="w-12 h-12 mx-auto mb-4 text-white/60" />
+              <h3 className="font-serif text-xl font-medium text-white mb-2">
+                No matching breadcrumbs
+              </h3>
+              <p className="text-white/60">
+                Try adjusting your filters or search query.
+              </p>
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {filteredBreadcrumbs.map((breadcrumb) => (
+            <BreadcrumbCard
+              key={breadcrumb.id}
+              breadcrumb={breadcrumb}
+              showCreator
+            />
+          ))}
+        </div>
+      )}
     </DashboardLayout>
   );
 }
