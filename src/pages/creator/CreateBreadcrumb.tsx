@@ -11,43 +11,32 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Plus, Loader2, BookOpen, FileText, Mic, AlertCircle } from "lucide-react";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
 interface Recipient {
   id: string;
   display_name: string;
 }
-
 interface Topic {
   id: string;
   name: string;
 }
-
 interface DuplicateWarning {
   id: string;
   title: string;
 }
-
 type ContentType = "text" | "voice_note" | "scripture";
-
 export default function CreateBreadcrumb() {
-  const { profile, user, isLoading: authLoading } = useAuth();
+  const {
+    profile,
+    user,
+    isLoading: authLoading
+  } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,9 +46,9 @@ export default function CreateBreadcrumb() {
   const [newTopicName, setNewTopicName] = useState("");
   const [duplicateWarning, setDuplicateWarning] = useState<DuplicateWarning | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-
   const [formData, setFormData] = useState({
-    recipient_id: "", // Can be a specific ID or "__all__" for all family members
+    recipient_id: "",
+    // Can be a specific ID or "__all__" for all family members
     topic_id: "",
     title: "",
     content_type: "text" as ContentType,
@@ -69,43 +58,27 @@ export default function CreateBreadcrumb() {
     scripture_text: "",
     include_commentary: false,
     commentary_text: "",
-    audio_url: "",
+    audio_url: ""
   });
-
   useEffect(() => {
     if (!authLoading && !profile) {
       navigate("/auth");
       return;
     }
-
     if (profile && profile.role !== "creator") {
       navigate("/recipient");
       return;
     }
-
     if (profile) {
       fetchData();
     }
   }, [profile, authLoading, navigate]);
-
   const fetchData = async () => {
     if (!profile) return;
-
     try {
-      const [recipientsRes, topicsRes] = await Promise.all([
-        supabase
-          .from("recipients")
-          .select("id, display_name")
-          .eq("creator_id", profile.id),
-        supabase
-          .from("topics")
-          .select("id, name")
-          .eq("creator_id", profile.id),
-      ]);
-
+      const [recipientsRes, topicsRes] = await Promise.all([supabase.from("recipients").select("id, display_name").eq("creator_id", profile.id), supabase.from("topics").select("id, name").eq("creator_id", profile.id)]);
       if (recipientsRes.error) throw recipientsRes.error;
       if (topicsRes.error) throw topicsRes.error;
-
       setRecipients(recipientsRes.data || []);
       setTopics(topicsRes.data || []);
     } catch (error) {
@@ -122,21 +95,17 @@ export default function CreateBreadcrumb() {
         setDuplicateWarning(null);
         return;
       }
-
       try {
-        const { data, error } = await supabase
-          .from("breadcrumbs")
-          .select("id, title")
-          .eq("creator_id", profile.id)
-          .eq("recipient_id", formData.recipient_id)
-          .ilike("title", formData.title)
-          .gte("created_at", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
-          .limit(1);
-
+        const {
+          data,
+          error
+        } = await supabase.from("breadcrumbs").select("id, title").eq("creator_id", profile.id).eq("recipient_id", formData.recipient_id).ilike("title", formData.title).gte("created_at", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()).limit(1);
         if (error) throw error;
-
         if (data && data.length > 0) {
-          setDuplicateWarning({ id: data[0].id, title: data[0].title });
+          setDuplicateWarning({
+            id: data[0].id,
+            title: data[0].title
+          });
         } else {
           setDuplicateWarning(null);
         }
@@ -144,106 +113,94 @@ export default function CreateBreadcrumb() {
         console.error("Error checking duplicate:", error);
       }
     };
-
     const debounce = setTimeout(checkDuplicate, 500);
     return () => clearTimeout(debounce);
   }, [formData.title, formData.recipient_id, profile]);
-
   const handleAddTopic = async () => {
     if (!profile || !newTopicName.trim()) return;
-
     try {
-      const { data, error } = await supabase
-        .from("topics")
-        .insert({
-          creator_id: profile.id,
-          name: newTopicName.trim(),
-        })
-        .select()
-        .single();
-
+      const {
+        data,
+        error
+      } = await supabase.from("topics").insert({
+        creator_id: profile.id,
+        name: newTopicName.trim()
+      }).select().single();
       if (error) throw error;
-
       setTopics([...topics, data]);
-      setFormData({ ...formData, topic_id: data.id });
+      setFormData({
+        ...formData,
+        topic_id: data.id
+      });
       setNewTopicName("");
       setIsNewTopicDialogOpen(false);
-
       toast({
         title: "Topic created",
-        description: `"${data.name}" has been added.`,
+        description: `"${data.name}" has been added.`
       });
     } catch (error: any) {
       toast({
         title: "Error",
         description: error.message || "Failed to create topic.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   const uploadAudio = async (blob: Blob): Promise<string | null> => {
     if (!user) return null;
-    
     setIsUploading(true);
     try {
       const fileExt = blob.type.includes("webm") ? "webm" : "mp4";
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from("audio")
-        .upload(fileName, blob, {
-          contentType: blob.type,
-          upsert: false,
-        });
-
+      const {
+        error: uploadError
+      } = await supabase.storage.from("audio").upload(fileName, blob, {
+        contentType: blob.type,
+        upsert: false
+      });
       if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("audio")
-        .getPublicUrl(fileName);
-
+      const {
+        data: urlData
+      } = supabase.storage.from("audio").getPublicUrl(fileName);
       return urlData.publicUrl;
     } catch (error: any) {
       console.error("Error uploading audio:", error);
       toast({
         title: "Upload failed",
         description: error.message || "Failed to upload voice note.",
-        variant: "destructive",
+        variant: "destructive"
       });
       return null;
     } finally {
       setIsUploading(false);
     }
   };
-
   const handleRecordingComplete = (blob: Blob) => {
     setAudioBlob(blob);
   };
-
   const handleRemoveRecording = () => {
     setAudioBlob(null);
-    setFormData({ ...formData, audio_url: "" });
+    setFormData({
+      ...formData,
+      audio_url: ""
+    });
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile) return;
-
     if (!formData.recipient_id) {
       toast({
         title: "Recipient required",
         description: "Please select who this breadcrumb is for.",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
-
     if (!formData.title.trim()) {
       toast({
         title: "Title required",
         description: "Please add a title for this breadcrumb.",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
@@ -253,13 +210,11 @@ export default function CreateBreadcrumb() {
       toast({
         title: "Recording required",
         description: "Please record a voice note before saving.",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
-
     setIsSaving(true);
-
     try {
       let audioUrl = formData.audio_url;
 
@@ -272,15 +227,10 @@ export default function CreateBreadcrumb() {
         }
         audioUrl = uploadedUrl;
       }
-
-      const contentType = formData.is_scripture 
-        ? "scripture" 
-        : formData.content_type;
+      const contentType = formData.is_scripture ? "scripture" : formData.content_type;
 
       // Determine which recipients to create breadcrumbs for
-      const targetRecipientIds = formData.recipient_id === "__all__"
-        ? recipients.map(r => r.id)
-        : [formData.recipient_id];
+      const targetRecipientIds = formData.recipient_id === "__all__" ? recipients.map(r => r.id) : [formData.recipient_id];
 
       // Create breadcrumb(s) for each recipient
       const breadcrumbsToInsert = targetRecipientIds.map(recipientId => ({
@@ -295,46 +245,37 @@ export default function CreateBreadcrumb() {
         scripture_reference: formData.scripture_reference || null,
         scripture_text: formData.scripture_text || null,
         include_commentary: formData.include_commentary,
-        commentary_text: formData.commentary_text || null,
+        commentary_text: formData.commentary_text || null
       }));
-
-      const { error } = await supabase.from("breadcrumbs").insert(breadcrumbsToInsert);
-
+      const {
+        error
+      } = await supabase.from("breadcrumbs").insert(breadcrumbsToInsert);
       if (error) throw error;
-
       const recipientCount = targetRecipientIds.length;
       toast({
         title: recipientCount > 1 ? "Breadcrumbs created" : "Breadcrumb created",
-        description: recipientCount > 1 
-          ? `Your wisdom has been saved for ${recipientCount} family members.`
-          : "Your wisdom has been saved.",
+        description: recipientCount > 1 ? `Your wisdom has been saved for ${recipientCount} family members.` : "Your wisdom has been saved."
       });
-
       navigate("/creator");
     } catch (error: any) {
       toast({
         title: "Error",
         description: error.message || "Failed to create breadcrumb.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsSaving(false);
     }
   };
-
   if (authLoading || isLoading) {
-    return (
-      <DashboardLayout>
+    return <DashboardLayout>
         <div className="container-narrow flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
-      </DashboardLayout>
-    );
+      </DashboardLayout>;
   }
-
   if (recipients.length === 0) {
-    return (
-      <DashboardLayout>
+    return <DashboardLayout>
         <div className="container-narrow text-center py-16">
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-secondary flex items-center justify-center">
             <Plus className="w-8 h-8 text-muted-foreground" />
@@ -349,23 +290,17 @@ export default function CreateBreadcrumb() {
             <Button variant="hero">Add a Recipient</Button>
           </Link>
         </div>
-      </DashboardLayout>
-    );
+      </DashboardLayout>;
   }
-
-  return (
-    <DashboardLayout>
+  return <DashboardLayout>
       <div className="container-narrow">
         {/* Header */}
         <div className="mb-8 animate-fade-up">
-          <Link 
-            to="/creator" 
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
-          >
+          <Link to="/creator" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
             <ArrowLeft className="w-4 h-4" />
             Back to Dashboard
           </Link>
-          <h1 className="text-3xl font-serif font-semibold text-foreground">
+          <h1 className="text-3xl font-serif font-semibold text-border">
             Create Breadcrumb
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -374,8 +309,7 @@ export default function CreateBreadcrumb() {
         </div>
 
         {/* Duplicate Warning */}
-        {duplicateWarning && (
-          <Alert className="mb-6 animate-fade-up border-accent/50 bg-accent/5">
+        {duplicateWarning && <Alert className="mb-6 animate-fade-up border-accent/50 bg-accent/5">
             <AlertCircle className="w-4 h-4 text-accent" />
             <AlertTitle>This looks like a duplicate</AlertTitle>
             <AlertDescription className="flex items-center justify-between">
@@ -386,36 +320,29 @@ export default function CreateBreadcrumb() {
                 </Link>
               </div>
             </AlertDescription>
-          </Alert>
-        )}
+          </Alert>}
 
         {/* Form */}
-        <form 
-          onSubmit={handleSubmit} 
-          className="glass-card p-6 md:p-8 animate-fade-up space-y-6"
-          style={{ animationDelay: "0.1s" }}
-        >
+        <form onSubmit={handleSubmit} className="glass-card p-6 md:p-8 animate-fade-up space-y-6" style={{
+        animationDelay: "0.1s"
+      }}>
           {/* Recipient */}
           <div className="space-y-2">
             <Label htmlFor="recipient">Who is this for? *</Label>
-            <Select
-              value={formData.recipient_id}
-              onValueChange={(value) => setFormData({ ...formData, recipient_id: value })}
-            >
+            <Select value={formData.recipient_id} onValueChange={value => setFormData({
+            ...formData,
+            recipient_id: value
+          })}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a recipient" />
               </SelectTrigger>
               <SelectContent>
-                {recipients.length > 1 && (
-                  <SelectItem value="__all__" className="font-medium">
+                {recipients.length > 1 && <SelectItem value="__all__" className="font-medium">
                     All Family Members
-                  </SelectItem>
-                )}
-                {recipients.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>
+                  </SelectItem>}
+                {recipients.map(r => <SelectItem key={r.id} value={r.id}>
                     {r.display_name}
-                  </SelectItem>
-                ))}
+                  </SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -424,25 +351,23 @@ export default function CreateBreadcrumb() {
           <div className="space-y-2">
             <Label htmlFor="topic">Topic</Label>
             <div className="flex gap-2">
-              <Select
-                value={formData.topic_id}
-                onValueChange={(value) => {
-                  if (value === "__new__") {
-                    setIsNewTopicDialogOpen(true);
-                  } else {
-                    setFormData({ ...formData, topic_id: value });
-                  }
-                }}
-              >
+              <Select value={formData.topic_id} onValueChange={value => {
+              if (value === "__new__") {
+                setIsNewTopicDialogOpen(true);
+              } else {
+                setFormData({
+                  ...formData,
+                  topic_id: value
+                });
+              }
+            }}>
                 <SelectTrigger className="flex-1">
                   <SelectValue placeholder="Select a topic (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  {topics.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
+                  {topics.map(t => <SelectItem key={t.id} value={t.id}>
                       {t.name}
-                    </SelectItem>
-                  ))}
+                    </SelectItem>)}
                   <SelectItem value="__new__" className="text-accent">
                     <span className="flex items-center gap-2">
                       <Plus className="w-4 h-4" />
@@ -457,132 +382,86 @@ export default function CreateBreadcrumb() {
           {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title">Title *</Label>
-            <Input
-              id="title"
-              placeholder="e.g., On handling money when anxious"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            />
+            <Input id="title" placeholder="e.g., On handling money when anxious" value={formData.title} onChange={e => setFormData({
+            ...formData,
+            title: e.target.value
+          })} />
           </div>
 
           {/* Content Type Selector */}
           <div className="space-y-3">
             <Label>Content Type</Label>
             <div className="grid grid-cols-3 gap-3">
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, content_type: "text", is_scripture: false })}
-                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                  formData.content_type === "text" && !formData.is_scripture
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
-                }`}
-              >
-                <FileText className={`w-6 h-6 ${
-                  formData.content_type === "text" && !formData.is_scripture ? "text-primary" : "text-muted-foreground"
-                }`} />
+              <button type="button" onClick={() => setFormData({
+              ...formData,
+              content_type: "text",
+              is_scripture: false
+            })} className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${formData.content_type === "text" && !formData.is_scripture ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
+                <FileText className={`w-6 h-6 ${formData.content_type === "text" && !formData.is_scripture ? "text-primary" : "text-muted-foreground"}`} />
                 <span className="text-sm font-medium">Text</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, content_type: "voice_note", is_scripture: false })}
-                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                  formData.content_type === "voice_note"
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
-                }`}
-              >
-                <Mic className={`w-6 h-6 ${
-                  formData.content_type === "voice_note" ? "text-primary" : "text-muted-foreground"
-                }`} />
+              <button type="button" onClick={() => setFormData({
+              ...formData,
+              content_type: "voice_note",
+              is_scripture: false
+            })} className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${formData.content_type === "voice_note" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
+                <Mic className={`w-6 h-6 ${formData.content_type === "voice_note" ? "text-primary" : "text-muted-foreground"}`} />
                 <span className="text-sm font-medium">Voice Note</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, content_type: "scripture", is_scripture: true })}
-                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                  formData.is_scripture
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
-                }`}
-              >
-                <BookOpen className={`w-6 h-6 ${
-                  formData.is_scripture ? "text-primary" : "text-muted-foreground"
-                }`} />
+              <button type="button" onClick={() => setFormData({
+              ...formData,
+              content_type: "scripture",
+              is_scripture: true
+            })} className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${formData.is_scripture ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
+                <BookOpen className={`w-6 h-6 ${formData.is_scripture ? "text-primary" : "text-muted-foreground"}`} />
                 <span className="text-sm font-medium">Scripture</span>
               </button>
             </div>
           </div>
 
           {/* Voice Note Recorder */}
-          {formData.content_type === "voice_note" && (
-            <div className="space-y-2">
+          {formData.content_type === "voice_note" && <div className="space-y-2">
               <Label>Voice Recording</Label>
-              <VoiceRecorder
-                onRecordingComplete={handleRecordingComplete}
-                onRemove={handleRemoveRecording}
-                audioUrl={formData.audio_url}
-              />
-            </div>
-          )}
+              <VoiceRecorder onRecordingComplete={handleRecordingComplete} onRemove={handleRemoveRecording} audioUrl={formData.audio_url} />
+            </div>}
 
           {/* Scripture Fields */}
-          {formData.is_scripture && (
-            <>
+          {formData.is_scripture && <>
               <div className="space-y-2">
                 <Label htmlFor="scripture_reference">Scripture Reference</Label>
-                <Input
-                  id="scripture_reference"
-                  placeholder="e.g., Matthew 6:22"
-                  value={formData.scripture_reference}
-                  onChange={(e) => setFormData({ ...formData, scripture_reference: e.target.value })}
-                />
+                <Input id="scripture_reference" placeholder="e.g., Matthew 6:22" value={formData.scripture_reference} onChange={e => setFormData({
+              ...formData,
+              scripture_reference: e.target.value
+            })} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="scripture_text">Scripture Text (optional)</Label>
-                <Textarea
-                  id="scripture_text"
-                  placeholder="The light of the body is the eye..."
-                  value={formData.scripture_text}
-                  onChange={(e) => setFormData({ ...formData, scripture_text: e.target.value })}
-                  rows={4}
-                />
+                <Textarea id="scripture_text" placeholder="The light of the body is the eye..." value={formData.scripture_text} onChange={e => setFormData({
+              ...formData,
+              scripture_text: e.target.value
+            })} rows={4} />
               </div>
-            </>
-          )}
+            </>}
 
           {/* Main Content for Text */}
-          {(formData.content_type === "text" || formData.is_scripture) && (
-            <div className="space-y-2">
+          {(formData.content_type === "text" || formData.is_scripture) && <div className="space-y-2">
               <Label htmlFor="text_body">
                 {formData.is_scripture ? "Your Reflection" : "Your Message"}
               </Label>
-              <Textarea
-                id="text_body"
-                placeholder={formData.is_scripture 
-                  ? "What does this scripture mean to you? Why is it important?"
-                  : "Write your wisdom, story, or lesson here..."
-                }
-                value={formData.text_body}
-                onChange={(e) => setFormData({ ...formData, text_body: e.target.value })}
-                rows={6}
-              />
-            </div>
-          )}
+              <Textarea id="text_body" placeholder={formData.is_scripture ? "What does this scripture mean to you? Why is it important?" : "Write your wisdom, story, or lesson here..."} value={formData.text_body} onChange={e => setFormData({
+            ...formData,
+            text_body: e.target.value
+          })} rows={6} />
+            </div>}
 
           {/* Optional note for voice notes */}
-          {formData.content_type === "voice_note" && (
-            <div className="space-y-2">
+          {formData.content_type === "voice_note" && <div className="space-y-2">
               <Label htmlFor="text_body">Additional Notes (optional)</Label>
-              <Textarea
-                id="text_body"
-                placeholder="Add any written notes to accompany your voice recording..."
-                value={formData.text_body}
-                onChange={(e) => setFormData({ ...formData, text_body: e.target.value })}
-                rows={3}
-              />
-            </div>
-          )}
+              <Textarea id="text_body" placeholder="Add any written notes to accompany your voice recording..." value={formData.text_body} onChange={e => setFormData({
+            ...formData,
+            text_body: e.target.value
+          })} rows={3} />
+            </div>}
 
           {/* Include Commentary */}
           <div className="flex items-center justify-between py-4 border-t border-border">
@@ -594,25 +473,19 @@ export default function CreateBreadcrumb() {
                 Add additional context or thoughts beyond your main message.
               </p>
             </div>
-            <Switch
-              id="include_commentary"
-              checked={formData.include_commentary}
-              onCheckedChange={(checked) => setFormData({ ...formData, include_commentary: checked })}
-            />
+            <Switch id="include_commentary" checked={formData.include_commentary} onCheckedChange={checked => setFormData({
+            ...formData,
+            include_commentary: checked
+          })} />
           </div>
 
-          {formData.include_commentary && (
-            <div className="space-y-2">
+          {formData.include_commentary && <div className="space-y-2">
               <Label htmlFor="commentary_text">Your Commentary</Label>
-              <Textarea
-                id="commentary_text"
-                placeholder="Add your personal thoughts, context, or additional reflections..."
-                value={formData.commentary_text}
-                onChange={(e) => setFormData({ ...formData, commentary_text: e.target.value })}
-                rows={4}
-              />
-            </div>
-          )}
+              <Textarea id="commentary_text" placeholder="Add your personal thoughts, context, or additional reflections..." value={formData.commentary_text} onChange={e => setFormData({
+            ...formData,
+            commentary_text: e.target.value
+          })} rows={4} />
+            </div>}
 
           {/* Submit */}
           <div className="flex justify-end gap-3 pt-4 border-t border-border">
@@ -622,14 +495,10 @@ export default function CreateBreadcrumb() {
               </Button>
             </Link>
             <Button type="submit" variant="hero" disabled={isSaving || isUploading}>
-              {isSaving || isUploading ? (
-                <>
+              {isSaving || isUploading ? <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   {isUploading ? "Uploading..." : "Saving..."}
-                </>
-              ) : (
-                "Save Breadcrumb"
-              )}
+                </> : "Save Breadcrumb"}
             </Button>
           </div>
         </form>
@@ -646,18 +515,12 @@ export default function CreateBreadcrumb() {
             <div className="space-y-4 mt-4">
               <div className="space-y-2">
                 <Label htmlFor="new_topic_name">Topic Name</Label>
-                <Input
-                  id="new_topic_name"
-                  placeholder="e.g., Faith, Money, Relationships"
-                  value={newTopicName}
-                  onChange={(e) => setNewTopicName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddTopic();
-                    }
-                  }}
-                />
+                <Input id="new_topic_name" placeholder="e.g., Faith, Money, Relationships" value={newTopicName} onChange={e => setNewTopicName(e.target.value)} onKeyDown={e => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddTopic();
+                }
+              }} />
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsNewTopicDialogOpen(false)}>
@@ -671,6 +534,5 @@ export default function CreateBreadcrumb() {
           </DialogContent>
         </Dialog>
       </div>
-    </DashboardLayout>
-  );
+    </DashboardLayout>;
 }
