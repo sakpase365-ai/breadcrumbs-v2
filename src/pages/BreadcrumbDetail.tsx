@@ -34,11 +34,19 @@ interface BreadcrumbDetail {
   };
 }
 
+interface Scripture {
+  id: string;
+  scripture_reference: string;
+  scripture_text: string | null;
+  sort_order: number;
+}
+
 export default function BreadcrumbDetail() {
   const { id } = useParams<{ id: string }>();
   const { profile, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [breadcrumb, setBreadcrumb] = useState<BreadcrumbDetail | null>(null);
+  const [scriptures, setScriptures] = useState<Scripture[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,31 +65,39 @@ export default function BreadcrumbDetail() {
     if (!id) return;
 
     try {
-      const { data, error } = await supabase
-        .from("breadcrumbs")
-        .select(`
-          id,
-          title,
-          content_type,
-          text_body,
-          audio_url,
-          is_scripture,
-          scripture_reference,
-          scripture_text,
-          include_commentary,
-          commentary_text,
-          created_at,
-          updated_at,
-          recipient:recipients(id, display_name),
-          topic:topics(id, name),
-          creator:profiles!breadcrumbs_creator_id_fkey(id, name)
-        `)
-        .eq("id", id)
-        .single();
+      const [breadcrumbRes, scripturesRes] = await Promise.all([
+        supabase
+          .from("breadcrumbs")
+          .select(`
+            id,
+            title,
+            content_type,
+            text_body,
+            audio_url,
+            is_scripture,
+            scripture_reference,
+            scripture_text,
+            include_commentary,
+            commentary_text,
+            created_at,
+            updated_at,
+            recipient:recipients(id, display_name),
+            topic:topics(id, name),
+            creator:profiles!breadcrumbs_creator_id_fkey(id, name)
+          `)
+          .eq("id", id)
+          .single(),
+        supabase
+          .from("breadcrumb_scriptures")
+          .select("id, scripture_reference, scripture_text, sort_order")
+          .eq("breadcrumb_id", id)
+          .order("sort_order")
+      ]);
 
-      if (error) throw error;
+      if (breadcrumbRes.error) throw breadcrumbRes.error;
 
-      setBreadcrumb(data as any);
+      setBreadcrumb(breadcrumbRes.data as any);
+      setScriptures(scripturesRes.data || []);
     } catch (err: any) {
       console.error("Error fetching breadcrumb:", err);
       setError("This breadcrumb could not be found or you don't have access to it.");
@@ -212,24 +228,45 @@ export default function BreadcrumbDetail() {
         </div>
       )}
 
-      {/* Scripture Reference */}
-      {breadcrumb.scripture_reference && (
+      {/* Scripture References - from new table first, then legacy field */}
+      {(scriptures.length > 0 || breadcrumb.scripture_reference) && (
         <div className="p-6 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10">
           <h3 className="font-serif text-lg font-medium text-white mb-4">
-            Scripture Reference
+            Scripture {scriptures.length > 1 || (scriptures.length === 0 && !breadcrumb.scripture_reference) ? "References" : "Reference"}
           </h3>
-          <div className="flex items-start gap-3">
-            <Quote className="w-5 h-5 text-amber-100 flex-shrink-0 mt-1" />
-            <div>
-              <p className="font-serif text-lg font-medium text-white mb-2">
-                {breadcrumb.scripture_reference}
-              </p>
-              {breadcrumb.scripture_text && (
-                <p className="text-white/70 italic leading-relaxed">
-                  "{breadcrumb.scripture_text}"
-                </p>
-              )}
-            </div>
+          <div className="space-y-4">
+            {/* New scriptures from separate table */}
+            {scriptures.map((scripture, index) => (
+              <div key={scripture.id} className={`flex items-start gap-3 ${index > 0 ? "pt-4 border-t border-white/10" : ""}`}>
+                <Quote className="w-5 h-5 text-amber-100 flex-shrink-0 mt-1" />
+                <div>
+                  <p className="font-serif text-lg font-medium text-white mb-2">
+                    {scripture.scripture_reference}
+                  </p>
+                  {scripture.scripture_text && (
+                    <p className="text-white/70 italic leading-relaxed">
+                      "{scripture.scripture_text}"
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+            {/* Legacy scripture from breadcrumb table (if no new scriptures) */}
+            {scriptures.length === 0 && breadcrumb.scripture_reference && (
+              <div className="flex items-start gap-3">
+                <Quote className="w-5 h-5 text-amber-100 flex-shrink-0 mt-1" />
+                <div>
+                  <p className="font-serif text-lg font-medium text-white mb-2">
+                    {breadcrumb.scripture_reference}
+                  </p>
+                  {breadcrumb.scripture_text && (
+                    <p className="text-white/70 italic leading-relaxed">
+                      "{breadcrumb.scripture_text}"
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

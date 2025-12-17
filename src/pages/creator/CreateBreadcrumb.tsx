@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Loader2, BookOpen, FileText, Mic, AlertCircle, ChevronRight } from "lucide-react";
+import { ArrowLeft, Loader2, BookOpen, FileText, Mic, AlertCircle, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -36,6 +36,11 @@ interface Topic {
 interface DuplicateWarning {
   id: string;
   title: string;
+}
+
+interface ScriptureEntry {
+  reference: string;
+  text: string;
 }
 
 type ContentType = "text" | "voice_note";
@@ -67,12 +72,12 @@ export default function CreateBreadcrumb() {
     title: "",
     content_type: "text" as ContentType,
     text_body: "",
-    scripture_reference: "",
-    scripture_text: "",
     include_commentary: false,
     commentary_text: "",
     audio_url: ""
   });
+
+  const [scriptures, setScriptures] = useState<ScriptureEntry[]>([]);
 
   useEffect(() => {
     if (!authLoading && !profile) {
@@ -267,14 +272,38 @@ export default function CreateBreadcrumb() {
         text_body: formData.text_body || null,
         audio_url: audioUrl || null,
         is_scripture: false,
-        scripture_reference: formData.scripture_reference || null,
-        scripture_text: formData.scripture_text || null,
+        scripture_reference: null,
+        scripture_text: null,
         include_commentary: formData.include_commentary,
         commentary_text: formData.commentary_text || null
       }));
 
-      const { error } = await supabase.from("breadcrumbs").insert(breadcrumbsToInsert);
+      const { data: insertedBreadcrumbs, error } = await supabase
+        .from("breadcrumbs")
+        .insert(breadcrumbsToInsert)
+        .select("id");
+      
       if (error) throw error;
+
+      // Insert scriptures for each breadcrumb if any
+      if (scriptures.length > 0 && insertedBreadcrumbs) {
+        const scripturesToInsert = insertedBreadcrumbs.flatMap((bc, idx) =>
+          scriptures.map((s, sortOrder) => ({
+            breadcrumb_id: bc.id,
+            scripture_reference: s.reference,
+            scripture_text: s.text || null,
+            sort_order: sortOrder
+          }))
+        );
+
+        const { error: scriptureError } = await supabase
+          .from("breadcrumb_scriptures")
+          .insert(scripturesToInsert);
+
+        if (scriptureError) {
+          console.error("Error saving scriptures:", scriptureError);
+        }
+      }
 
       const recipientCount = formData.recipient_ids.length;
       toast({
@@ -560,30 +589,67 @@ export default function CreateBreadcrumb() {
                     className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <BookOpen className="w-4 h-4" />
-                    Add Scripture (Optional)
+                    Add Scripture References (Optional)
                     <ChevronRight className={`w-4 h-4 transition-transform ${scriptureOpen ? "rotate-90" : ""}`} />
+                    {scriptures.length > 0 && (
+                      <span className="ml-1 px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
+                        {scriptures.length}
+                      </span>
+                    )}
                   </button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="scripture_reference">Scripture Reference</Label>
-                    <Input
-                      id="scripture_reference"
-                      placeholder="e.g., Matthew 6:22"
-                      value={formData.scripture_reference}
-                      onChange={e => setFormData({ ...formData, scripture_reference: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="scripture_text">Scripture Text</Label>
-                    <Textarea
-                      id="scripture_text"
-                      placeholder="Enter the scripture passage..."
-                      value={formData.scripture_text}
-                      onChange={e => setFormData({ ...formData, scripture_text: e.target.value })}
-                      rows={3}
-                    />
-                  </div>
+                  {scriptures.map((scripture, index) => (
+                    <div key={index} className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-muted-foreground">Scripture {index + 1}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setScriptures(scriptures.filter((_, i) => i !== index))}
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Scripture Reference</Label>
+                        <Input
+                          placeholder="e.g., Matthew 6:22"
+                          value={scripture.reference}
+                          onChange={e => {
+                            const updated = [...scriptures];
+                            updated[index] = { ...updated[index], reference: e.target.value };
+                            setScriptures(updated);
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Scripture Text</Label>
+                        <Textarea
+                          placeholder="Enter the scripture passage..."
+                          value={scripture.text}
+                          onChange={e => {
+                            const updated = [...scriptures];
+                            updated[index] = { ...updated[index], text: e.target.value };
+                            setScriptures(updated);
+                          }}
+                          rows={2}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setScriptures([...scriptures, { reference: "", text: "" }])}
+                    className="w-full"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Scripture
+                  </Button>
                 </CollapsibleContent>
               </Collapsible>
 
