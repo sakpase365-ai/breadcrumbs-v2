@@ -215,6 +215,9 @@ export default function BreadcrumbDetail() {
       {/* Scripture Reference */}
       {breadcrumb.scripture_reference && (
         <div className="p-6 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10">
+          <h3 className="font-serif text-lg font-medium text-white mb-4">
+            Scripture Reference
+          </h3>
           <div className="flex items-start gap-3">
             <Quote className="w-5 h-5 text-amber-100 flex-shrink-0 mt-1" />
             <div>
