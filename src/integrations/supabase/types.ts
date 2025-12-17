@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      breadcrumb_scriptures: {
+        Row: {
+          breadcrumb_id: string
+          created_at: string
+          id: string
+          scripture_reference: string
+          scripture_text: string | null
+          sort_order: number
+        }
+        Insert: {
+          breadcrumb_id: string
+          created_at?: string
+          id?: string
+          scripture_reference: string
+          scripture_text?: string | null
+          sort_order?: number
+        }
+        Update: {
+          breadcrumb_id?: string
+          created_at?: string
+          id?: string
+          scripture_reference?: string
+          scripture_text?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "breadcrumb_scriptures_breadcrumb_id_fkey"
+            columns: ["breadcrumb_id"]
+            isOneToOne: false
+            referencedRelation: "breadcrumbs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       breadcrumbs: {
         Row: {
           audio_url: string | null
