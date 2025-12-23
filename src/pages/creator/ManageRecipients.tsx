@@ -268,9 +268,8 @@ export default function ManageRecipients() {
                 <div className="flex justify-end gap-3 pt-4">
                   <Button 
                     type="button" 
-                    variant="outline" 
                     onClick={() => setIsDialogOpen(false)}
-                    className="border-white/20 text-white hover:bg-white/10"
+                    className="bg-amber-100 text-amber-950 hover:bg-amber-200"
                   >
                     Cancel
                   </Button>
