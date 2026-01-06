@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Search, BookOpen, Filter, Loader2, MessageCircle, Sparkles, Send, Users, ExternalLink, ChevronRight, Bot } from "lucide-react";
+import { Search, BookOpen, Filter, Loader2, MessageCircle, Sparkles, Send, Users, ExternalLink, ChevronRight, Bot, Mic } from "lucide-react";
+import { VoiceSpeechInput } from "@/components/VoiceSpeechInput";
 import { BreadcrumbCard } from "@/components/BreadcrumbCard";
 import {
   Select,
@@ -363,13 +364,19 @@ export default function RecipientHome() {
               }
             </p>
             <div className="space-y-4">
-              <Textarea
-                placeholder="What question do you have? (e.g., What did they say about handling money?)"
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                rows={3}
-                className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
-              />
+              <div className="flex gap-2">
+                <Textarea
+                  placeholder="What question do you have? (e.g., What did they say about handling money?)"
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  rows={3}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-white/40 flex-1"
+                />
+                <VoiceSpeechInput
+                  onTranscript={(text) => setQuestion((prev) => prev ? `${prev} ${text}` : text)}
+                  disabled={isAsking}
+                />
+              </div>
               <div className="flex justify-end">
                 <Button 
                   className="bg-amber-100 text-amber-950 hover:bg-amber-200"
