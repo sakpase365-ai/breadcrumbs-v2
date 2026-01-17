@@ -163,8 +163,8 @@ export default function CreateBreadcrumb() {
         .upload(fileName, blob, { contentType: blob.type, upsert: false });
 
       if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("audio").getPublicUrl(fileName);
-      return urlData.publicUrl;
+      // Return the file path instead of public URL (bucket is now private)
+      return fileName;
     } catch (error: any) {
       console.error("Error uploading audio:", error);
       toast({
