@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useSignedUrl } from "@/hooks/useSignedUrl";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, BookOpen, FileText, Calendar, User, Quote, Loader2, Mic } from "lucide-react";
@@ -58,6 +59,12 @@ export default function BreadcrumbDetail() {
   const [linkedRecipients, setLinkedRecipients] = useState<LinkedRecipient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Generate signed URL for private audio bucket
+  const { signedUrl: audioSignedUrl, isLoading: audioLoading } = useSignedUrl(
+    "audio",
+    breadcrumb?.audio_url
+  );
 
   useEffect(() => {
     if (!authLoading && !profile) {
@@ -212,11 +219,20 @@ export default function BreadcrumbDetail() {
           <h3 className="font-serif text-lg font-medium text-white mb-4">
             Voice Note
           </h3>
-          <audio 
-            controls 
-            src={breadcrumb.audio_url} 
-            className="w-full"
-          />
+          {audioLoading ? (
+            <div className="flex items-center gap-2 text-white/60">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Loading audio...</span>
+            </div>
+          ) : audioSignedUrl ? (
+            <audio 
+              controls 
+              src={audioSignedUrl} 
+              className="w-full"
+            />
+          ) : (
+            <p className="text-white/60">Unable to load audio</p>
+          )}
         </div>
       )}
 
