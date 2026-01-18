@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { MinimalLayout } from "@/components/layout/MinimalLayout";
+import TypewriterText from "@/components/TypewriterText";
 import { z } from "zod";
 
 const authSchema = z.object({
@@ -168,55 +170,79 @@ const Auth = () => {
     }
   };
 
+  const getHeadingText = () => {
+    if (isLogin) return "Welcome Back";
+    if (role === "recipient") return "Join as Recipient";
+    return "Create Your Account";
+  };
+
   return (
     <MinimalLayout centered maxWidth="sm">
       {/* Back Link */}
-      <Link 
-        to={isLogin ? "/" : "/get-started"}
-        className="inline-flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors mb-8"
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
       >
-        <ArrowLeft className="w-4 h-4" />
-        Back
-      </Link>
+        <Link 
+          to={isLogin ? "/" : "/get-started"}
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </Link>
+      </motion.div>
 
       <div className="text-center mb-8">
-        <h1 className="text-2xl md:text-3xl font-serif font-semibold text-white mb-2">
-          {isLogin ? "Welcome Back" : role === "recipient" ? "Join as Recipient" : "Create Your Account"}
+        <h1 className="text-2xl md:text-3xl font-light tracking-tight text-foreground mb-2">
+          <TypewriterText 
+            text={getHeadingText()} 
+            speed={0.06} 
+            showCursor={false}
+          />
         </h1>
-        <p className="text-white/60 text-sm">
+        <motion.p 
+          className="text-muted-foreground text-sm"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2 }}
+        >
           {isLogin 
             ? "Sign in to continue your journey." 
             : role === "recipient" 
               ? "Discover the wisdom left for you."
               : "Start leaving breadcrumbs for your loved ones."
           }
-        </p>
+        </motion.p>
       </div>
 
-      <form 
+      <motion.form 
         onSubmit={handleSubmit} 
-        className="p-6 md:p-8 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10"
+        className="p-6 md:p-8 rounded-lg bg-card border border-border"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.5, duration: 0.5 }}
       >
         <div className="space-y-4">
           {!isLogin && (
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-white/80">Full Name</Label>
+              <Label htmlFor="name" className="text-muted-foreground">Full Name</Label>
               <Input
                 id="name"
                 placeholder="Your name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 disabled={isLoading}
-                className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
+                className="bg-background border-border"
               />
               {errors.name && (
-                <p className="text-sm text-red-400">{errors.name}</p>
+                <p className="text-sm text-destructive">{errors.name}</p>
               )}
             </div>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-white/80">Email</Label>
+            <Label htmlFor="email" className="text-muted-foreground">Email</Label>
             <Input
               id="email"
               type="email"
@@ -224,15 +250,15 @@ const Auth = () => {
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               disabled={isLoading}
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
+              className="bg-background border-border"
             />
             {errors.email && (
-              <p className="text-sm text-red-400">{errors.email}</p>
+              <p className="text-sm text-destructive">{errors.email}</p>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-white/80">Password</Label>
+            <Label htmlFor="password" className="text-muted-foreground">Password</Label>
             <Input
               id="password"
               type="password"
@@ -240,16 +266,17 @@ const Auth = () => {
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               disabled={isLoading}
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
+              className="bg-background border-border"
             />
             {errors.password && (
-              <p className="text-sm text-red-400">{errors.password}</p>
+              <p className="text-sm text-destructive">{errors.password}</p>
             )}
           </div>
 
           <Button 
             type="submit" 
-            className="w-full mt-6 bg-amber-100 text-amber-950 hover:bg-amber-200"
+            variant="outline"
+            className="w-full mt-6 border-foreground text-foreground hover:bg-foreground hover:text-background"
             size="lg"
             disabled={isLoading}
           >
@@ -268,7 +295,7 @@ const Auth = () => {
           <button
             type="button"
             onClick={() => setIsLogin(!isLogin)}
-            className="text-sm text-white/60 hover:text-white transition-colors"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             {isLogin 
               ? "Don't have an account? Sign up" 
@@ -276,7 +303,7 @@ const Auth = () => {
             }
           </button>
         </div>
-      </form>
+      </motion.form>
     </MinimalLayout>
   );
 };
