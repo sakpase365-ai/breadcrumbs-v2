@@ -14,100 +14,93 @@
 
 @layer base {
   :root {
-    /* Dark theme */
+    /* Minimal black and white theme */
     --background: 0 0% 0%;
-    --foreground: 0 0% 95%;
+    --foreground: 0 0% 100%;
 
-    --card: 40 30% 99%;
-    --card-foreground: 25 30% 15%;
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 40 30% 99%;
-    --popover-foreground: 25 30% 15%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 100%;
 
-    /* Deep espresso brown */
-    --primary: 25 35% 22%;
-    --primary-foreground: 40 33% 97%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
 
-    /* Soft cream secondary */
-    --secondary: 38 35% 92%;
-    --secondary-foreground: 25 30% 20%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 100%;
 
-    /* Warm muted tones */
-    --muted: 35 20% 90%;
-    --muted-foreground: 25 15% 45%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 65%;
 
-    /* Amber/gold accent */
-    --accent: 38 80% 55%;
-    --accent-foreground: 25 35% 15%;
+    --accent: 0 0% 20%;
+    --accent-foreground: 0 0% 100%;
 
-    /* Warm terracotta for destructive */
-    --destructive: 12 70% 50%;
-    --destructive-foreground: 40 33% 97%;
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    /* Borders and inputs */
-    --border: 35 25% 85%;
-    --input: 35 25% 85%;
-    --ring: 38 80% 55%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 0 0% 100%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
     /* Sidebar */
-    --sidebar-background: 38 30% 95%;
-    --sidebar-foreground: 25 30% 20%;
-    --sidebar-primary: 25 35% 22%;
-    --sidebar-primary-foreground: 40 33% 97%;
-    --sidebar-accent: 38 35% 90%;
-    --sidebar-accent-foreground: 25 30% 20%;
-    --sidebar-border: 35 25% 85%;
-    --sidebar-ring: 38 80% 55%;
+    --sidebar-background: 0 0% 5%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 0 0% 100%;
 
     /* Custom tokens */
-    --gradient-warm: linear-gradient(135deg, hsl(38 80% 55% / 0.15), hsl(25 35% 22% / 0.05));
-    --gradient-hero: linear-gradient(180deg, hsl(40 33% 97%), hsl(38 30% 94%));
-    --shadow-warm: 0 4px 24px -4px hsl(25 35% 22% / 0.08);
-    --shadow-card: 0 2px 12px -2px hsl(25 35% 22% / 0.06);
-    --shadow-glow: 0 0 40px hsl(38 80% 55% / 0.2);
-    --font-sans: Roboto, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+    --gradient-warm: linear-gradient(135deg, hsl(0 0% 10%), hsl(0 0% 5%));
+    --gradient-hero: linear-gradient(180deg, hsl(0 0% 0%), hsl(0 0% 5%));
+    --shadow-warm: 0 4px 24px -4px hsl(0 0% 0% / 0.5);
+    --shadow-card: 0 2px 12px -2px hsl(0 0% 0% / 0.3);
+    --shadow-glow: 0 0 40px hsl(0 0% 100% / 0.1);
+    --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
   }
 
   .dark {
-    --background: 25 25% 8%;
-    --foreground: 40 20% 92%;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
 
-    --card: 25 25% 10%;
-    --card-foreground: 40 20% 92%;
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 25 25% 10%;
-    --popover-foreground: 40 20% 92%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 38 70% 60%;
-    --primary-foreground: 25 25% 8%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
 
-    --secondary: 25 20% 15%;
-    --secondary-foreground: 40 20% 92%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 25 20% 18%;
-    --muted-foreground: 35 15% 55%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 65%;
 
-    --accent: 38 80% 55%;
-    --accent-foreground: 25 25% 8%;
+    --accent: 0 0% 20%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 12 60% 45%;
-    --destructive-foreground: 40 20% 92%;
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 25 20% 18%;
-    --input: 25 20% 18%;
-    --ring: 38 80% 55%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 0 0% 100%;
 
-    --sidebar-background: 25 25% 10%;
-    --sidebar-foreground: 40 20% 92%;
-    --sidebar-primary: 38 70% 60%;
-    --sidebar-primary-foreground: 25 25% 8%;
-    --sidebar-accent: 25 20% 15%;
-    --sidebar-accent-foreground: 40 20% 92%;
-    --sidebar-border: 25 20% 18%;
-    --sidebar-ring: 38 80% 55%;
-    --font-sans: Roboto, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+    --sidebar-background: 0 0% 5%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 0 0% 100%;
   }
 }
 
