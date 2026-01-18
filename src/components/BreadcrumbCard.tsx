@@ -67,18 +67,19 @@ export function BreadcrumbCard({ breadcrumb, showRecipient, showCreator, style, 
       className="block animate-fade-up"
       style={style}
     >
-      <div className="glass-card p-5 hover:border-accent/50 hover:shadow-warm transition-all duration-300 group">
-        <div className="flex items-start gap-4">
+      <div className="glass-card p-4 sm:p-5 hover:border-accent/50 hover:shadow-warm transition-all duration-300 group">
+        <div className="flex items-start gap-3 sm:gap-4">
           {/* Icon */}
-          <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-black flex items-center justify-center group-hover:bg-accent transition-colors">
+          <div className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-black flex items-center justify-center group-hover:bg-accent transition-colors">
             {icon}
           </div>
 
           {/* Content */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <h3 className="font-serif text-lg font-medium text-foreground truncate">
+            {/* Title row - stacks on mobile */}
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                <h3 className="font-serif text-base sm:text-lg font-medium text-foreground line-clamp-2 sm:truncate">
                   {breadcrumb.title}
                 </h3>
                 {isSharedWithMultiple && (
@@ -118,14 +119,14 @@ export function BreadcrumbCard({ breadcrumb, showRecipient, showCreator, style, 
                 )}
               </div>
               {breadcrumb.topic && (
-                <span className="flex-shrink-0 text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground">
+                <span className="flex-shrink-0 text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground w-fit">
                   {breadcrumb.topic.name}
                 </span>
               )}
             </div>
 
             {preview && (
-              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+              <p className="text-sm text-muted-foreground mt-1.5 sm:mt-1 line-clamp-2">
                 {breadcrumb.is_scripture && breadcrumb.scripture_reference 
                   ? `📖 ${breadcrumb.scripture_reference}` 
                   : preview
@@ -133,8 +134,8 @@ export function BreadcrumbCard({ breadcrumb, showRecipient, showCreator, style, 
               </p>
             )}
 
-            {/* Meta */}
-            <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+            {/* Meta - wraps nicely on mobile */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5 sm:mt-3 text-xs text-muted-foreground">
               {showRecipient && breadcrumb.recipient && !isSharedWithMultiple && (
                 <span className="flex items-center gap-1">
                   <User className="w-3 h-3" />
@@ -144,7 +145,7 @@ export function BreadcrumbCard({ breadcrumb, showRecipient, showCreator, style, 
               {showRecipient && isSharedWithMultiple && (
                 <span className="flex items-center gap-1">
                   <Users className="w-3 h-3" />
-                  Shared with {breadcrumb.recipient_count} members
+                  Shared with {breadcrumb.recipient_count}
                 </span>
               )}
               {showCreator && breadcrumb.creator && (

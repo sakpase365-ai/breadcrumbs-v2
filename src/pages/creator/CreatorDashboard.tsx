@@ -248,7 +248,7 @@ export default function CreatorDashboard() {
                 Try adjusting your filters or search query.
               </p>
             </>}
-        </div> : <div className="grid gap-4">
+        </div> : <div className="grid gap-3 sm:gap-4">
           {filteredBreadcrumbs.map(breadcrumb => <BreadcrumbCard key={breadcrumb.id} breadcrumb={breadcrumb} showRecipient onRecipientClick={handleRecipientFilter} />)}
         </div>}
     </DashboardLayout>;
