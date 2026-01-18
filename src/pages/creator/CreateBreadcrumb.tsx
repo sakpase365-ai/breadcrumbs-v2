@@ -97,7 +97,7 @@ export default function CreateBreadcrumb() {
     if (!profile) return;
     try {
       const [recipientsRes, categoriesRes, topicsRes, familyRes] = await Promise.all([
-        supabase.from("recipients").select("id, display_name").eq("creator_id", profile.id),
+        supabase.from("recipients").select("id, display_name").eq("creator_id", profile.id).order("display_name"),
         supabase.from("categories").select("id, name, sort_order").eq("is_active", true).order("name"),
         supabase.from("topics").select("id, name, category_id, sort_order").eq("is_active", true).order("name"),
         supabase.from("family_members").select("family_id").eq("user_id", profile.user_id).maybeSingle()
