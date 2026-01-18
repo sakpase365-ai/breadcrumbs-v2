@@ -60,7 +60,7 @@ const TypewriterText = ({
   };
 
   return (
-    <span className={`inline-flex ${className}`}>
+    <span className={`inline-flex font-sans ${className}`}>
       <motion.span
         variants={container}
         initial="hidden"
