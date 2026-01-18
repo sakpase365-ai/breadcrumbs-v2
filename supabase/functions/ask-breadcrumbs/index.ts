@@ -18,6 +18,8 @@ interface BreadcrumbContext {
   recipient_id: string | null;
   visibility: string;
   created_at: string;
+  creator_name: string | null;
+  creator_id: string | null;
 }
 
 serve(async (req) => {
@@ -119,6 +121,8 @@ serve(async (req) => {
           recipient_id,
           visibility,
           family_id,
+          creator_id,
+          creator:profiles!breadcrumbs_creator_id_fkey(id, name),
           topic:topics(name, category:categories(name))
         `)
         .eq("family_id", familyId)
@@ -195,6 +199,7 @@ serve(async (req) => {
           recipient_id,
           visibility,
           creator_id,
+          creator:profiles!breadcrumbs_creator_id_fkey(id, name),
           topic:topics(name, category:categories(name))
         `)
         .in("creator_id", creatorIds)
@@ -230,6 +235,8 @@ serve(async (req) => {
           created_at,
           recipient_id,
           visibility,
+          creator_id,
+          creator:profiles!breadcrumbs_creator_id_fkey(id, name),
           topic:topics(name, category:categories(name))
         `)
         .eq("creator_id", verifiedProfileId)
@@ -270,10 +277,20 @@ serve(async (req) => {
       recipient_id: b.recipient_id,
       visibility: b.visibility || "family",
       created_at: b.created_at,
+      creator_name: b.creator?.name || null,
+      creator_id: b.creator?.id || b.creator_id || null,
     }));
+
+    // Build unique family members list from breadcrumbs
+    const familyMembers = [...new Set(breadcrumbsContext
+      .filter(b => b.creator_name)
+      .map(b => b.creator_name)
+    )];
 
     const contextText = breadcrumbsContext.map((b, i) => {
       let text = `[Breadcrumb ${i + 1}]\nID: ${b.id}\nTitle: "${b.title}"`;
+      if (b.creator_name) text += `\nCreator: ${b.creator_name}`;
+      if (b.creator_id) text += `\nCreator ID: ${b.creator_id}`;
       if (b.category) text += `\nCategory: ${b.category}`;
       if (b.topic) text += `\nTopic: ${b.topic}`;
       if (b.breadcrumb_text) text += `\nContent: ${b.breadcrumb_text}`;
@@ -284,18 +301,48 @@ serve(async (req) => {
       return text;
     }).join("\n\n");
 
-    const systemPrompt = `You are "Breadcrumbs AI (Family-Scoped)" - a helpful assistant that answers questions based ONLY on the wisdom and messages (called "Breadcrumbs") that have been left within the user's family ecosystem.
+    const systemPrompt = `You are Breadcrumbs, a private, family-only legacy and knowledge assistant.
 
-NON-NEGOTIABLE RULES:
-1. You may ONLY use the Breadcrumbs provided to you in the context below. Do NOT use external knowledge, assumptions, or information not present in the Breadcrumbs.
-2. If you include Scripture, copy it EXACTLY as it appears in the Breadcrumbs. Do not paraphrase Scripture.
-3. Preserve the creator's voice and tone. Prefer direct quotes from Breadcrumbs when possible.
-4. If the provided Breadcrumbs do not contain enough information to answer, say: "I don't have enough Breadcrumbs to answer that." Then ask 1-2 clarifying questions such as:
-   - "Which topic is this about (Money, Family & Relationships, Personal Growth, etc.)?"
-   - "Do you want the answer to include the exact Scriptures already stored in your Breadcrumbs?"
-5. Keep answers concise and practical.
-6. After your answer, ALWAYS reference the breadcrumb titles you used.
-7. Do NOT invent quotes or claim a breadcrumb exists if it was not provided in the context.
+Your core job:
+- Answer questions in a way that respects WHO the user is asking (a specific person, the family, or nobody in particular)
+- Use stored Breadcrumb entries as the primary source of truth for anything attributed to a family member
+- Never put words in a family member's mouth
+
+Privacy:
+- Breadcrumbs is private to the family. Do not suggest public sharing.
+
+IDENTITY + ATTRIBUTION RULES (NON-NEGOTIABLE):
+
+1) If the user's question targets a specific family member (e.g., "what would Grandpa say…", "what did Mom teach about…", "ask Auntie…"):
+   - Only use Breadcrumb entries created by that person.
+   - If there are not enough relevant entries, say so clearly and show the closest related points from that person's entries only.
+   - Do NOT supplement with other people's entries.
+   - Do NOT add external/general knowledge as if it came from that person.
+
+2) If the user's question targets "our family" / "we" / "what do we believe":
+   - Use Breadcrumb entries from multiple family members.
+   - Synthesize "common threads" and also present differences neutrally with attribution by person.
+   - Never force a single family stance if sources differ.
+
+3) If the user asks a general question without targeting a person or the family:
+   - You may answer using general knowledge ONLY IF it is clearly labeled as "General reference."
+   - If there are relevant family Breadcrumbs, include them in a separate "Family notes (from Breadcrumbs)" section with attribution.
+   - Never blend general reference content into a person-attributed answer.
+
+SOURCE INTEGRITY:
+- Any statement attributed to a specific person must be supported by that person's Breadcrumb entries.
+- If a claim is not supported, remove it or mark uncertainty explicitly.
+- If you include Scripture, copy it EXACTLY as it appears in the Breadcrumbs. Do not paraphrase Scripture.
+- Preserve the creator's voice and tone. Prefer direct quotes from Breadcrumbs when possible.
+
+RESPONSE STRUCTURE (choose what applies):
+A) Answer (direct response)
+B) Based on Breadcrumbs (attribution + titles + dates)
+C) Family notes (optional) OR General reference (optional, clearly labeled)
+D) If insufficient sources: say so + show closest related entries + suggest 2–3 prompts the person/family can record to fill the gap.
+
+FAMILY MEMBERS IN THIS FAMILY:
+${familyMembers.join(", ") || "Not specified"}
 
 AVAILABLE BREADCRUMBS CONTEXT:
 ${contextText}`;
@@ -324,24 +371,30 @@ ${contextText}`;
                 properties: {
                   answer: {
                     type: "string",
-                    description: "The answer to the question based on the Breadcrumbs context.",
+                    description: "The direct answer to the question. Start with the main response. When attributing to specific family members, use their name.",
                   },
                   sources_used: {
                     type: "array",
-                    description: "List of breadcrumbs used to form the answer",
+                    description: "List of breadcrumbs used to form the answer, with attribution to the creator",
                     items: {
                       type: "object",
                       properties: {
                         id: { type: "string", description: "The breadcrumb ID" },
                         title: { type: "string", description: "The breadcrumb title" },
+                        creator_name: { type: "string", description: "Name of the person who created this breadcrumb" },
+                        date: { type: "string", description: "Date of the breadcrumb" },
                       },
                       required: ["id", "title"],
                     },
                   },
                   follow_up_questions: {
                     type: "array",
-                    description: "Optional follow-up questions if insufficient info, or suggested next questions",
+                    description: "If insufficient sources: suggested prompts for the family to record. Otherwise: suggested follow-up questions.",
                     items: { type: "string" },
+                  },
+                  general_reference: {
+                    type: "string",
+                    description: "If general knowledge was used and clearly labeled, include it here separately. Leave empty if not applicable.",
                   },
                 },
                 required: ["answer", "sources_used"],
@@ -382,6 +435,7 @@ ${contextText}`;
         answer: result.answer,
         sources_used: result.sources_used || [],
         follow_up_questions: result.follow_up_questions || [],
+        general_reference: result.general_reference || null,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
