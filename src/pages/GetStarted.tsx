@@ -50,7 +50,7 @@ const GetStarted = () => {
             to="/auth?role=creator"
             icon={<PenLine className="w-6 h-6" />}
             title="I am a Creator"
-            description="I want to leave wisdom, messages, and scriptures for my loved ones."
+            description="I want to leave breadcrumbs for my loved ones."
           />
           <RoleCard
             to="/auth?role=recipient"
