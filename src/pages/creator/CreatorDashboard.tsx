@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Users, Search, Filter, Loader2 } from "lucide-react";
 import { BreadcrumbCard } from "@/components/BreadcrumbCard";
+import { SwipeableCard } from "@/components/SwipeableCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { toast } from "sonner";
+
 interface Breadcrumb {
   id: string;
   title: string;
@@ -42,6 +46,7 @@ export default function CreatorDashboard() {
     isLoading: authLoading
   } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([]);
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -49,6 +54,7 @@ export default function CreatorDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRecipient, setSelectedRecipient] = useState<string>("all");
   const [selectedTopic, setSelectedTopic] = useState<string>("all");
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   
   useEffect(() => {
     if (!authLoading && !profile) {
@@ -151,6 +157,47 @@ export default function CreatorDashboard() {
   const handleRecipientFilter = (recipientId: string) => {
     setSelectedRecipient(recipientId);
   };
+
+  const handleDeleteBreadcrumb = async (breadcrumbId: string) => {
+    // Prevent double-delete
+    if (deletingIds.has(breadcrumbId)) return;
+    
+    setDeletingIds(prev => new Set(prev).add(breadcrumbId));
+    
+    try {
+      // First delete related records
+      await supabase
+        .from("breadcrumb_recipients")
+        .delete()
+        .eq("breadcrumb_id", breadcrumbId);
+      
+      await supabase
+        .from("breadcrumb_scriptures")
+        .delete()
+        .eq("breadcrumb_id", breadcrumbId);
+
+      // Then delete the breadcrumb
+      const { error } = await supabase
+        .from("breadcrumbs")
+        .delete()
+        .eq("id", breadcrumbId);
+
+      if (error) throw error;
+
+      // Update local state
+      setBreadcrumbs(prev => prev.filter(b => b.id !== breadcrumbId));
+      toast.success("Breadcrumb deleted");
+    } catch (error) {
+      console.error("Error deleting breadcrumb:", error);
+      toast.error("Failed to delete breadcrumb");
+    } finally {
+      setDeletingIds(prev => {
+        const next = new Set(prev);
+        next.delete(breadcrumbId);
+        return next;
+      });
+    }
+  };
   if (authLoading || isLoading) {
     return <DashboardLayout>
         <div className="flex items-center justify-center py-20">
@@ -249,7 +296,28 @@ export default function CreatorDashboard() {
               </p>
             </>}
         </div> : <div className="grid gap-3 sm:gap-4">
-          {filteredBreadcrumbs.map(breadcrumb => <BreadcrumbCard key={breadcrumb.id} breadcrumb={breadcrumb} showRecipient onRecipientClick={handleRecipientFilter} />)}
+          {filteredBreadcrumbs.map(breadcrumb => (
+            isMobile ? (
+              <SwipeableCard 
+                key={breadcrumb.id} 
+                onDelete={() => handleDeleteBreadcrumb(breadcrumb.id)}
+                disabled={deletingIds.has(breadcrumb.id)}
+              >
+                <BreadcrumbCard 
+                  breadcrumb={breadcrumb} 
+                  showRecipient 
+                  onRecipientClick={handleRecipientFilter} 
+                />
+              </SwipeableCard>
+            ) : (
+              <BreadcrumbCard 
+                key={breadcrumb.id} 
+                breadcrumb={breadcrumb} 
+                showRecipient 
+                onRecipientClick={handleRecipientFilter} 
+              />
+            )
+          ))}
         </div>}
     </DashboardLayout>;
 }
