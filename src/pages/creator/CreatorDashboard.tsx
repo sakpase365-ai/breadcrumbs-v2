@@ -297,7 +297,9 @@ export default function CreatorDashboard() {
       </div>
 
       {/* Breadcrumbs List */}
-      {filteredBreadcrumbs.length === 0 ? <div className="text-center py-16">
+      <div className="rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 p-4 sm:p-6">
+        <h2 className="font-serif text-lg font-medium text-white mb-4">Your Breadcrumbs</h2>
+        {filteredBreadcrumbs.length === 0 ? <div className="text-center py-12">
           {breadcrumbs.length === 0 ? <>
               <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/10 flex items-center justify-center">
                 <Plus className="w-8 h-8 text-white/60" />
@@ -346,6 +348,7 @@ export default function CreatorDashboard() {
             )
           ))}
         </div>}
+      </div>
 
       {/* Quick Capture Floating Button */}
       {profile && recipients.length > 0 && (
