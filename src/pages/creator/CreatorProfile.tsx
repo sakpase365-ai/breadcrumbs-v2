@@ -135,7 +135,9 @@ const CreatorProfile = () => {
 
       if (error) throw error;
       if (data?.date_of_birth) {
-        setCreatorDob(new Date(data.date_of_birth));
+        // Parse as local date to avoid timezone shift
+        const [year, month, day] = data.date_of_birth.split("-").map(Number);
+        setCreatorDob(new Date(year, month - 1, day));
       }
     } catch (error) {
       console.error("Error loading profile:", error);
