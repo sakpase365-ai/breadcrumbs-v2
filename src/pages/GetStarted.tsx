@@ -82,7 +82,7 @@ const RoleCard = ({
           {icon}
         </div>
         <div className="flex-1">
-          <h3 className="text-lg font-light text-foreground mb-1">
+          <h3 className="text-lg font-light text-foreground mb-1" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
             {title}
           </h3>
           <p className="text-sm text-muted-foreground">
