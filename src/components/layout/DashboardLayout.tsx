@@ -51,13 +51,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-6">
           <div className="flex h-14 items-center justify-between">
-            {/* Logo / Home */}
-            <Link 
-              to={profile?.role === "creator" ? "/creator" : "/recipient"} 
-              className="text-sm font-light uppercase tracking-widest text-foreground hover:text-muted-foreground transition-colors"
-            >
-              Breadcrumbs
-            </Link>
+            {/* Spacer */}
+            <div />
 
             {/* Right side actions */}
             <div className="flex items-center gap-2">
@@ -185,6 +180,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {children}
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border py-6">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <Link 
+            to={profile?.role === "creator" ? "/creator" : "/recipient"} 
+            className="text-sm font-light uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Breadcrumbs
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }
