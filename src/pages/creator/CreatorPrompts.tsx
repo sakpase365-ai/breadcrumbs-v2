@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Sparkles, RefreshCw, Mic, BookOpen, Heart, MessageCircle, Clock } from "lucide-react";
+import { Sparkles, RefreshCw, Mic, BookOpen, Heart, MessageCircle, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { QuickCaptureModal } from "@/components/QuickCaptureModal";
 
 interface Prompt {
@@ -48,6 +48,7 @@ export default function CreatorPrompts() {
   const { toast } = useToast();
 
   const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
   const [topicGaps, setTopicGaps] = useState<string[]>([]);
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [familyId, setFamilyId] = useState<string | null>(null);
@@ -133,6 +134,7 @@ export default function CreatorPrompts() {
 
       const data = response.data;
       setPrompts(data.prompts || []);
+      setCurrentPromptIndex(0);
       setTopicGaps(data.topic_gaps || []);
     } catch (error) {
       console.error("Error generating prompts:", error);
@@ -227,92 +229,119 @@ export default function CreatorPrompts() {
           </Card>
         )}
 
-        {/* Prompts */}
-        <div className="grid gap-4">
-          {prompts.map((prompt, index) => {
-            const Icon = promptTypeIcons[prompt.prompt_type];
-            const label = promptTypeLabels[prompt.prompt_type];
-            const colorClass = promptTypeColors[prompt.prompt_type];
+        {/* Prompt - One at a time */}
+        {prompts.length > 0 ? (
+          <div className="space-y-4">
+            {(() => {
+              const prompt = prompts[currentPromptIndex];
+              const Icon = promptTypeIcons[prompt.prompt_type];
+              const label = promptTypeLabels[prompt.prompt_type];
+              const colorClass = promptTypeColors[prompt.prompt_type];
 
-            return (
-              <Card
-                key={index}
-                className="group hover:shadow-md transition-all duration-200 cursor-pointer"
-                onClick={() => handleStartRecording(prompt)}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${colorClass}`}>
-                        <Icon className="h-5 w-5" />
+              return (
+                <Card
+                  className="group hover:shadow-md transition-all duration-200 cursor-pointer"
+                  onClick={() => handleStartRecording(prompt)}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${colorClass}`}>
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <Badge variant="outline" className={colorClass}>
+                            {label}
+                          </Badge>
+                          {prompt.estimated_duration && (
+                            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              {prompt.estimated_duration}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <Badge variant="outline" className={colorClass}>
-                          {label}
-                        </Badge>
-                        {prompt.estimated_duration && (
-                          <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                            <Clock className="h-3 w-3" />
-                            {prompt.estimated_duration}
-                          </div>
-                        )}
-                      </div>
+                      <Button
+                        size="sm"
+                        className="gap-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStartRecording(prompt);
+                        }}
+                      >
+                        <Mic className="h-4 w-4" />
+                        Record
+                      </Button>
                     </div>
-                    <Button
-                      size="sm"
-                      className="gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStartRecording(prompt);
-                      }}
-                    >
-                      <Mic className="h-4 w-4" />
-                      Record
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-foreground leading-relaxed mb-4">
-                    {prompt.prompt}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {prompt.suggested_tags.map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                  {prompt.related_topics.length > 0 && (
-                    <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
-                      <span>Topics:</span>
-                      {prompt.related_topics.map((topic, i) => (
-                        <span key={topic}>
-                          {topic}
-                          {i < prompt.related_topics.length - 1 && ", "}
-                        </span>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-foreground leading-relaxed mb-4">
+                      {prompt.prompt}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {prompt.suggested_tags.map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-xs">
+                          {tag}
+                        </Badge>
                       ))}
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+                    {prompt.related_topics.length > 0 && (
+                      <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
+                        <span>Topics:</span>
+                        {prompt.related_topics.map((topic, i) => (
+                          <span key={topic}>
+                            {topic}
+                            {i < prompt.related_topics.length - 1 && ", "}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
-          {prompts.length === 0 && !isRefreshing && (
-            <Card className="py-12">
-              <CardContent className="text-center">
-                <Sparkles className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="font-semibold text-lg mb-2">No prompts yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  Click the button above to generate personalized recording prompts
-                </p>
-                <Button onClick={handleRefresh} disabled={isRefreshing}>
-                  Generate Prompts
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+            {/* Navigation */}
+            <div className="flex items-center justify-between">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPromptIndex((prev) => Math.max(0, prev - 1))}
+                disabled={currentPromptIndex === 0}
+                className="gap-1"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {currentPromptIndex + 1} of {prompts.length}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPromptIndex((prev) => Math.min(prompts.length - 1, prev + 1))}
+                disabled={currentPromptIndex === prompts.length - 1}
+                className="gap-1"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ) : !isRefreshing ? (
+          <Card className="py-12">
+            <CardContent className="text-center">
+              <Sparkles className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="font-semibold text-lg mb-2">No prompts yet</h3>
+              <p className="text-muted-foreground mb-4">
+                Click the button above to generate personalized recording prompts
+              </p>
+              <Button onClick={handleRefresh} disabled={isRefreshing}>
+                Generate Prompts
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
 
         {/* Quick Capture Modal */}
         {profile?.id && (
