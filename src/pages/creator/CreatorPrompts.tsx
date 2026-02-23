@@ -199,10 +199,10 @@ export default function CreatorPrompts() {
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <Sparkles className="h-6 w-6 text-primary" />
-              Recording Prompts
+              AI Breadcrumbs
             </h1>
             <p className="text-muted-foreground mt-1">
-              AI Generated prompts to help you share your wisdom
+              Personalized prompts to help you share your wisdom
             </p>
           </div>
           <div className="flex gap-2">
