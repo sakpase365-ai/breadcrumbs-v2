@@ -218,29 +218,19 @@ export default function CreatorDashboard() {
   }
   return <DashboardLayout>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 sm:mb-8">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-serif font-semibold text-white">
-            Welcome, {profile?.name?.split(" ")[0]}
-          </h1>
-          <p className="text-white/60 mt-0.5 text-sm sm:text-base">
-            {breadcrumbs.length === 0 ? "Start leaving breadcrumbs for your loved ones." : `You've left ${breadcrumbs.length} breadcrumb${breadcrumbs.length === 1 ? "" : "s"}.`}
-          </p>
-        </div>
-        <div className="flex gap-2 sm:gap-3">
-          <Link to="/creator/progress">
-            <Button variant="outline" size="sm" className="gap-1.5 border-white/30 text-white hover:bg-white/10">
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Progress</span>
-            </Button>
-          </Link>
-          <Link to="/creator/prompts">
-            <Button size="sm" className="gap-1.5 bg-white text-black hover:bg-white/90">
-              <Plus className="w-3.5 h-3.5" />
-              Create
-            </Button>
-          </Link>
-        </div>
+      <div className="flex items-center justify-end gap-2 sm:gap-3 mb-4 sm:mb-6">
+        <Link to="/creator/progress">
+          <Button variant="outline" size="sm" className="gap-1.5 border-white/30 text-white hover:bg-white/10">
+            <TrendingUp className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Progress</span>
+          </Button>
+        </Link>
+        <Link to="/creator/prompts">
+          <Button size="sm" className="gap-1.5 bg-white text-black hover:bg-white/90">
+            <Plus className="w-3.5 h-3.5" />
+            Create
+          </Button>
+        </Link>
       </div>
 
       {/* Recording Prompts */}
