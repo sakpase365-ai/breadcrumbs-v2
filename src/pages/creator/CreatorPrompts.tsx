@@ -56,6 +56,7 @@ export default function CreatorPrompts() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -154,7 +155,11 @@ export default function CreatorPrompts() {
 
   const handleStartRecording = (prompt: Prompt) => {
     setSelectedPrompt(prompt);
-    setIsModalOpen(true);
+    setIsThinking(true);
+    setTimeout(() => {
+      setIsThinking(false);
+      setIsModalOpen(true);
+    }, 1500);
   };
 
   const handleModalClose = () => {
@@ -311,6 +316,18 @@ export default function CreatorPrompts() {
                 </Card>
               );
             })()}
+
+            {/* Thinking Animation */}
+            {isThinking && (
+              <div className="flex items-center justify-center gap-2 py-4">
+                <span className="text-sm text-muted-foreground">Preparing your prompt</span>
+                <div className="flex gap-1">
+                  <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            )}
 
             {/* Navigation */}
             <div className="flex items-center justify-between">
