@@ -42,7 +42,7 @@ const promptTypeColors = {
   values: "bg-purple-500/10 text-purple-600 border-purple-500/20",
 };
 
-function PromptTypewriter({ text }: { text: string }) {
+const PromptTypewriter = ({ text }: { text: string }) => {
   const [displayedText, setDisplayedText] = useState("");
 
   useEffect(() => {
@@ -64,7 +64,7 @@ function PromptTypewriter({ text }: { text: string }) {
       )}
     </p>
   );
-}
+};
 
 export function DashboardPromptsWidget({ profileId, recipients, familyId, onBreadcrumbSaved }: DashboardPromptsWidgetProps) {
   const navigate = useNavigate();
