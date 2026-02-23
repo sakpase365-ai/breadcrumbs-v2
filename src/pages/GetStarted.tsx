@@ -27,7 +27,7 @@ const GetStarted = () => {
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-light tracking-tight text-foreground mb-3">
           <TypewriterText 
             text="How would you like to use Breadcrumbs?" 
-            speed={0.04} 
+            speed={0.02} 
             showCursor={false}
           />
         </h1>
