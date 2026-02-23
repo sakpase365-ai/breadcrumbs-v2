@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkles, RefreshCw, Mic, BookOpen, Heart, MessageCircle, Clock, ChevronLeft, ChevronRight, PenLine } from "lucide-react";
 import { QuickCaptureModal } from "@/components/QuickCaptureModal";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Prompt {
   prompt_type: "story" | "advice" | "values";
@@ -137,50 +138,60 @@ export function DashboardPromptsWidget({ profileId, recipients, familyId, onBrea
       {/* Prompt Card */}
       {prompt ? (
         <>
-          <Card
-            className="group bg-white/5 border-white/10 hover:border-white/30 transition-all cursor-pointer"
-            onClick={generatePrompts}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`${currentPromptIndex}-${prompts[0]?.prompt?.slice(0, 20)}`}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
           >
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${promptTypeColors[prompt.prompt_type]}`}>
-                    {(() => { const Icon = promptTypeIcons[prompt.prompt_type]; return <Icon className="h-5 w-5" />; })()}
+            <Card
+              className="group bg-white/5 border-white/10 hover:border-white/30 transition-all cursor-pointer"
+              onClick={generatePrompts}
+            >
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${promptTypeColors[prompt.prompt_type]}`}>
+                      {(() => { const Icon = promptTypeIcons[prompt.prompt_type]; return <Icon className="h-5 w-5" />; })()}
+                    </div>
+                    <div>
+                      <Badge variant="outline" className={promptTypeColors[prompt.prompt_type]}>
+                        {promptTypeLabels[prompt.prompt_type]}
+                      </Badge>
+                      {prompt.estimated_duration && (
+                        <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {prompt.estimated_duration}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <Badge variant="outline" className={promptTypeColors[prompt.prompt_type]}>
-                      {promptTypeLabels[prompt.prompt_type]}
-                    </Badge>
-                    {prompt.estimated_duration && (
-                      <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {prompt.estimated_duration}
-                      </div>
-                    )}
-                  </div>
+                  <Button
+                    size="sm"
+                    className="gap-2 bg-white text-black hover:bg-white/90"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStartRecording(prompt);
+                    }}
+                  >
+                    <Mic className="h-4 w-4" />
+                    Record
+                  </Button>
                 </div>
-                <Button
-                  size="sm"
-                  className="gap-2 bg-white text-black hover:bg-white/90"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleStartRecording(prompt);
-                  }}
-                >
-                  <Mic className="h-4 w-4" />
-                  Record
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-foreground leading-relaxed mb-3">{prompt.prompt}</p>
-              <div className="flex flex-wrap gap-2">
-                {prompt.suggested_tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent>
+                <p className="text-foreground leading-relaxed mb-3">{prompt.prompt}</p>
+                <div className="flex flex-wrap gap-2">
+                  {prompt.suggested_tags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </AnimatePresence>
 
           {/* Thinking Animation */}
           {isThinking && (
