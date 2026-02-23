@@ -107,6 +107,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                       <User className="w-4 h-4 text-primary" />
                     </div>
+                    <span className="hidden sm:inline text-sm">Profile</span>
                   </Button>
                 </SheetTrigger>
               <SheetContent side="right" className="w-80 p-0">
