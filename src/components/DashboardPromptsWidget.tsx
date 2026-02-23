@@ -156,14 +156,6 @@ export function DashboardPromptsWidget({ profileId, recipients, familyId, onBrea
           <Sparkles className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
           AI Breadcrumbs
         </Button>
-        <div className="flex items-center gap-2">
-          <Link to="/creator/create">
-            <Button variant="ghost" size="sm" className="gap-1.5 text-white/60 hover:text-white hover:bg-white/10">
-              <PenLine className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Manual</span>
-            </Button>
-          </Link>
-        </div>
       </div>
 
       {/* Prompt Card */}
@@ -254,6 +246,14 @@ export function DashboardPromptsWidget({ profileId, recipients, familyId, onBrea
           </CardContent>
         </Card>
       )}
+
+      {/* Manual Breadcrumb Option */}
+      <Link to="/creator/create" className="block">
+        <Button variant="ghost" size="sm" className="w-full gap-1.5 text-white/60 hover:text-white hover:bg-white/10">
+          <PenLine className="h-3.5 w-3.5" />
+          Create Manual Breadcrumb
+        </Button>
+      </Link>
 
       {/* Quick Capture Modal */}
       <QuickCaptureModal
