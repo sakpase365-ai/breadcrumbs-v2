@@ -139,7 +139,7 @@ export function DashboardPromptsWidget({ profileId, recipients, familyId, onBrea
         <>
           <Card
             className="group bg-white/5 border-white/10 hover:border-white/30 transition-all cursor-pointer"
-            onClick={() => handleStartRecording(prompt)}
+            onClick={generatePrompts}
           >
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-4">
