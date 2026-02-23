@@ -112,7 +112,7 @@ export function DashboardPromptsWidget({ profileId, recipients, familyId, onBrea
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
-          <h2 className="font-serif text-lg font-medium text-white">Recording Prompts</h2>
+          <h2 className="font-serif text-lg font-medium text-white">AI Generated Breadcrumb Prompts</h2>
         </div>
         <div className="flex items-center gap-2">
           <Link to="/creator/create">
