@@ -248,12 +248,18 @@ export function DashboardPromptsWidget({ profileId, recipients, familyId, onBrea
       )}
 
       {/* Manual Breadcrumb Option */}
-      <Link to="/creator/create" className="block">
-        <Button variant="ghost" size="sm" className="w-full gap-1.5 text-white/60 hover:text-white hover:bg-white/10">
-          <PenLine className="h-3.5 w-3.5" />
-          Create Manual Breadcrumb
-        </Button>
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link to="/creator/create">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 border-white/30 text-white hover:bg-white/10"
+          >
+            <PenLine className="h-3.5 w-3.5" />
+            Manual Breadcrumb
+          </Button>
+        </Link>
+      </div>
 
       {/* Quick Capture Modal */}
       <QuickCaptureModal
