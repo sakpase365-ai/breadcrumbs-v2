@@ -178,7 +178,7 @@ export function DashboardPromptsWidget({ profileId, recipients, familyId, onBrea
                     }}
                   >
                     <Mic className="h-4 w-4" />
-                    Record
+                    Leave
                   </Button>
                 </div>
               </CardHeader>
