@@ -12,6 +12,8 @@ import ManageRecipients from "./pages/creator/ManageRecipients";
 import CreateBreadcrumb from "./pages/creator/CreateBreadcrumb";
 import CreatorPrompts from "./pages/creator/CreatorPrompts";
 import CreatorProgress from "./pages/creator/CreatorProgress";
+import JournalList from "./pages/creator/JournalList";
+import JournalEntry from "./pages/creator/JournalEntry";
 import RecipientHome from "./pages/recipient/RecipientHome";
 import BreadcrumbDetail from "./pages/BreadcrumbDetail";
 import Settings from "./pages/Settings";
@@ -35,6 +37,8 @@ const App = () => (
           <Route path="/creator/create" element={<CreateBreadcrumb />} />
           <Route path="/creator/prompts" element={<CreatorPrompts />} />
           <Route path="/creator/progress" element={<CreatorProgress />} />
+          <Route path="/creator/journal" element={<JournalList />} />
+          <Route path="/creator/journal/:id" element={<JournalEntry />} />
           <Route path="/recipient" element={<RecipientHome />} />
           <Route path="/breadcrumb/:id" element={<BreadcrumbDetail />} />
           <Route path="/settings" element={<Settings />} />

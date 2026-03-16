@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings, User, Globe, ChevronRight, Users, Plus } from "lucide-react";
+import { LogOut, Settings, User, Globe, ChevronRight, Users, Plus, BookOpen } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,6 +61,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
             {/* Right side actions */}
             <div className="flex items-center gap-2">
+              {profile?.role === "creator" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-muted-foreground hover:text-foreground"
+                  onClick={() => navigate("/creator/journal")}
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span className="hidden sm:inline text-sm">Journal</span>
+                </Button>
+              )}
+
               {profile?.role === "creator" && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

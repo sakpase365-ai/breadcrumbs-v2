@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -51,6 +51,7 @@ type Step = 1 | 2 | 3;
 export default function CreateBreadcrumb() {
   const { profile, user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
 
   const [recipients, setRecipients] = useState<Recipient[]>([]);
@@ -68,11 +69,13 @@ export default function CreateBreadcrumb() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
 
+  const [fromJournalId] = useState(searchParams.get("from_journal") || "");
+
   const [formData, setFormData] = useState({
     recipient_ids: [] as string[],
-    title: "",
+    title: searchParams.get("title") || "",
     content_type: "text" as ContentType,
-    text_body: "",
+    text_body: searchParams.get("content") || "",
     include_commentary: false,
     commentary_text: "",
     audio_url: ""
@@ -93,6 +96,18 @@ export default function CreateBreadcrumb() {
       fetchData();
     }
   }, [profile, authLoading, navigate]);
+
+  // Pre-select topic from journal conversion
+  useEffect(() => {
+    const topicId = searchParams.get("topic_id");
+    if (topicId && topics.length > 0) {
+      const topic = topics.find((t) => t.id === topicId);
+      if (topic) {
+        setSelectedTopicId(topicId);
+        setSelectedCategoryId(topic.category_id);
+      }
+    }
+  }, [topics, searchParams]);
 
   const fetchData = async () => {
     if (!profile) return;
@@ -447,6 +462,12 @@ export default function CreateBreadcrumb() {
             <ArrowLeft className="w-4 h-4" />
             {currentStep === 1 ? "Back to Dashboard" : "Back"}
           </button>
+          {fromJournalId && (
+            <div className="mb-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 text-sm text-primary">
+              <BookOpen className="w-4 h-4 shrink-0" />
+              <span>Converted from your journal — review and share with recipients</span>
+            </div>
+          )}
           <h1 className="text-3xl font-serif font-semibold text-foreground">
             Create Breadcrumb
           </h1>
