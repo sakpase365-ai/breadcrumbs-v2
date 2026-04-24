@@ -5,11 +5,12 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
 import { assertEnv } from '@/lib/env';
 import { differenceInYears, parseISO } from 'date-fns';
+import { DESCENDENT_ROLES } from '@/lib/roles';
 
-const CONTENT_MAX     = 8_000;   // ~1,500 words — generous for a letter
-const APPEND_MAX      = 4_000;
-const SAVE_LIMIT      = 20;      // saves per user per hour
-const SAVE_WINDOW_MS  = 60 * 60 * 1000;
+const CONTENT_MAX    = 8_000;
+const APPEND_MAX     = 4_000;
+const SAVE_LIMIT     = 20;
+const SAVE_WINDOW_MS = 60 * 60 * 1000;
 
 export async function POST(req: NextRequest) {
   assertEnv();
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
       {
         status: 429,
         headers: {
-          'Retry-After':          String(Math.ceil((resetAt - Date.now()) / 1000)),
+          'Retry-After':           String(Math.ceil((resetAt - Date.now()) / 1000)),
           'X-RateLimit-Remaining': '0',
         },
       }
@@ -46,7 +47,6 @@ export async function POST(req: NextRequest) {
   if (!content || typeof content !== 'string' || !content.trim()) {
     return NextResponse.json({ error: 'content required' }, { status: 400 });
   }
-
   if (content.length > CONTENT_MAX) {
     return NextResponse.json(
       { error: `content too long (max ${CONTENT_MAX} characters)` },
@@ -67,11 +67,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
   }
 
-  const childAge = differenceInYears(new Date(), parseISO(profile.child_dob));
+  // Resolve primary recipient from family_members (descendent roles first, then any member)
+  const { data: familyMembers } = await db
+    .from('family_members')
+    .select('name, role, birth_date')
+    .eq('user_id', profile.id)
+    .order('created_at', { ascending: true });
+
+  const primary =
+    familyMembers?.find((m) => DESCENDENT_ROLES.has(m.role)) ??
+    familyMembers?.[0] ??
+    null;
+
+  // Resolve recipient name and age, with legacy fallback
+  const recipientName = primary?.name ?? profile.child_name ?? null;
+  const birthDateStr  = primary?.birth_date ?? profile.child_dob ?? null;
+  const recipientAge  = birthDateStr
+    ? differenceInYears(new Date(), parseISO(birthDateStr))
+    : 10; // neutral default when no birth date is known
 
   try {
     const [tags, followUp] = await Promise.all([
-      tagEntry(content, childAge),
+      tagEntry(content, recipientAge),
       generateFollowUp(content),
     ]);
 
@@ -79,7 +96,7 @@ export async function POST(req: NextRequest) {
       .from('entries')
       .insert({
         parent_id:     profile.id,
-        child_name:    profile.child_name,
+        child_name:    recipientName,
         content,
         follow_up:     followUp,
         domain:        tags.domain,
@@ -104,8 +121,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Append follow-up addition to an existing entry.
-// Ownership verified: entry must belong to the calling user's profile.
+// Append follow-up to an existing entry.
 export async function PATCH(req: NextRequest) {
   assertEnv();
 
@@ -121,7 +137,6 @@ export async function PATCH(req: NextRequest) {
   if (!entryId || !appendContent || typeof appendContent !== 'string') {
     return NextResponse.json({ error: 'entryId and appendContent required' }, { status: 400 });
   }
-
   if (appendContent.length > APPEND_MAX) {
     return NextResponse.json(
       { error: `appendContent too long (max ${APPEND_MAX} characters)` },
@@ -145,7 +160,7 @@ export async function PATCH(req: NextRequest) {
     .from('entries')
     .select('content')
     .eq('id', entryId)
-    .eq('parent_id', profile.id)  // ownership check
+    .eq('parent_id', profile.id)
     .single();
 
   if (fetchError || !existing) {

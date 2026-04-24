@@ -14,35 +14,43 @@ export const FALLBACK_PROMPTS = [
   'Describe a time you made a decision you are still proud of, even if it was hard.',
   'What does a good friendship look like to you? What took you longest to learn about it?',
   'Write about a place that made you feel like yourself. What was it about that place?',
-  'When has your child surprised you in a way that changed how you see them?',
+  'When has someone close to you surprised you in a way that changed how you see them?',
   'What is something small from your everyday life that you never want them to forget?',
 ];
 
 // ── Prompt generation ──────────────────────────────────────────
-// Returns one AI-generated daily prompt for the parent session
 export async function generateDailyPrompt(context: {
-  parentName: string;
-  childName: string;
-  childAge: number;
-  recentTopics: string[]; // avoid repetition
+  ownerName:         string;
+  ownerRole?:        string;
+  recipientName?:    string;
+  recipientAge?:     number;
+  recentTopics:      string[];
 }): Promise<string> {
-  const { parentName, childName, childAge, recentTopics } = context;
+  const { ownerName, ownerRole, recipientName, recipientAge, recentTopics } = context;
+
+  const writerDescription = ownerRole && ownerRole !== 'other'
+    ? `${ownerRole} named ${ownerName}`
+    : `person named ${ownerName}`;
+
+  const recipientDescription = recipientName
+    ? `${recipientName}${recipientAge != null ? `, who is currently ${recipientAge} years old` : ''}`
+    : 'someone they love';
 
   const msg = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 300,
     messages: [{
       role: 'user',
-      content: `You are a thoughtful guide helping a parent named ${parentName} write a letter to their child ${childName}, who is currently ${childAge} years old.
+      content: `You are a thoughtful guide helping a ${writerDescription} write a meaningful letter to ${recipientDescription}.
 
-Generate ONE short, specific, emotionally resonant writing prompt. The prompt should invite the parent to share a real memory, lesson, or piece of wisdom.
+Generate ONE short, specific, emotionally resonant writing prompt. The prompt should invite the writer to share a real memory, lesson, or piece of wisdom.
 
 Rules:
 - One prompt only — no lists, no options
 - 1-2 sentences maximum
 - Avoid these recently used topics: ${recentTopics.join(', ') || 'none'}
 - Do not use the word "journey", "legacy", or "wisdom"
-- Speak directly to the parent, not about them
+- Speak directly to the writer, not about them
 
 Return only the prompt text. No preamble.`
     }],
@@ -52,8 +60,7 @@ Return only the prompt text. No preamble.`
 }
 
 // ── Entry tagging ──────────────────────────────────────────────
-// Invisibly tags a parent's entry after submission
-export async function tagEntry(content: string, childAge: number): Promise<{
+export async function tagEntry(content: string, recipientAge: number): Promise<{
   domain: string;
   relevantAge: number;
   deliveryType: 'age-locked' | 'milestone' | 'evergreen';
@@ -64,14 +71,14 @@ export async function tagEntry(content: string, childAge: number): Promise<{
     max_tokens: 200,
     messages: [{
       role: 'user',
-      content: `Analyze this parent's written entry and return a JSON object with these fields:
+      content: `Analyze this written entry and return a JSON object with these fields:
 - domain: one of [relationships, finances, resilience, career, identity, faith, health]
-- relevantAge: the age (integer) at which this wisdom would be most useful to the child
+- relevantAge: the age (integer) at which this wisdom would be most useful to the recipient
 - deliveryType: one of [age-locked, milestone, evergreen]
 - summary: one sentence summary of the core lesson (max 20 words)
 
 Entry: """${content}"""
-Child's current age: ${childAge}
+Recipient's current age: ${recipientAge}
 
 Return only valid JSON. No markdown, no explanation.`
     }],
@@ -103,16 +110,15 @@ Return only valid JSON. No markdown, no explanation.`
 }
 
 // ── Follow-up question ─────────────────────────────────────────
-// Generates one follow-up question after initial entry
 export async function generateFollowUp(entry: string): Promise<string> {
   const msg = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 150,
     messages: [{
       role: 'user',
-      content: `A parent has written this entry: """${entry}"""
+      content: `A person has written this entry: """${entry}"""
 
-Ask ONE short follow-up question to draw out more specific detail or emotional depth. 
+Ask ONE short follow-up question to draw out more specific detail or emotional depth.
 One sentence only. No preamble. Make it feel like a trusted listener, not an interviewer.`
     }],
   });

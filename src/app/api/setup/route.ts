@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionClient, getServiceClient } from '@/lib/supabase';
 
+const VALID_ROLES = new Set([
+  'parent', 'mother', 'father', 'child', 'son', 'daughter', 'sibling', 'brother', 'sister',
+  'grandparent', 'grandmother', 'grandfather', 'guardian', 'aunt', 'uncle', 'cousin', 'other',
+]);
+
+interface MemberInput {
+  name:            string;
+  role:            string;
+  customRoleLabel: string | null;
+  birthDate:       string | null;
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await getSessionClient();
   const { data: { session } } = await supabase.auth.getSession();
@@ -9,25 +21,50 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { parentName, childName, childDob } = await req.json();
+  const body = await req.json();
+  const {
+    ownerName,
+    ownerRole,
+    customOwnerRole,
+    familyName,
+    members,
+  }: {
+    ownerName:       string;
+    ownerRole:       string;
+    customOwnerRole: string | null;
+    familyName:      string | null;
+    members:         MemberInput[];
+  } = body;
 
-  if (
-    !parentName || typeof parentName !== 'string' || !parentName.trim() ||
-    !childName  || typeof childName  !== 'string' || !childName.trim()  ||
-    !childDob   || typeof childDob   !== 'string'
-  ) {
-    return NextResponse.json({ error: 'parentName, childName, and childDob are required' }, { status: 400 });
+  if (!ownerName || typeof ownerName !== 'string' || !ownerName.trim()) {
+    return NextResponse.json({ error: 'ownerName is required' }, { status: 400 });
+  }
+  if (!ownerRole || typeof ownerRole !== 'string' || !VALID_ROLES.has(ownerRole)) {
+    return NextResponse.json({ error: 'ownerRole is invalid' }, { status: 400 });
+  }
+  if (ownerRole === 'other' && (!customOwnerRole || !customOwnerRole.trim())) {
+    return NextResponse.json({ error: 'customOwnerRole is required when ownerRole is "other"' }, { status: 400 });
   }
 
-  // Validate childDob is a real date not in the future
-  const dob = new Date(childDob);
-  if (isNaN(dob.getTime()) || dob > new Date()) {
-    return NextResponse.json({ error: 'childDob must be a valid past date' }, { status: 400 });
+  if (Array.isArray(members)) {
+    for (const m of members) {
+      if (!m.name || !m.name.trim()) {
+        return NextResponse.json({ error: 'Each family member requires a name' }, { status: 400 });
+      }
+      if (!m.role || !VALID_ROLES.has(m.role)) {
+        return NextResponse.json({ error: 'Each family member requires a valid role' }, { status: 400 });
+      }
+      if (m.birthDate) {
+        const d = new Date(m.birthDate);
+        if (isNaN(d.getTime()) || d > new Date()) {
+          return NextResponse.json({ error: 'Invalid birth date for a family member' }, { status: 400 });
+        }
+      }
+    }
   }
 
   const db = getServiceClient();
 
-  // Guard: don't allow creating a second profile for the same user
   const { data: existing } = await db
     .from('users')
     .select('id')
@@ -38,21 +75,45 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Profile already exists' }, { status: 409 });
   }
 
-  const { data: profile, error } = await db
+  const { data: profile, error: profileError } = await db
     .from('users')
     .insert({
-      auth_user_id: session.user.id,
-      name:         parentName.trim(),
-      child_name:   childName.trim(),
-      child_dob:    childDob,
+      auth_user_id:      session.user.id,
+      name:              ownerName.trim(),
+      role:              ownerRole,
+      custom_role_label: ownerRole === 'other' ? customOwnerRole?.trim() ?? null : null,
+      family_name:       familyName?.trim() || null,
     })
-    .select('id, name, child_name, child_dob')
+    .select('id, name, role, family_name')
     .single();
 
-  if (error) {
-    console.error('[setup POST]', error);
+  if (profileError || !profile) {
+    console.error('[setup POST] profile insert failed', profileError);
     return NextResponse.json({ error: 'Failed to create profile' }, { status: 500 });
   }
 
-  return NextResponse.json({ profile });
+  let familyMembers: unknown[] = [];
+
+  if (Array.isArray(members) && members.length > 0) {
+    const { data: insertedMembers, error: memberError } = await db
+      .from('family_members')
+      .insert(
+        members.map((m) => ({
+          user_id:           profile.id,
+          name:              m.name.trim(),
+          role:              m.role,
+          custom_role_label: m.role === 'other' ? m.customRoleLabel?.trim() ?? null : null,
+          birth_date:        m.birthDate || null,
+        }))
+      )
+      .select('id, name, role, custom_role_label, birth_date');
+
+    if (memberError) {
+      console.error('[setup POST] family_members insert failed', memberError);
+    } else {
+      familyMembers = insertedMembers ?? [];
+    }
+  }
+
+  return NextResponse.json({ profile, familyMembers });
 }

@@ -4,17 +4,31 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { DESCENDENT_ROLES } from '@/lib/roles';
 
 const DRAFT_KEY = 'breadcrumbs_draft';
 
 interface Profile {
-  id:         string;
-  name:       string;
-  child_name: string;
-  child_dob:  string;
+  id:                string;
+  name:              string;
+  family_name:       string | null;
+  role:              string;
+  custom_role_label: string | null;
+}
+
+interface FamilyMember {
+  id:                string;
+  name:              string;
+  role:              string;
+  custom_role_label: string | null;
+  birth_date:        string | null;
 }
 
 type Stage = 'loading' | 'prompted' | 'writing' | 'follow-up' | 'done' | 'error';
+
+function primaryRecipient(members: FamilyMember[]): FamilyMember | null {
+  return members.find((m) => DESCENDENT_ROLES.has(m.role)) ?? members[0] ?? null;
+}
 
 function CaptureFlow() {
   const router = useRouter();
@@ -23,6 +37,7 @@ function CaptureFlow() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
   const [profile,          setProfile]          = useState<Profile | null>(null);
+  const [familyMembers,    setFamilyMembers]    = useState<FamilyMember[]>([]);
   const [stage,            setStage]            = useState<Stage>('loading');
   const [prompt,           setPrompt]           = useState('');
   const [entry,            setEntry]            = useState('');
@@ -30,12 +45,11 @@ function CaptureFlow() {
   const [followUpAddition, setFollowUpAddition] = useState('');
   const [savedEntryId,     setSavedEntryId]     = useState<string | null>(null);
   const [savedAt,          setSavedAt]          = useState<string | null>(null);
-  const [saving,          setSaving]          = useState(false);
-  const [charCount,       setCharCount]       = useState(0);
-  const [draftRestored,   setDraftRestored]   = useState(false);
+  const [saving,           setSaving]           = useState(false);
+  const [charCount,        setCharCount]        = useState(0);
+  const [draftRestored,    setDraftRestored]    = useState(false);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Restore draft from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem(DRAFT_KEY);
     if (saved) {
@@ -52,17 +66,16 @@ function CaptureFlow() {
         if (profileRes.status === 401) { router.push('/login?next=/capture'); return; }
         if (profileRes.status === 422) { router.push('/setup'); return; }
         if (!profileRes.ok) { setStage('error'); return; }
-        const { profile: p } = await profileRes.json();
+        const { profile: p, familyMembers: fm } = await profileRes.json();
         setProfile(p);
+        setFamilyMembers(fm ?? []);
 
         const promptRes = await fetch('/api/generate-prompt', { method: 'POST' });
         if (!promptRes.ok) { setStage('error'); return; }
         const { prompt: dailyPrompt } = await promptRes.json();
         setPrompt(dailyPrompt);
 
-        // If a draft was restored, go straight to writing stage
         setStage(localStorage.getItem(DRAFT_KEY) ? 'writing' : 'prompted');
-        // note: draftRestored state is set in the separate mount effect above
       } catch {
         setStage('error');
       }
@@ -74,7 +87,6 @@ function CaptureFlow() {
     setCharCount(value.length);
     if (stage === 'prompted') setStage('writing');
 
-    // Debounce autosave to localStorage
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     autosaveTimer.current = setTimeout(() => {
       if (value.trim()) {
@@ -108,6 +120,9 @@ function CaptureFlow() {
     }
   }
 
+  const recipient = primaryRecipient(familyMembers);
+  const recipientLabel = recipient?.name ?? 'your family';
+
   return (
     <main className="min-h-screen bg-background flex flex-col items-center justify-start px-6 py-14">
       <div className="max-w-xl w-full space-y-8">
@@ -137,7 +152,7 @@ function CaptureFlow() {
         {/* Loading */}
         {stage === 'loading' && (
           <div className="py-24 text-center">
-            <p className="text-muted-foreground text-sm animate-pulse">Preparing today's prompt…</p>
+            <p className="text-muted-foreground text-sm animate-pulse">Preparing today&apos;s prompt…</p>
           </div>
         )}
 
@@ -154,7 +169,7 @@ function CaptureFlow() {
 
             <textarea
               className="w-full h-64 bg-card border border-border rounded-sm px-5 py-4 text-foreground text-base leading-relaxed placeholder:text-muted-foreground focus:border-foreground/60 transition"
-              placeholder={`Write to ${profile.child_name}…`}
+              placeholder={`Write to ${recipientLabel}…`}
               value={entry}
               onChange={(e) => handleEntryChange(e.target.value)}
             />
@@ -193,7 +208,7 @@ function CaptureFlow() {
                 disabled={saving}
                 className="flex-1 py-3 px-6 border border-border text-muted-foreground text-sm tracking-wide hover:border-foreground hover:text-foreground disabled:opacity-30 transition"
               >
-                Skip — I'm done
+                Skip — I&apos;m done
               </button>
               <button
                 onClick={async () => {
@@ -224,7 +239,9 @@ function CaptureFlow() {
           <div className="py-20 text-center space-y-6">
             <div className="w-12 h-px bg-foreground/30 mx-auto" />
             <p className="font-serif text-foreground text-2xl">
-              {profile.child_name} will have this when the time is right.
+              {recipientLabel === 'your family'
+                ? 'Your family will have this when the time is right.'
+                : `${recipientLabel} will have this when the time is right.`}
             </p>
             {savedAt && (
               <p className="text-xs text-muted-foreground">
