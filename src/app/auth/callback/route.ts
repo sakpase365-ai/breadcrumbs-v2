@@ -35,9 +35,11 @@ export async function GET(request: NextRequest) {
     logger.error('auth code exchange failed', {
       route: 'auth/callback',
       errorName: error.name,
+      errorMessage: error.message,
       status: error.status,
     });
-    return NextResponse.redirect(`${origin}/login?error=auth_failed`);
+    const msg = encodeURIComponent(error.message ?? error.name ?? 'unknown');
+    return NextResponse.redirect(`${origin}/login?error=auth_failed&msg=${msg}`);
   }
 
   logger.info('auth callback success', { route: 'auth/callback', next });
