@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { createBrowserClient } from '@supabase/ssr';
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -11,11 +10,6 @@ function LoginForm() {
   const [sent,  setSent]      = useState(false);
   const [error, setError]     = useState('');
   const [busy,  setBusy]      = useState(false);
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
 
   useEffect(() => {
     if (searchParams.get('error')) setError('Sign-in failed. Please try again.');
@@ -26,14 +20,17 @@ function LoginForm() {
     if (!email.trim() || busy) return;
     setBusy(true);
     setError('');
-    const { error: authError } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
-      },
+    const res = await fetch('/api/send-magic-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: email.trim(),
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      }),
     });
-    if (authError) {
-      setError(authError.message);
+    const json = await res.json();
+    if (json.error) {
+      setError(json.error);
       setBusy(false);
     } else {
       setSent(true);

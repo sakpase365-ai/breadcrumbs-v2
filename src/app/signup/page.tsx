@@ -3,7 +3,6 @@
 export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
 import {
   PRIMARY_OWNER_ROLES,
   SECONDARY_OWNER_ROLES,
@@ -214,11 +213,6 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [busy,  setBusy]  = useState(false);
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
   function handleAccountNext(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim()) return;
@@ -248,10 +242,12 @@ export default function SignupPage() {
 
     setBusy(true);
 
-    const { error: authError } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/capture`,
+    const res = await fetch('/api/send-magic-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: email.trim(),
+        redirectTo: `${window.location.origin}/auth/callback?next=/capture`,
         data: {
           owner_name:        ownerName.trim(),
           owner_role:        ownerRole,
@@ -264,11 +260,12 @@ export default function SignupPage() {
             birth_date:        m.birthDate || null,
           })),
         },
-      },
+      }),
     });
+    const json = await res.json();
 
-    if (authError) {
-      setError(authError.message);
+    if (json.error) {
+      setError(json.error);
       setBusy(false);
     } else {
       setStep('sent');
