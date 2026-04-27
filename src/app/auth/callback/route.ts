@@ -8,6 +8,14 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
   const next = searchParams.get('next') ?? '/capture';
+  const supabaseError = searchParams.get('error');
+  const supabaseErrorDesc = searchParams.get('error_description');
+
+  if (supabaseError) {
+    logger.warn('auth callback supabase error', { route: 'auth/callback', supabaseError, supabaseErrorDesc });
+    const msg = encodeURIComponent(supabaseErrorDesc ?? supabaseError);
+    return NextResponse.redirect(`${origin}/login?error=link_error&msg=${msg}`);
+  }
 
   if (!code) {
     logger.warn('auth callback missing code', { route: 'auth/callback' });

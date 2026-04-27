@@ -12,7 +12,12 @@ function LoginForm() {
   const [busy,  setBusy]      = useState(false);
 
   useEffect(() => {
-    if (searchParams.get('error')) setError('Sign-in failed. Please try again.');
+    const err = searchParams.get('error');
+    if (err === 'link_error') {
+      setError('That link has expired or was already used. Request a new one.');
+    } else if (err) {
+      setError('Sign-in failed. Please try again.');
+    }
   }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
