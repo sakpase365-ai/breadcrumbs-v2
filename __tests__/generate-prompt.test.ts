@@ -20,7 +20,15 @@ import { generateDailyPrompt, FALLBACK_PROMPTS } from '@/lib/ai';
 import { checkRateLimit } from '@/lib/rate-limit';
 
 const MOCK_SESSION = { user: { id: 'uid-abc', user_metadata: {} } };
-const MOCK_PROFILE = { id: 'pid-xyz', name: 'Alice', child_name: 'Bob', child_dob: '2018-06-01' };
+const MOCK_PROFILE = { id: 'pid-xyz', name: 'Alice', role: 'parent', child_name: 'Bob', child_dob: '2018-06-01' };
+
+function makeRequest(body?: Record<string, unknown>): NextRequest {
+  return new NextRequest('http://localhost/api/generate-prompt', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+}
 
 function makeDb() {
   return {
@@ -30,6 +38,21 @@ function makeDb() {
           select: vi.fn().mockReturnThis(),
           eq:     vi.fn().mockReturnThis(),
           single: vi.fn().mockResolvedValue({ data: MOCK_PROFILE, error: null }),
+        };
+      }
+      if (table === 'family_members') {
+        // The all-descendants query ends with .eq() (no terminal method), so the
+        // returned object must be a proper thenable for `await` to resolve it.
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq:     vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: null, error: null }),
+          then(
+            resolve: (v: { data: unknown[]; error: null }) => unknown,
+            reject:  (e: unknown) => unknown,
+          ) {
+            return Promise.resolve({ data: [], error: null }).then(resolve, reject);
+          },
         };
       }
       // entries — recent topics
@@ -51,7 +74,6 @@ function makeSession(session: unknown) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // Restore the default "allowed" state so the 429 test's mockReturnValue doesn't leak
   vi.mocked(checkRateLimit).mockReturnValue({ allowed: true, remaining: 29, resetAt: Date.now() + 3_600_000 });
 });
 
@@ -59,7 +81,7 @@ describe('POST /api/generate-prompt', () => {
   it('returns 401 for unauthenticated requests', async () => {
     vi.mocked(getSessionClient).mockResolvedValue(makeSession(null) as never);
 
-    const res = await POST();
+    const res = await POST(makeRequest());
     expect(res.status).toBe(401);
     const body = await res.json();
     expect(body.error).toBe('Unauthorized');
@@ -69,7 +91,7 @@ describe('POST /api/generate-prompt', () => {
     vi.mocked(getSessionClient).mockResolvedValue(makeSession(MOCK_SESSION) as never);
     vi.mocked(checkRateLimit).mockReturnValue({ allowed: false, remaining: 0, resetAt: Date.now() + 60_000 });
 
-    const res = await POST();
+    const res = await POST(makeRequest());
     expect(res.status).toBe(429);
     expect(res.headers.get('Retry-After')).toBeTruthy();
   });
@@ -79,7 +101,7 @@ describe('POST /api/generate-prompt', () => {
     vi.mocked(getServiceClient).mockReturnValue(makeDb() as never);
     vi.mocked(generateDailyPrompt).mockResolvedValue('What did you learn the hard way?');
 
-    const res = await POST();
+    const res = await POST(makeRequest({ recipientId: null }));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.prompt).toBe('What did you learn the hard way?');
@@ -90,7 +112,7 @@ describe('POST /api/generate-prompt', () => {
     vi.mocked(getServiceClient).mockReturnValue(makeDb() as never);
     vi.mocked(generateDailyPrompt).mockRejectedValue(new Error('AI service unavailable'));
 
-    const res = await POST();
+    const res = await POST(makeRequest({ recipientId: null }));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(FALLBACK_PROMPTS).toContain(body.prompt);
@@ -111,7 +133,7 @@ describe('POST /api/generate-prompt', () => {
       }),
     } as never);
 
-    const res = await POST();
+    const res = await POST(makeRequest());
     expect(res.status).toBe(404);
   });
 });

@@ -5,7 +5,6 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
 import { assertEnv } from '@/lib/env';
 import { differenceInYears, parseISO } from 'date-fns';
-import { DESCENDENT_ROLES } from '@/lib/roles';
 
 const CONTENT_MAX    = 8_000;
 const APPEND_MAX     = 4_000;
@@ -42,7 +41,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { content } = await req.json();
+  const body = await req.json();
+  const { content, recipientId } = body as { content: unknown; recipientId?: string | null };
 
   if (!content || typeof content !== 'string' || !content.trim()) {
     return NextResponse.json({ error: 'content required' }, { status: 400 });
@@ -67,24 +67,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
   }
 
-  // Resolve primary recipient from family_members (descendent roles first, then any member)
-  const { data: familyMembers } = await db
-    .from('family_members')
-    .select('name, role, birth_date')
-    .eq('user_id', profile.id)
-    .order('created_at', { ascending: true });
+  let recipientName: string | null = null;
+  let recipientAge  = 10; // neutral default when no birth date is known
 
-  const primary =
-    familyMembers?.find((m) => DESCENDENT_ROLES.has(m.role)) ??
-    familyMembers?.[0] ??
-    null;
+  if (recipientId && typeof recipientId === 'string') {
+    // Verify this family member actually belongs to the authenticated user
+    const { data: member } = await db
+      .from('family_members')
+      .select('name, birth_date')
+      .eq('id', recipientId)
+      .eq('user_id', profile.id)
+      .single();
 
-  // Resolve recipient name and age, with legacy fallback
-  const recipientName = primary?.name ?? profile.child_name ?? null;
-  const birthDateStr  = primary?.birth_date ?? profile.child_dob ?? null;
-  const recipientAge  = birthDateStr
-    ? differenceInYears(new Date(), parseISO(birthDateStr))
-    : 10; // neutral default when no birth date is known
+    if (member) {
+      recipientName = member.name;
+      if (member.birth_date) {
+        recipientAge = differenceInYears(new Date(), parseISO(member.birth_date));
+      }
+    }
+  } else {
+    // All-descendants mode: no specific child_name — saved as family-wide breadcrumb
+    // Legacy fallback: use child_name/child_dob from profile if present
+    if (profile.child_name) {
+      recipientName = profile.child_name;
+      if (profile.child_dob) {
+        recipientAge = differenceInYears(new Date(), parseISO(profile.child_dob));
+      }
+    }
+  }
 
   try {
     const [tags, followUp] = await Promise.all([
@@ -113,9 +123,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ entry: data, followUp });
   } catch (err) {
     logger.error('failed to save entry', {
-      route: 'save-entry POST',
+      route:    'save-entry POST',
       parentId: profile.id,
-      error: err instanceof Error ? err.message : String(err),
+      error:    err instanceof Error ? err.message : String(err),
     });
     return NextResponse.json({ error: 'Failed to save entry' }, { status: 500 });
   }
@@ -176,9 +186,9 @@ export async function PATCH(req: NextRequest) {
 
   if (error) {
     logger.error('failed to append follow-up', {
-      route: 'save-entry PATCH',
+      route:    'save-entry PATCH',
       parentId: profile.id,
-      error: error.message,
+      error:    error.message,
     });
     return NextResponse.json({ error: 'Failed to update entry' }, { status: 500 });
   }

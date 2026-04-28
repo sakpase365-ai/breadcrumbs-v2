@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { DESCENDENT_ROLES } from '@/lib/roles';
-import { firstName } from '@/lib/utils';
+import { firstName } from '@/lib/nameUtils';
 
 const DRAFT_KEY = 'breadcrumbs_draft';
 
@@ -27,8 +27,21 @@ interface FamilyMember {
 
 type Stage = 'loading' | 'prompted' | 'writing' | 'follow-up' | 'done' | 'error';
 
-function primaryRecipient(members: FamilyMember[]): FamilyMember | null {
-  return members.find((m) => DESCENDENT_ROLES.has(m.role)) ?? members[0] ?? null;
+function collectiveLabel(members: FamilyMember[]): string {
+  const descendants = members.filter((m) => DESCENDENT_ROLES.has(m.role));
+  if (descendants.length === 0) return 'your family';
+  return 'your children';
+}
+
+async function fetchPrompt(recipientId: string | null): Promise<string> {
+  const res = await fetch('/api/generate-prompt', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ recipientId }),
+  });
+  if (!res.ok) throw new Error('prompt fetch failed');
+  const { prompt } = await res.json();
+  return prompt as string;
 }
 
 function CaptureFlow() {
@@ -37,18 +50,21 @@ function CaptureFlow() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
-  const [profile,          setProfile]          = useState<Profile | null>(null);
-  const [familyMembers,    setFamilyMembers]    = useState<FamilyMember[]>([]);
-  const [stage,            setStage]            = useState<Stage>('loading');
-  const [prompt,           setPrompt]           = useState('');
-  const [entry,            setEntry]            = useState('');
-  const [followUp,         setFollowUp]         = useState('');
-  const [followUpAddition, setFollowUpAddition] = useState('');
-  const [savedEntryId,     setSavedEntryId]     = useState<string | null>(null);
-  const [savedAt,          setSavedAt]          = useState<string | null>(null);
-  const [saving,           setSaving]           = useState(false);
-  const [charCount,        setCharCount]        = useState(0);
-  const [draftRestored,    setDraftRestored]    = useState(false);
+
+  const [profile,           setProfile]           = useState<Profile | null>(null);
+  const [familyMembers,     setFamilyMembers]      = useState<FamilyMember[]>([]);
+  const [selectedRecipient, setSelectedRecipient]  = useState<FamilyMember | null>(null);
+  const [promptLoading,     setPromptLoading]      = useState(false);
+  const [stage,             setStage]              = useState<Stage>('loading');
+  const [prompt,            setPrompt]             = useState('');
+  const [entry,             setEntry]              = useState('');
+  const [followUp,          setFollowUp]           = useState('');
+  const [followUpAddition,  setFollowUpAddition]   = useState('');
+  const [savedEntryId,      setSavedEntryId]       = useState<string | null>(null);
+  const [savedAt,           setSavedAt]            = useState<string | null>(null);
+  const [saving,            setSaving]             = useState(false);
+  const [charCount,         setCharCount]          = useState(0);
+  const [draftRestored,     setDraftRestored]      = useState(false);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -71,9 +87,8 @@ function CaptureFlow() {
         setProfile(p);
         setFamilyMembers(fm ?? []);
 
-        const promptRes = await fetch('/api/generate-prompt', { method: 'POST' });
-        if (!promptRes.ok) { setStage('error'); return; }
-        const { prompt: dailyPrompt } = await promptRes.json();
+        // Generate prompt for all descendants by default (recipientId: null)
+        const dailyPrompt = await fetchPrompt(null);
         setPrompt(dailyPrompt);
 
         setStage(localStorage.getItem(DRAFT_KEY) ? 'writing' : 'prompted');
@@ -82,6 +97,23 @@ function CaptureFlow() {
       }
     })();
   }, [router]);
+
+  async function handleRecipientSelect(member: FamilyMember | null) {
+    setSelectedRecipient(member);
+
+    // Re-generate prompt only if the user hasn't started writing yet
+    if (stage === 'prompted') {
+      setPromptLoading(true);
+      try {
+        const newPrompt = await fetchPrompt(member?.id ?? null);
+        setPrompt(newPrompt);
+      } catch {
+        // keep existing prompt on failure — don't break the flow
+      } finally {
+        setPromptLoading(false);
+      }
+    }
+  }
 
   function handleEntryChange(value: string) {
     setEntry(value);
@@ -105,7 +137,10 @@ function CaptureFlow() {
       const res = await fetch('/api/save-entry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: entry }),
+        body: JSON.stringify({
+          content:     entry,
+          recipientId: selectedRecipient?.id ?? null,
+        }),
       });
       if (!res.ok) { setStage('error'); return; }
       const data = await res.json();
@@ -121,8 +156,13 @@ function CaptureFlow() {
     }
   }
 
-  const recipient = primaryRecipient(familyMembers);
-  const recipientLabel = firstName(recipient?.name) ?? 'your family';
+  const recipientLabel = selectedRecipient
+    ? firstName(selectedRecipient.name)
+    : collectiveLabel(familyMembers);
+
+  const doneLine = selectedRecipient
+    ? `${firstName(selectedRecipient.name)} will have this when the time is right.`
+    : `${collectiveLabel(familyMembers) === 'your family' ? 'Your family' : 'Your children'} will have this when the time is right.`;
 
   return (
     <main className="min-h-screen bg-background flex flex-col items-center justify-start px-6 py-14">
@@ -160,8 +200,46 @@ function CaptureFlow() {
         {/* Prompt + Writing */}
         {(stage === 'prompted' || stage === 'writing') && profile && (
           <div className="space-y-6">
+
+            {/* Recipient selector */}
+            {familyMembers.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground uppercase tracking-widest">Writing for</p>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => handleRecipientSelect(null)}
+                    disabled={promptLoading}
+                    className={`px-4 py-1.5 text-sm border rounded-full transition disabled:opacity-50 ${
+                      !selectedRecipient
+                        ? 'border-foreground bg-foreground text-background'
+                        : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Everyone
+                  </button>
+                  {familyMembers.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => handleRecipientSelect(m)}
+                      disabled={promptLoading}
+                      className={`px-4 py-1.5 text-sm border rounded-full transition disabled:opacity-50 ${
+                        selectedRecipient?.id === m.id
+                          ? 'border-foreground bg-foreground text-background'
+                          : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {firstName(m.name)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="border-l-2 border-foreground/30 pl-5 py-1">
-              <p className="font-serif text-foreground text-xl leading-relaxed">{prompt}</p>
+              {promptLoading
+                ? <p className="text-muted-foreground text-sm animate-pulse">Refreshing prompt…</p>
+                : <p className="font-serif text-foreground text-xl leading-relaxed">{prompt}</p>
+              }
             </div>
 
             {draftRestored && (
@@ -239,11 +317,7 @@ function CaptureFlow() {
         {stage === 'done' && profile && (
           <div className="py-20 text-center space-y-6">
             <div className="w-12 h-px bg-foreground/30 mx-auto" />
-            <p className="font-serif text-foreground text-2xl">
-              {recipientLabel === 'your family'
-                ? 'Your family will have this when the time is right.'
-                : `${recipientLabel} will have this when the time is right.`}
-            </p>
+            <p className="font-serif text-foreground text-2xl">{doneLine}</p>
             {savedAt && (
               <p className="text-xs text-muted-foreground">
                 Saved {new Date(savedAt).toLocaleDateString('en-US', {
