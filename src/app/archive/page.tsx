@@ -21,14 +21,15 @@ const DELIVERY_LABELS: Record<string, string> = {
 };
 
 interface EntryCard {
-  id:            string;
-  summary:       string;
-  content:       string;
-  domain:        string;
-  relevant_age:  number;
-  delivery_type: string;
-  created_at:    string;
-  delivered_at?: string;
+  id:             string;
+  summary:        string;
+  content:        string;
+  domain:         string;
+  relevant_age:   number;
+  delivery_type:  string;
+  created_at:     string;
+  delivered_at?:  string;
+  recipient_name: string | null;
 }
 
 export default function ArchivePage() {
@@ -133,6 +134,11 @@ export default function ArchivePage() {
                   )}
 
                   <div className="flex flex-wrap gap-2 items-center">
+                    {e.recipient_name && (
+                      <span className="text-xs px-2 py-0.5 border border-border text-muted-foreground rounded-sm">
+                        For {e.recipient_name.split(' ')[0]}
+                      </span>
+                    )}
                     <span className={`text-xs px-2 py-0.5 border rounded-sm font-medium ${DOMAIN_COLORS[e.domain] ?? 'border-border text-muted-foreground'}`}>
                       {e.domain}
                     </span>

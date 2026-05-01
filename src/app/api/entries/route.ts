@@ -27,15 +27,29 @@ export async function GET() {
   }
 
   const { data, error } = await db
-    .from('entries')
-    .select('id, summary, domain, relevant_age, delivery_type, content, created_at, delivered_at')
+    .from('breadcrumbs')
+    .select('id, summary, domain, relevant_age, delivery_type, content, created_at, delivered_at, family_members(name)')
     .eq('parent_id', profile.id)
     .order('created_at', { ascending: false });
 
   if (error) {
-    logger.error('failed to fetch entries', { route: 'entries GET', parentId: profile.id, code: error.code });
+    logger.error('failed to fetch breadcrumbs', { route: 'entries GET', parentId: profile.id, code: error.code });
     return NextResponse.json({ error: 'Failed to fetch entries' }, { status: 500 });
   }
 
-  return NextResponse.json({ entries: data });
+  const entries = (data ?? []).map((row) => ({
+    id:             row.id,
+    summary:        row.summary,
+    domain:         row.domain,
+    relevant_age:   row.relevant_age,
+    delivery_type:  row.delivery_type,
+    content:        row.content,
+    created_at:     row.created_at,
+    delivered_at:   row.delivered_at,
+    recipient_name: Array.isArray(row.family_members)
+      ? (row.family_members[0] as { name: string } | undefined)?.name ?? null
+      : (row.family_members as { name: string } | null)?.name ?? null,
+  }));
+
+  return NextResponse.json({ entries });
 }

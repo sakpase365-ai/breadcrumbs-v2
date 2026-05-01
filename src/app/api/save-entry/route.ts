@@ -67,8 +67,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
   }
 
-  let recipientName: string | null = null;
-  let recipientAge  = 10; // neutral default when no birth date is known
+  let recipientName:    string | null = null;
+  let recipientAge                    = 10; // neutral default when no birth date is known
+  let validRecipientId: string | null = null;
 
   if (recipientId && typeof recipientId === 'string') {
     // Verify this family member actually belongs to the authenticated user
@@ -80,7 +81,8 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (member) {
-      recipientName = member.name;
+      validRecipientId = recipientId;
+      recipientName    = member.name;
       if (member.birth_date) {
         recipientAge = differenceInYears(new Date(), parseISO(member.birth_date));
       }
@@ -118,6 +120,31 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) throw error;
+
+    // Dual-write to breadcrumbs (canonical table going forward).
+    // Non-fatal during bridge period — entries remains the fallback.
+    const { error: bcError } = await db
+      .from('breadcrumbs')
+      .insert({
+        parent_id:        profile.id,
+        family_member_id: validRecipientId,
+        breadcrumb_type:  'letter',
+        content,
+        summary:          tags.summary,
+        follow_up:        followUp,
+        domain:           tags.domain,
+        relevant_age:     tags.relevantAge,
+        delivery_type:    tags.deliveryType,
+        legacy_entry_id:  data.id,
+      });
+
+    if (bcError) {
+      logger.warn('breadcrumbs write failed (non-fatal)', {
+        route:    'save-entry POST',
+        parentId: profile.id,
+        error:    bcError.message,
+      });
+    }
 
     logger.info('entry saved', { route: 'save-entry POST', parentId: profile.id, remaining });
     return NextResponse.json({ entry: data, followUp });
@@ -178,9 +205,11 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Entry not found' }, { status: 404 });
   }
 
+  const appendedContent = `${existing.content}\n\n${appendContent}`;
+
   const { error } = await db
     .from('entries')
-    .update({ content: `${existing.content}\n\n${appendContent}` })
+    .update({ content: appendedContent })
     .eq('id', entryId)
     .eq('parent_id', profile.id);
 
@@ -191,6 +220,20 @@ export async function PATCH(req: NextRequest) {
       error:    error.message,
     });
     return NextResponse.json({ error: 'Failed to update entry' }, { status: 500 });
+  }
+
+  // Keep breadcrumbs in sync — look up by legacy_entry_id.
+  const { data: bc } = await db
+    .from('breadcrumbs')
+    .select('id')
+    .eq('legacy_entry_id', entryId)
+    .single();
+
+  if (bc) {
+    await db
+      .from('breadcrumbs')
+      .update({ content: appendedContent })
+      .eq('id', bc.id);
   }
 
   logger.info('follow-up appended', { route: 'save-entry PATCH', parentId: profile.id });
