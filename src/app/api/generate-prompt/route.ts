@@ -102,13 +102,13 @@ export async function POST(req: NextRequest) {
   }
 
   const { data: recentEntries } = await db
-    .from('entries')
+    .from('breadcrumbs')
     .select('domain')
     .eq('parent_id', profile.id)
     .order('created_at', { ascending: false })
     .limit(5);
 
-  const recentTopics = recentEntries?.map((e: { domain: string }) => e.domain) ?? [];
+  const recentTopics = recentEntries?.map((e: { domain: string }) => e.domain).filter(Boolean) ?? [];
 
   try {
     const prompt = await generateDailyPrompt({

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
+import { BREADCRUMB_TYPE_LABEL } from '@/lib/breadcrumbs';
 
 const DOMAIN_COLORS: Record<string, string> = {
   relationships: 'border-rose-800 text-rose-400',
@@ -21,15 +22,18 @@ const DELIVERY_LABELS: Record<string, string> = {
 };
 
 interface EntryCard {
-  id:             string;
-  summary:        string;
-  content:        string;
-  domain:         string;
-  relevant_age:   number;
-  delivery_type:  string;
-  created_at:     string;
-  delivered_at?:  string;
-  recipient_name: string | null;
+  id:              string;
+  title:           string | null;
+  summary:         string;
+  content:         string;
+  domain:          string;
+  relevant_age:    number;
+  delivery_type:   string;
+  breadcrumb_type: string;
+  tags:            string[];
+  created_at:      string;
+  delivered_at?:   string;
+  recipient_name:  string | null;
 }
 
 export default function ArchivePage() {
@@ -122,23 +126,33 @@ export default function ArchivePage() {
             </p>
             {entries.map((e) => {
               const isExpanded = expandedId === e.id;
+              const typeLabel  = BREADCRUMB_TYPE_LABEL[e.breadcrumb_type] ?? e.breadcrumb_type;
               return (
                 <div key={e.id} className="glass-card px-5 py-4 space-y-3">
+
+                  {/* Title or summary */}
+                  {e.title && (
+                    <p className="text-foreground text-sm font-medium tracking-wide">{e.title}</p>
+                  )}
                   <p className="text-foreground text-base leading-relaxed">{e.summary}</p>
 
-                  {/* Full letter — shown when expanded */}
+                  {/* Full letter */}
                   {isExpanded && e.content && (
                     <div className="border-t border-border pt-4 mt-1">
                       <p className="text-foreground text-sm leading-loose whitespace-pre-wrap">{e.content}</p>
                     </div>
                   )}
 
+                  {/* Badges row */}
                   <div className="flex flex-wrap gap-2 items-center">
                     {e.recipient_name && (
                       <span className="text-xs px-2 py-0.5 border border-border text-muted-foreground rounded-sm">
                         For {e.recipient_name.split(' ')[0]}
                       </span>
                     )}
+                    <span className="text-xs px-2 py-0.5 border border-border text-muted-foreground rounded-sm">
+                      {typeLabel}
+                    </span>
                     <span className={`text-xs px-2 py-0.5 border rounded-sm font-medium ${DOMAIN_COLORS[e.domain] ?? 'border-border text-muted-foreground'}`}>
                       {e.domain}
                     </span>
@@ -152,6 +166,18 @@ export default function ArchivePage() {
                     )}
                   </div>
 
+                  {/* Value tags */}
+                  {e.tags && e.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {e.tags.map((tag) => (
+                        <span key={tag} className="text-xs px-2 py-0.5 border border-border/50 text-muted-foreground/60 rounded-sm">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Footer */}
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-muted-foreground">
                       {new Date(e.created_at).toLocaleDateString('en-US', {

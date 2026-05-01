@@ -28,7 +28,9 @@ export async function GET() {
 
   const { data, error } = await db
     .from('breadcrumbs')
-    .select('id, summary, domain, relevant_age, delivery_type, content, created_at, delivered_at, family_members(name)')
+    .select(
+      'id, title, summary, domain, relevant_age, delivery_type, breadcrumb_type, tags, content, created_at, delivered_at, family_members(name)'
+    )
     .eq('parent_id', profile.id)
     .order('created_at', { ascending: false });
 
@@ -38,15 +40,18 @@ export async function GET() {
   }
 
   const entries = (data ?? []).map((row) => ({
-    id:             row.id,
-    summary:        row.summary,
-    domain:         row.domain,
-    relevant_age:   row.relevant_age,
-    delivery_type:  row.delivery_type,
-    content:        row.content,
-    created_at:     row.created_at,
-    delivered_at:   row.delivered_at,
-    recipient_name: Array.isArray(row.family_members)
+    id:              row.id,
+    title:           row.title ?? null,
+    summary:         row.summary,
+    domain:          row.domain,
+    relevant_age:    row.relevant_age,
+    delivery_type:   row.delivery_type,
+    breadcrumb_type: row.breadcrumb_type,
+    tags:            row.tags ?? [],
+    content:         row.content,
+    created_at:      row.created_at,
+    delivered_at:    row.delivered_at,
+    recipient_name:  Array.isArray(row.family_members)
       ? (row.family_members[0] as { name: string } | undefined)?.name ?? null
       : (row.family_members as { name: string } | null)?.name ?? null,
   }));

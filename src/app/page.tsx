@@ -55,6 +55,12 @@ export default function Home() {
             Write today's letter
           </Link>
           <Link
+            href="/foundation"
+            className="w-full py-4 px-8 border border-border text-muted-foreground text-sm font-normal tracking-wide text-center hover:border-foreground/40 hover:text-foreground transition"
+          >
+            Family Foundation
+          </Link>
+          <Link
             href="/archive"
             className="w-full py-4 px-8 text-muted-foreground text-sm font-normal tracking-wide text-center hover:text-foreground transition"
           >

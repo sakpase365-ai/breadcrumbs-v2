@@ -6,8 +6,10 @@ import { createBrowserClient } from '@supabase/ssr';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { DESCENDENT_ROLES } from '@/lib/roles';
 import { firstName } from '@/lib/nameUtils';
+import { BREADCRUMB_TYPES, VALUE_TAGS } from '@/lib/breadcrumbs';
 
-const DRAFT_KEY = 'breadcrumbs_draft';
+const DRAFT_KEY    = 'breadcrumbs_draft';
+const PREFILL_KEY  = 'breadcrumbs_prefill';
 
 interface Profile {
   id:                string;
@@ -51,23 +53,47 @@ function CaptureFlow() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  const [profile,           setProfile]           = useState<Profile | null>(null);
-  const [familyMembers,     setFamilyMembers]      = useState<FamilyMember[]>([]);
-  const [selectedRecipient, setSelectedRecipient]  = useState<FamilyMember | null>(null);
-  const [promptLoading,     setPromptLoading]      = useState(false);
-  const [stage,             setStage]              = useState<Stage>('loading');
-  const [prompt,            setPrompt]             = useState('');
-  const [entry,             setEntry]              = useState('');
-  const [followUp,          setFollowUp]           = useState('');
-  const [followUpAddition,  setFollowUpAddition]   = useState('');
-  const [savedEntryId,      setSavedEntryId]       = useState<string | null>(null);
-  const [savedAt,           setSavedAt]            = useState<string | null>(null);
-  const [saving,            setSaving]             = useState(false);
-  const [charCount,         setCharCount]          = useState(0);
-  const [draftRestored,     setDraftRestored]      = useState(false);
+  const [profile,             setProfile]            = useState<Profile | null>(null);
+  const [familyMembers,       setFamilyMembers]      = useState<FamilyMember[]>([]);
+  const [selectedRecipient,   setSelectedRecipient]  = useState<FamilyMember | null>(null);
+  const [breadcrumbType,      setBreadcrumbType]     = useState<string>('letter');
+  const [selectedTags,        setSelectedTags]       = useState<string[]>([]);
+  const [showTags,            setShowTags]           = useState(false);
+  const [promptLoading,       setPromptLoading]      = useState(false);
+  const [stage,               setStage]              = useState<Stage>('loading');
+  const [prompt,              setPrompt]             = useState('');
+  const [entry,               setEntry]              = useState('');
+  const [followUp,            setFollowUp]           = useState('');
+  const [followUpAddition,    setFollowUpAddition]   = useState('');
+  const [savedBreadcrumbId,   setSavedBreadcrumbId]  = useState<string | null>(null);
+  const [savedAt,             setSavedAt]            = useState<string | null>(null);
+  const [saving,              setSaving]             = useState(false);
+  const [charCount,           setCharCount]          = useState(0);
+  const [draftRestored,       setDraftRestored]      = useState(false);
+  const [prefillRestored,     setPrefillRestored]    = useState(false);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Restore draft or prefill from Foundation
   useEffect(() => {
+    const prefillRaw = localStorage.getItem(PREFILL_KEY);
+    if (prefillRaw) {
+      try {
+        const prefill = JSON.parse(prefillRaw) as {
+          content?: string;
+          breadcrumbType?: string;
+        };
+        if (prefill.content) {
+          setEntry(prefill.content);
+          setCharCount(prefill.content.length);
+          setPrefillRestored(true);
+        }
+        if (prefill.breadcrumbType) setBreadcrumbType(prefill.breadcrumbType);
+        localStorage.removeItem(PREFILL_KEY);
+        localStorage.removeItem(DRAFT_KEY);
+        return;
+      } catch { /* ignore */ }
+    }
+
     const saved = localStorage.getItem(DRAFT_KEY);
     if (saved) {
       setEntry(saved);
@@ -87,11 +113,10 @@ function CaptureFlow() {
         setProfile(p);
         setFamilyMembers(fm ?? []);
 
-        // Generate prompt for all descendants by default (recipientId: null)
         const dailyPrompt = await fetchPrompt(null);
         setPrompt(dailyPrompt);
 
-        setStage(localStorage.getItem(DRAFT_KEY) ? 'writing' : 'prompted');
+        setStage(localStorage.getItem(DRAFT_KEY) || localStorage.getItem(PREFILL_KEY) ? 'writing' : 'prompted');
       } catch {
         setStage('error');
       }
@@ -100,19 +125,20 @@ function CaptureFlow() {
 
   async function handleRecipientSelect(member: FamilyMember | null) {
     setSelectedRecipient(member);
-
-    // Re-generate prompt only if the user hasn't started writing yet
     if (stage === 'prompted') {
       setPromptLoading(true);
       try {
         const newPrompt = await fetchPrompt(member?.id ?? null);
         setPrompt(newPrompt);
-      } catch {
-        // keep existing prompt on failure — don't break the flow
-      } finally {
-        setPromptLoading(false);
-      }
+      } catch { /* keep existing prompt */ }
+      finally { setPromptLoading(false); }
     }
+  }
+
+  function toggleTag(tag: string) {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
   }
 
   function handleEntryChange(value: string) {
@@ -138,15 +164,17 @@ function CaptureFlow() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content:     entry,
-          recipientId: selectedRecipient?.id ?? null,
+          content:         entry,
+          recipientId:     selectedRecipient?.id ?? null,
+          breadcrumb_type: breadcrumbType,
+          tags:            selectedTags,
         }),
       });
       if (!res.ok) { setStage('error'); return; }
       const data = await res.json();
       setFollowUp(data.followUp);
-      setSavedEntryId(data.entry.id);
-      setSavedAt(data.entry.created_at ?? new Date().toISOString());
+      setSavedBreadcrumbId(data.breadcrumb.id);
+      setSavedAt(data.breadcrumb.created_at ?? new Date().toISOString());
       localStorage.removeItem(DRAFT_KEY);
       setStage('follow-up');
     } catch {
@@ -209,7 +237,7 @@ function CaptureFlow() {
                   <button
                     onClick={() => handleRecipientSelect(null)}
                     disabled={promptLoading}
-                    className={`px-4 py-1.5 text-sm border rounded-full transition disabled:opacity-50 ${
+                    className={`px-4 py-1.5 text-sm border rounded-sm transition disabled:opacity-50 ${
                       !selectedRecipient
                         ? 'border-foreground bg-foreground text-background'
                         : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
@@ -222,7 +250,7 @@ function CaptureFlow() {
                       key={m.id}
                       onClick={() => handleRecipientSelect(m)}
                       disabled={promptLoading}
-                      className={`px-4 py-1.5 text-sm border rounded-full transition disabled:opacity-50 ${
+                      className={`px-4 py-1.5 text-sm border rounded-sm transition disabled:opacity-50 ${
                         selectedRecipient?.id === m.id
                           ? 'border-foreground bg-foreground text-background'
                           : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
@@ -235,6 +263,21 @@ function CaptureFlow() {
               </div>
             )}
 
+            {/* Type selector */}
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground uppercase tracking-widest shrink-0">Type</span>
+              <select
+                value={breadcrumbType}
+                onChange={(e) => setBreadcrumbType(e.target.value)}
+                className="bg-transparent border border-border px-3 py-1.5 text-foreground text-xs focus:border-foreground/60 transition rounded-sm outline-none cursor-pointer"
+              >
+                {BREADCRUMB_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Prompt */}
             <div className="border-l-2 border-foreground/30 pl-5 py-1">
               {promptLoading
                 ? <p className="text-muted-foreground text-sm animate-pulse">Refreshing prompt…</p>
@@ -245,6 +288,9 @@ function CaptureFlow() {
             {draftRestored && (
               <p className="text-xs text-muted-foreground/60">Draft restored.</p>
             )}
+            {prefillRestored && (
+              <p className="text-xs text-muted-foreground/60">From your Family Foundation.</p>
+            )}
 
             <textarea
               className="w-full h-64 bg-card border border-border rounded-sm px-5 py-4 text-foreground text-base leading-relaxed placeholder:text-muted-foreground focus:border-foreground/60 transition"
@@ -252,6 +298,33 @@ function CaptureFlow() {
               value={entry}
               onChange={(e) => handleEntryChange(e.target.value)}
             />
+
+            {/* Tags */}
+            <div className="space-y-3">
+              <button
+                onClick={() => setShowTags(!showTags)}
+                className="text-xs text-muted-foreground hover:text-foreground transition"
+              >
+                {showTags ? '− Hide value tags' : '+ Add value tags (optional)'}
+              </button>
+              {showTags && (
+                <div className="flex flex-wrap gap-2">
+                  {VALUE_TAGS.map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                      className={`px-3 py-1 text-xs border rounded-sm transition ${
+                        selectedTags.includes(tag)
+                          ? 'border-foreground text-foreground bg-foreground/5'
+                          : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">{charCount} characters</span>
@@ -291,13 +364,13 @@ function CaptureFlow() {
               </button>
               <button
                 onClick={async () => {
-                  if (!followUpAddition.trim() || !savedEntryId) { setStage('done'); return; }
+                  if (!followUpAddition.trim() || !savedBreadcrumbId) { setStage('done'); return; }
                   setSaving(true);
                   try {
                     await fetch('/api/save-entry', {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ entryId: savedEntryId, appendContent: followUpAddition }),
+                      body: JSON.stringify({ breadcrumbId: savedBreadcrumbId, appendContent: followUpAddition }),
                     });
                   } finally {
                     setSaving(false);
