@@ -67,6 +67,12 @@ export default function Home() {
             View your archive
           </Link>
           <Link
+            href="/ask"
+            className="w-full py-4 px-8 text-muted-foreground text-sm font-normal tracking-wide text-center hover:text-foreground transition"
+          >
+            Ask the Family Agent
+          </Link>
+          <Link
             href="/login"
             className="w-full py-2 text-muted-foreground/60 text-xs tracking-wide text-center hover:text-muted-foreground transition"
           >

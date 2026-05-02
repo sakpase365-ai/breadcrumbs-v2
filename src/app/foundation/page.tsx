@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { FOUNDATION_QUESTIONS } from '@/lib/breadcrumbs';
 
-const PREFILL_KEY = 'breadcrumbs_prefill';
 
 interface Profile { name: string; family_name: string | null; }
 
@@ -14,8 +13,11 @@ export default function FoundationPage() {
   const [stage,        setStage]        = useState<'loading' | 'ready' | 'error'>('loading');
   const [answers,      setAnswers]      = useState<Record<string, string>>({});
   const [savedAnswers, setSavedAnswers] = useState<Record<string, string>>({});
-  const [saving,       setSaving]       = useState<Set<string>>(new Set());
-  const [saveErrors,   setSaveErrors]   = useState<Record<string, string>>({});
+  const [saving,          setSaving]          = useState<Set<string>>(new Set());
+  const [saveErrors,      setSaveErrors]      = useState<Record<string, string>>({});
+  const [crumbing,        setCrumbing]        = useState<Set<string>>(new Set());
+  const [crumbSaved,      setCrumbSaved]      = useState<Set<string>>(new Set());
+  const [crumbErrors,     setCrumbErrors]     = useState<Record<string, string>>({});
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   useEffect(() => {
@@ -72,16 +74,28 @@ export default function FoundationPage() {
     }
   }
 
-  function turnIntoBreadcrumb(key: string, question: string) {
+  async function turnIntoBreadcrumb(key: string, question: string) {
     const content = savedAnswers[key];
-    if (!content) return;
-    localStorage.setItem(PREFILL_KEY, JSON.stringify({
-      content,
-      breadcrumbType: 'story',
-      fromFoundation: key,
-      question,
-    }));
-    router.push('/capture');
+    if (!content || crumbing.has(key)) return;
+    setCrumbing((prev) => new Set(prev).add(key));
+    setCrumbErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
+    try {
+      const res = await fetch('/api/save-entry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content,
+          breadcrumb_type: 'story',
+          title: question.slice(0, 200),
+        }),
+      });
+      if (!res.ok) throw new Error();
+      setCrumbSaved((prev) => new Set(prev).add(key));
+    } catch {
+      setCrumbErrors((prev) => ({ ...prev, [key]: 'Could not save — try again' }));
+    } finally {
+      setCrumbing((prev) => { const n = new Set(prev); n.delete(key); return n; });
+    }
   }
 
   const answeredCount = FOUNDATION_QUESTIONS.filter((q) => savedAnswers[q.key]?.trim()).length;
@@ -168,12 +182,17 @@ export default function FoundationPage() {
                   </span>
 
                   {isSaved && !isDirty && (
-                    <button
-                      onClick={() => turnIntoBreadcrumb(key, question)}
-                      className="text-xs text-muted-foreground hover:text-foreground transition"
-                    >
-                      Turn this into a breadcrumb →
-                    </button>
+                    crumbSaved.has(key) ? (
+                      <span className="text-xs text-muted-foreground/60">Saved as breadcrumb</span>
+                    ) : (
+                      <button
+                        onClick={() => turnIntoBreadcrumb(key, question)}
+                        disabled={crumbing.has(key)}
+                        className="text-xs text-muted-foreground hover:text-foreground transition disabled:opacity-40"
+                      >
+                        {crumbing.has(key) ? 'Saving…' : crumbErrors[key] ?? 'Turn this into a breadcrumb →'}
+                      </button>
+                    )
                   )}
                 </div>
               </div>
