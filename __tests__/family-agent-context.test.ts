@@ -16,7 +16,7 @@ import { getServiceClient } from '@/lib/supabase';
 
 // ── Fixture data ──────────────────────────────────────────────────
 
-const PROFILE     = { id: 'pid-1', name: 'Marcus', family_name: 'The Johnson Family' };
+const PROFILE     = { id: 'pid-1', name: 'Marcus', family_name: 'The Johnson Family', role: 'father', custom_role_label: null };
 const MEMBER_CAIRO = { id: 'mid-cairo', name: 'Cairo',  role: 'son',    birth_date: '2016-03-15' };
 const MEMBER_AVA   = { id: 'mid-ava',   name: 'Ava',    role: 'daughter', birth_date: '2019-07-20' };
 
@@ -378,33 +378,46 @@ describe('buildFamilyAgentContext', () => {
 // ── formatContextBlock ────────────────────────────────────────────
 
 describe('formatContextBlock', () => {
+  const BASE_CTX = {
+    ownerName:            'Marcus',
+    ownerRole:            'father' as string | null,
+    ownerCustomRoleLabel: null as string | null,
+    familyName:           null as string | null,
+    profileNotFound:      false,
+    familyProfileContext: [] as import('../src/lib/family-agent-context').FoundationEntry[],
+    recipientContext:     null as import('../src/lib/family-agent-context').RecipientContext | null,
+    relevantBreadcrumbs:  [] as import('../src/lib/family-agent-context').RelevantBreadcrumb[],
+    familyValues:         [] as string[],
+    contextSources:       [] as import('../src/lib/family-agent-context').ContextSource[],
+    warnings:             [] as string[],
+  };
+
+  it('includes speaker name and role in SPEAKER block', () => {
+    const block = formatContextBlock({ ...BASE_CTX });
+    expect(block).toContain('SPEAKER');
+    expect(block).toContain('Name: Marcus');
+    expect(block).toContain('Role: father');
+  });
+
+  it('omits Role line when ownerRole is null or "other"', () => {
+    const block = formatContextBlock({ ...BASE_CTX, ownerRole: null });
+    expect(block).not.toMatch(/^Role:/m);
+
+    const block2 = formatContextBlock({ ...BASE_CTX, ownerRole: 'other' });
+    expect(block2).not.toMatch(/^Role:/m);
+  });
+
   it('includes family label', () => {
-    const block = formatContextBlock({
-      ownerName:            'Marcus',
-      familyName:           'The Johnson Family',
-      profileNotFound:      false,
-      familyProfileContext: [],
-      recipientContext:     null,
-      relevantBreadcrumbs:  [],
-      familyValues:         [],
-      contextSources:       [],
-      warnings:             [],
-    });
+    const block = formatContextBlock({ ...BASE_CTX, familyName: 'The Johnson Family' });
     expect(block).toContain('The Johnson Family');
   });
 
   it('includes recipient section when present', () => {
     const block = formatContextBlock({
-      ownerName:            'Marcus',
-      familyName:           null,
-      profileNotFound:      false,
-      familyProfileContext: [],
-      recipientContext:     { id: 'mid-1', name: 'Cairo', role: 'son', age: 9 },
-      relevantBreadcrumbs:  [],
-      familyValues:         [],
-      contextSources:       [],
-      warnings:             [],
+      ...BASE_CTX,
+      recipientContext: { id: 'mid-1', name: 'Cairo', role: 'son', age: 9 },
     });
+    expect(block).toContain('RECIPIENT');
     expect(block).toContain('Cairo');
     expect(block).toContain('son');
     expect(block).toContain('age 9');
@@ -412,15 +425,8 @@ describe('formatContextBlock', () => {
 
   it('includes Foundation section with question labels', () => {
     const block = formatContextBlock({
-      ownerName:            'Marcus',
-      familyName:           null,
-      profileNotFound:      false,
+      ...BASE_CTX,
       familyProfileContext: [{ category: 'core_values', content: 'Faith and family.' }],
-      recipientContext:     null,
-      relevantBreadcrumbs:  [],
-      familyValues:         [],
-      contextSources:       [],
-      warnings:             [],
     });
     expect(block).toContain('FAMILY FOUNDATION');
     expect(block).toContain('What values are most important');
@@ -429,12 +435,8 @@ describe('formatContextBlock', () => {
 
   it('includes breadcrumb section with metadata', () => {
     const block = formatContextBlock({
-      ownerName:            'Marcus',
-      familyName:           null,
-      profileNotFound:      false,
-      familyProfileContext: [],
-      recipientContext:     null,
-      relevantBreadcrumbs:  [{
+      ...BASE_CTX,
+      relevantBreadcrumbs: [{
         id:              'bc-1',
         title:           'On rising',
         breadcrumb_type: 'lesson',
@@ -443,9 +445,6 @@ describe('formatContextBlock', () => {
         recipientLabel:  'For Cairo',
         created_at:      '2025-01-10T00:00:00Z',
       }],
-      familyValues:  [],
-      contextSources: [],
-      warnings:      [],
     });
     expect(block).toContain('SAVED BREADCRUMBS');
     expect(block).toContain('For Cairo');
@@ -455,17 +454,7 @@ describe('formatContextBlock', () => {
   });
 
   it('includes family values section', () => {
-    const block = formatContextBlock({
-      ownerName:            'Marcus',
-      familyName:           null,
-      profileNotFound:      false,
-      familyProfileContext: [],
-      recipientContext:     null,
-      relevantBreadcrumbs:  [],
-      familyValues:         ['Courage', 'Faith'],
-      contextSources:       [],
-      warnings:             [],
-    });
+    const block = formatContextBlock({ ...BASE_CTX, familyValues: ['Courage', 'Faith'] });
     expect(block).toContain('FAMILY VALUES');
     expect(block).toContain('Courage, Faith');
   });

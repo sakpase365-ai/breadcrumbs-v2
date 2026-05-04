@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { createBrowserClient } from '@supabase/ssr';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { DESCENDENT_ROLES } from '@/lib/roles';
@@ -221,7 +222,27 @@ function CaptureFlow() {
         {/* Loading */}
         {stage === 'loading' && (
           <div className="py-24 text-center">
-            <p className="text-muted-foreground text-sm animate-pulse">Preparing today&apos;s prompt…</p>
+            <p className="text-muted-foreground text-sm">
+              Preparing today&apos;s prompt
+              <span className="inline-flex">
+                {[0, 1, 2].map((i) => (
+                  <motion.span
+                    key={i}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: [0, 1, 1, 0.4, 1] }}
+                    transition={{
+                      delay: i * 0.3,
+                      duration: 1.5,
+                      times: [0, 0.1, 0.5, 0.75, 1],
+                      repeat: Infinity,
+                      repeatDelay: 0.5,
+                    }}
+                  >
+                    .
+                  </motion.span>
+                ))}
+              </span>
+            </p>
           </div>
         )}
 
@@ -280,7 +301,27 @@ function CaptureFlow() {
             {/* Prompt */}
             <div className="border-l-2 border-foreground/30 pl-5 py-1">
               {promptLoading
-                ? <p className="text-muted-foreground text-sm animate-pulse">Refreshing prompt…</p>
+                ? <p className="text-muted-foreground text-sm">
+                    Refreshing prompt
+                    <span className="inline-flex">
+                      {[0, 1, 2].map((i) => (
+                        <motion.span
+                          key={i}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: [0, 1, 1, 0.4, 1] }}
+                          transition={{
+                            delay: i * 0.3,
+                            duration: 1.5,
+                            times: [0, 0.1, 0.5, 0.75, 1],
+                            repeat: Infinity,
+                            repeatDelay: 0.5,
+                          }}
+                        >
+                          .
+                        </motion.span>
+                      ))}
+                    </span>
+                  </p>
                 : <p className="font-serif text-foreground text-xl leading-relaxed">{prompt}</p>
               }
             </div>
@@ -405,7 +446,7 @@ function CaptureFlow() {
                 onClick={() => router.push('/archive')}
                 className="py-3 px-6 border border-border text-muted-foreground text-sm tracking-wide hover:border-foreground hover:text-foreground transition"
               >
-                View archive
+                Family Library
               </button>
               <button
                 onClick={() => router.push('/')}

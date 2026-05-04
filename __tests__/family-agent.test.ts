@@ -27,6 +27,8 @@ const MOCK_SESSION = { user: { id: 'uid-abc' } };
 
 const MOCK_CONTEXT = {
   ownerName:            'Marcus',
+  ownerRole:            'father' as string | null,
+  ownerCustomRoleLabel: null as string | null,
   familyName:           'The Johnson Family',
   profileNotFound:      false,
   familyProfileContext: [{ category: 'core_values', content: 'Faith.' }],

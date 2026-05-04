@@ -76,7 +76,7 @@ export default function ArchivePage() {
           <button onClick={() => router.push('/')} className="text-sm text-muted-foreground hover:text-foreground transition">
             ← Back
           </button>
-          <h1 className="font-serif text-lg text-foreground tracking-tight">Your Archive</h1>
+          <h1 className="font-serif text-lg text-foreground tracking-tight">Family Library</h1>
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.push('/capture')}
@@ -122,7 +122,7 @@ export default function ArchivePage() {
         {!loading && entries.length > 0 && (
           <div className="space-y-4">
             <p className="text-xs text-muted-foreground uppercase tracking-widest">
-              {entries.length} {entries.length === 1 ? 'letter' : 'letters'} saved
+              {entries.length} {entries.length === 1 ? 'breadcrumb' : 'breadcrumbs'} saved
             </p>
             {entries.map((e) => {
               const isExpanded = expandedId === e.id;

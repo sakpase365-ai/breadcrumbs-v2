@@ -61,6 +61,8 @@ export interface ContextSource {
 
 export interface FamilyAgentContext {
   ownerName:            string;
+  ownerRole:            string | null;
+  ownerCustomRoleLabel: string | null;
   familyName:           string | null;
   profileNotFound:      boolean;
   familyProfileContext: FoundationEntry[];
@@ -202,7 +204,7 @@ export async function buildFamilyAgentContext(
   // ── 1. Resolve user profile ──────────────────────────────────────
   const { data: profile } = await db
     .from('users')
-    .select('id, name, family_name')
+    .select('id, name, family_name, role, custom_role_label')
     .eq('auth_user_id', userId)
     .single();
 
@@ -210,6 +212,8 @@ export async function buildFamilyAgentContext(
     logger.warn('family agent: user profile not found', { userId });
     return {
       ownerName:            '',
+      ownerRole:            null,
+      ownerCustomRoleLabel: null,
       familyName:           null,
       profileNotFound:      true,
       familyProfileContext: [],
@@ -325,6 +329,8 @@ export async function buildFamilyAgentContext(
 
   return {
     ownerName:            profile.name as string,
+    ownerRole:            (profile.role as string | null) ?? null,
+    ownerCustomRoleLabel: (profile.custom_role_label as string | null) ?? null,
     familyName:           profile.family_name as string | null,
     profileNotFound:      false,
     familyProfileContext,
@@ -341,13 +347,22 @@ export async function buildFamilyAgentContext(
 export function formatContextBlock(context: FamilyAgentContext): string {
   const parts: string[] = [];
 
-  const familyLabel = context.familyName ?? `${context.ownerName}'s Family`;
-  parts.push(`Family: ${familyLabel}`);
+  // Speaker identity — tells the AI whose first-person voice to use
+  const speakerLines: string[] = ['SPEAKER (write from this person\'s voice, in first person)'];
+  speakerLines.push(`Name: ${context.ownerName}`);
+  if (context.ownerRole && context.ownerRole !== 'other') {
+    speakerLines.push(`Role: ${context.ownerRole}`);
+  }
+  if (context.familyName) {
+    speakerLines.push(`Family: ${context.familyName}`);
+  }
+  parts.push(speakerLines.join('\n'));
 
+  // Recipient identity — tells the AI who to address directly
   if (context.recipientContext) {
     const { name, role, age } = context.recipientContext;
     const ageStr = age != null ? `, age ${age}` : '';
-    parts.push(`About: ${name} (${role}${ageStr})`);
+    parts.push(`RECIPIENT (address directly in your response)\nName: ${name}\nRole: ${role}${ageStr}`);
   }
 
   if (context.familyProfileContext.length > 0) {

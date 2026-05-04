@@ -10,7 +10,8 @@ vi.mock('@anthropic-ai/sdk', () => ({
 }));
 
 // Import after mocking so the module-level `client` uses the mock
-import { tagEntry, FALLBACK_PROMPTS } from '../src/lib/ai';
+import { tagEntry, FALLBACK_PROMPTS, FAMILY_AGENT_SYSTEM, answerFamilyQuestion, normalizeQuestion } from '../src/lib/ai';
+import type { FamilyAgentContext } from '../src/lib/family-agent-context';
 
 describe('tagEntry', () => {
   beforeEach(() => {
@@ -122,6 +123,199 @@ describe('tagEntry', () => {
     expect(result.relevantAge).toBe(18);
   });
 });
+
+// ── normalizeQuestion ─────────────────────────────────────────────
+
+describe('normalizeQuestion', () => {
+  it('converts "What would my dad say about X" to direct ask', () => {
+    expect(normalizeQuestion('What would my dad say about commitment working in a career'))
+      .toBe('Tell me about commitment working in a career.');
+  });
+
+  it('converts "What would [name] say about X?" (with question mark)', () => {
+    expect(normalizeQuestion('What would Marcus say about handling failure?'))
+      .toBe('Tell me about handling failure.');
+  });
+
+  it('converts "What does [X] think about Y"', () => {
+    expect(normalizeQuestion('What does my father think about money'))
+      .toBe('Tell me what you think about money.');
+  });
+
+  it('converts "What would [X] want me to know about Y"', () => {
+    expect(normalizeQuestion('What would my mom want me to know about relationships?'))
+      .toBe('Tell me what you want me to know about relationships.');
+  });
+
+  it('converts "What would [X] advise about Y"', () => {
+    expect(normalizeQuestion('What would my dad advise about starting a business'))
+      .toBe('Tell me your advice about starting a business.');
+  });
+
+  it('passes through questions that are already direct', () => {
+    expect(normalizeQuestion('Tell me about faith.'))
+      .toBe('Tell me about faith.');
+  });
+
+  it('passes through questions with no third-person frame', () => {
+    expect(normalizeQuestion('How should I handle failure?'))
+      .toBe('How should I handle failure?');
+  });
+
+  it('trims whitespace', () => {
+    expect(normalizeQuestion('  What would dad say about love  '))
+      .toBe('Tell me about love.');
+  });
+});
+
+// ── FAMILY_AGENT_SYSTEM voice contract ────────────────────────────
+
+describe('FAMILY_AGENT_SYSTEM', () => {
+  it('instructs first-person speaker voice', () => {
+    expect(FAMILY_AGENT_SYSTEM).toContain('first person');
+    expect(FAMILY_AGENT_SYSTEM).toContain('I want you to');
+    expect(FAMILY_AGENT_SYSTEM).toContain('I believe');
+  });
+
+  it('explicitly prohibits third-person parent references', () => {
+    expect(FAMILY_AGENT_SYSTEM).toContain('your dad');
+    expect(FAMILY_AGENT_SYSTEM).toContain('your father');
+    expect(FAMILY_AGENT_SYSTEM).toContain('he wrote');
+    expect(FAMILY_AGENT_SYSTEM).toContain('she believes');
+    expect(FAMILY_AGENT_SYSTEM).toContain('for him');
+    expect(FAMILY_AGENT_SYSTEM).toContain('for her');
+  });
+
+  it('explicitly prohibits source-summary language', () => {
+    expect(FAMILY_AGENT_SYSTEM).toContain('based on');
+    expect(FAMILY_AGENT_SYSTEM).toContain('according to');
+    expect(FAMILY_AGENT_SYSTEM).toContain('Family Foundation');
+    expect(FAMILY_AGENT_SYSTEM).toContain('saved breadcrumbs');
+  });
+
+  it('instructs the AI to read the SPEAKER block', () => {
+    expect(FAMILY_AGENT_SYSTEM).toContain('SPEAKER');
+  });
+
+  it('instructs the AI to address the recipient directly', () => {
+    expect(FAMILY_AGENT_SYSTEM).toContain('RECIPIENT');
+  });
+});
+
+// ── answerFamilyQuestion voice call ───────────────────────────────
+
+const MOCK_FAMILY_CTX: FamilyAgentContext = {
+  ownerName:            'Marcus',
+  ownerRole:            'father',
+  ownerCustomRoleLabel: null,
+  familyName:           'The Johnson Family',
+  profileNotFound:      false,
+  familyProfileContext: [{ category: 'core_values', content: 'Faith above all.' }],
+  recipientContext:     { id: 'mid-1', name: 'Cairo', role: 'son', age: 16 },
+  relevantBreadcrumbs:  [],
+  familyValues:         ['Faith'],
+  contextSources:       [],
+  warnings:             [],
+};
+
+describe('answerFamilyQuestion', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('passes FAMILY_AGENT_SYSTEM as the system prompt', async () => {
+    mockCreate.mockResolvedValue({
+      content: [{ text: 'Cairo, I want you to know that faith matters.' }],
+    });
+
+    await answerFamilyQuestion(MOCK_FAMILY_CTX, 'What does Dad say about faith?');
+
+    const call = mockCreate.mock.calls[0][0];
+    expect(call.system).toBe(FAMILY_AGENT_SYSTEM);
+  });
+
+  it('includes SPEAKER block in the user message', async () => {
+    mockCreate.mockResolvedValue({
+      content: [{ text: 'Cairo, I believe faith is the foundation.' }],
+    });
+
+    await answerFamilyQuestion(MOCK_FAMILY_CTX, 'What does Dad say about faith?');
+
+    const call = mockCreate.mock.calls[0][0];
+    const userContent: string = call.messages[0].content;
+    expect(userContent).toContain('SPEAKER');
+    expect(userContent).toContain('Name: Marcus');
+    expect(userContent).toContain('Role: father');
+  });
+
+  it('includes RECIPIENT block when recipientContext is present', async () => {
+    mockCreate.mockResolvedValue({
+      content: [{ text: 'Cairo, I want you to understand something.' }],
+    });
+
+    await answerFamilyQuestion(MOCK_FAMILY_CTX, 'What should I know about faith?');
+
+    const call = mockCreate.mock.calls[0][0];
+    const userContent: string = call.messages[0].content;
+    expect(userContent).toContain('RECIPIENT');
+    expect(userContent).toContain('Cairo');
+    expect(userContent).toContain('son');
+  });
+
+  it('wraps the normalized question in <question> tags', async () => {
+    mockCreate.mockResolvedValue({
+      content: [{ text: 'My son, I want you to know this.' }],
+    });
+
+    await answerFamilyQuestion(MOCK_FAMILY_CTX, 'Tell me about faith.');
+
+    const call = mockCreate.mock.calls[0][0];
+    const userContent: string = call.messages[0].content;
+    expect(userContent).toContain('<question>');
+    expect(userContent).toContain('faith');
+  });
+
+  it('normalizes third-person question frames before sending to AI', async () => {
+    mockCreate.mockResolvedValue({
+      content: [{ text: 'Cairo, I believe faith is everything.' }],
+    });
+
+    await answerFamilyQuestion(MOCK_FAMILY_CTX, 'What would my dad say about faith?');
+
+    const call = mockCreate.mock.calls[0][0];
+    const userContent: string = call.messages[0].content;
+    // "What would my dad say about faith?" → "Tell me about faith."
+    expect(userContent).toMatch(/<question>Tell me about faith\.<\/question>/);
+    expect(userContent).not.toContain('What would my dad say');
+  });
+
+  it('returns the AI response text trimmed', async () => {
+    mockCreate.mockResolvedValue({
+      content: [{ text: '  Cairo, I believe this deeply.  ' }],
+    });
+
+    const result = await answerFamilyQuestion(MOCK_FAMILY_CTX, 'What about faith?');
+    expect(result).toBe('Cairo, I believe this deeply.');
+  });
+
+  it('repairs third-person source-summary answers before returning them', async () => {
+    mockCreate
+      .mockResolvedValueOnce({
+        content: [{ text: 'Based on what your dad has shared, he would tell you to keep going.' }],
+      })
+      .mockResolvedValueOnce({
+        content: [{ text: 'Cairo, I want you to keep going, even when it feels unseen.' }],
+      });
+
+    const result = await answerFamilyQuestion(MOCK_FAMILY_CTX, 'What would my dad say about commitment?');
+
+    expect(result).toBe('Cairo, I want you to keep going, even when it feels unseen.');
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+    expect(mockCreate.mock.calls[1][0].messages[0].content).toContain('<draft>');
+  });
+});
+
+// ── FALLBACK_PROMPTS ──────────────────────────────────────────────
 
 describe('FALLBACK_PROMPTS', () => {
   it('contains at least 10 prompts', () => {
