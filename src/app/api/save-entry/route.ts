@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { tagEntry, generateFollowUp } from '@/lib/ai';
+import { tagEntry, generateFollowUp, generateContextualTags, CONTEXTUAL_TAG_MODEL } from '@/lib/ai';
 import { getSessionClient, getServiceClient } from '@/lib/supabase';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
 import { assertEnv } from '@/lib/env';
 import { differenceInYears, parseISO } from 'date-fns';
-import { BREADCRUMB_TYPES, VALUE_TAGS, type BreadcrumbTypeValue } from '@/lib/breadcrumbs';
+import { BREADCRUMB_TYPES, type BreadcrumbTypeValue } from '@/lib/breadcrumbs';
 import { resolveFamilyAccess, canWriteFamilyContent } from '@/lib/family-access';
+import { dedupeTags, mergeBreadcrumbTags } from '@/lib/breadcrumb-tags';
 
 const CONTENT_MAX    = 8_000;
 const APPEND_MAX     = 4_000;
@@ -14,7 +15,6 @@ const SAVE_LIMIT     = 20;
 const SAVE_WINDOW_MS = 60 * 60 * 1000;
 
 const VALID_TYPES = new Set<string>(BREADCRUMB_TYPES.map((t) => t.value));
-const VALID_TAGS  = new Set<string>(VALUE_TAGS);
 
 export async function POST(req: NextRequest) {
   assertEnv();
@@ -69,8 +69,8 @@ export async function POST(req: NextRequest) {
   const breadcrumbType =
     typeof rawType === 'string' && VALID_TYPES.has(rawType) ? rawType as BreadcrumbTypeValue : 'letter' as BreadcrumbTypeValue;
 
-  const tags = Array.isArray(rawTags)
-    ? rawTags.filter((t): t is string => typeof t === 'string' && VALID_TAGS.has(t)).slice(0, 5)
+  const userKebab = Array.isArray(rawTags)
+    ? dedupeTags(rawTags.filter((t): t is string => typeof t === 'string')).slice(0, 8)
     : [];
 
   const title =
@@ -125,6 +125,21 @@ export async function POST(req: NextRequest) {
       generateFollowUp(content),
     ]);
 
+    const contextual = await generateContextualTags({
+      content,
+      breadcrumbType,
+      userSuggestedTags: userKebab.length ? userKebab : undefined,
+      recipientRelationHint: recipientName ?? undefined,
+    });
+
+    const { tags: finalTags, tagSource } = mergeBreadcrumbTags({
+      userTags:       userKebab,
+      aiTags:         contextual?.tags ?? null,
+      breadcrumbType: breadcrumbType,
+    });
+
+    const nowIso = new Date().toISOString();
+
     // PRIMARY: write to breadcrumbs
     const { data: bcData, error: bcError } = await db
       .from('breadcrumbs')
@@ -135,14 +150,21 @@ export async function POST(req: NextRequest) {
         breadcrumb_type:         breadcrumbType,
         content,
         title,
-        tags,
+        tags:                    finalTags,
+        tag_source:              tagSource,
+        ai_tagged_at:            contextual ? nowIso : null,
+        ai_tagging_model:        contextual ? CONTEXTUAL_TAG_MODEL : null,
+        ai_tagging_confidence:   contextual?.confidence && Object.keys(contextual.confidence).length > 0
+          ? contextual.confidence
+          : null,
+        ai_tagging_reasoning:    contextual?.reasoning_summary?.slice(0, 500) ?? null,
         summary:                 aiTags.summary,
         follow_up:               followUp,
         domain:                  aiTags.domain,
         relevant_age:            aiTags.relevantAge,
         delivery_type:           aiTags.deliveryType,
       })
-      .select('id, created_at, breadcrumb_type, tags, title')
+      .select('id, created_at, breadcrumb_type, tags, title, tag_source')
       .single();
 
     if (bcError || !bcData) {
@@ -194,14 +216,25 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { breadcrumbId, appendContent } = await req.json();
+  const body = await req.json() as {
+    breadcrumbId?:   unknown;
+    appendContent?:  unknown;
+    tags?:           unknown;
+  };
 
-  if (!breadcrumbId || !appendContent || typeof appendContent !== 'string') {
-    return NextResponse.json({ error: 'breadcrumbId and appendContent required' }, { status: 400 });
+  const breadcrumbId =
+    typeof body.breadcrumbId === 'string' ? body.breadcrumbId : null;
+
+  if (!breadcrumbId) {
+    return NextResponse.json({ error: 'breadcrumbId required' }, { status: 400 });
   }
-  if (appendContent.length > APPEND_MAX) {
+
+  const tagPatch   = Array.isArray(body.tags) ? body.tags : undefined;
+  const appendRaw  = body.appendContent;
+
+  if (tagPatch !== undefined && appendRaw !== undefined) {
     return NextResponse.json(
-      { error: `appendContent too long (max ${APPEND_MAX} characters)` },
+      { error: 'Provide either tags or appendContent, not both' },
       { status: 400 }
     );
   }
@@ -216,9 +249,47 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Not allowed to edit breadcrumbs for this family' }, { status: 403 });
   }
 
+  if (tagPatch !== undefined) {
+    const tags = dedupeTags(
+      tagPatch.filter((t): t is string => typeof t === 'string'),
+    ).slice(0, 8);
+
+    const { error, data } = await db
+      .from('breadcrumbs')
+      .update({
+        tags,
+        tag_source: 'user',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', breadcrumbId)
+      .eq('parent_id', access.familyId)
+      .select('id, tags')
+      .single();
+
+    if (error || !data) {
+      logger.warn('breadcrumb tag update failed', { route: 'save-entry PATCH', parentId: access.familyId });
+      return NextResponse.json({ error: 'Breadcrumb not found' }, { status: 404 });
+    }
+
+    logger.info('breadcrumb tags updated', { route: 'save-entry PATCH', parentId: access.familyId });
+    return NextResponse.json({ ok: true, tags: data.tags ?? tags });
+  }
+
+  if (typeof appendRaw !== 'string') {
+    return NextResponse.json({ error: 'appendContent or tags required' }, { status: 400 });
+  }
+  const appendContent = appendRaw;
+
+  if (appendContent.length > APPEND_MAX) {
+    return NextResponse.json(
+      { error: `appendContent too long (max ${APPEND_MAX} characters)` },
+      { status: 400 }
+    );
+  }
+
   const { data: bc, error: fetchError } = await db
     .from('breadcrumbs')
-    .select('id, content')
+    .select('id, content, breadcrumb_type, tags')
     .eq('id', breadcrumbId)
     .eq('parent_id', access.familyId)
     .single();
@@ -228,9 +299,45 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Breadcrumb not found' }, { status: 404 });
   }
 
+  const newContent = `${bc.content}\n\n${appendContent}`;
+  const breadcrumbType = typeof bc.breadcrumb_type === 'string' ? bc.breadcrumb_type : 'letter';
+  const priorTags = Array.isArray(bc.tags) ? dedupeTags(bc.tags as string[]) : [];
+
+  let updateRow: Record<string, unknown> = {
+    content:    newContent,
+    updated_at: new Date().toISOString(),
+  };
+
+  try {
+    const contextual = await generateContextualTags({
+      content:             newContent,
+      breadcrumbType,
+      userSuggestedTags:   priorTags.length ? priorTags : undefined,
+    });
+    if (contextual) {
+      const { tags: finalTags, tagSource } = mergeBreadcrumbTags({
+        userTags:       priorTags,
+        aiTags:         contextual.tags,
+        breadcrumbType: breadcrumbType,
+      });
+      const nowIso = new Date().toISOString();
+      updateRow = {
+        ...updateRow,
+        tags:                  finalTags,
+        tag_source:            tagSource,
+        ai_tagged_at:          nowIso,
+        ai_tagging_model:      CONTEXTUAL_TAG_MODEL,
+        ai_tagging_confidence: Object.keys(contextual.confidence).length ? contextual.confidence : null,
+        ai_tagging_reasoning:  contextual.reasoning_summary.slice(0, 500),
+      };
+    }
+  } catch {
+    /* non-fatal; keep text update only */
+  }
+
   const { error } = await db
     .from('breadcrumbs')
-    .update({ content: `${bc.content}\n\n${appendContent}` })
+    .update(updateRow)
     .eq('id', breadcrumbId);
 
   if (error) {

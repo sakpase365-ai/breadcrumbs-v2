@@ -12,11 +12,12 @@ vi.mock('@/lib/supabase', () => ({
 vi.mock('@/lib/ai', () => ({
   generateDailyPrompt: vi.fn(),
   FALLBACK_PROMPTS: ['Fallback prompt alpha', 'Fallback prompt beta'],
+  pickFallbackPrompt: vi.fn(() => 'Fallback prompt alpha'),
 }));
 
 import { POST } from '../src/app/api/generate-prompt/route';
 import { getSessionClient, getServiceClient } from '@/lib/supabase';
-import { generateDailyPrompt, FALLBACK_PROMPTS } from '@/lib/ai';
+import { generateDailyPrompt, pickFallbackPrompt } from '@/lib/ai';
 import { checkRateLimit } from '@/lib/rate-limit';
 
 const MOCK_SESSION = { user: { id: 'uid-abc', user_metadata: {} } };
@@ -119,6 +120,24 @@ describe('POST /api/generate-prompt', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.prompt).toBe('What did you learn the hard way?');
+    expect(generateDailyPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({ excludePriorPrompts: undefined }),
+    );
+  });
+
+  it('forwards excludePriorPrompts to generateDailyPrompt', async () => {
+    vi.mocked(getSessionClient).mockResolvedValue(makeSession(MOCK_SESSION) as never);
+    vi.mocked(getServiceClient).mockReturnValue(makeDb() as never);
+    vi.mocked(generateDailyPrompt).mockResolvedValue('Another angle');
+
+    const res = await POST(
+      makeRequest({ recipientId: null, excludePriorPrompts: ['first prompt', 'second'] }),
+    );
+    expect(res.status).toBe(200);
+    await res.json();
+    expect(generateDailyPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({ excludePriorPrompts: ['first prompt', 'second'] }),
+    );
   });
 
   it('returns a fallback prompt — not a 500 — when AI throws', async () => {
@@ -129,7 +148,8 @@ describe('POST /api/generate-prompt', () => {
     const res = await POST(makeRequest({ recipientId: null }));
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(FALLBACK_PROMPTS).toContain(body.prompt);
+    expect(body.prompt).toBe('Fallback prompt alpha');
+    expect(vi.mocked(pickFallbackPrompt)).toHaveBeenCalled();
   });
 
   it('returns 404 when profile is not found', async () => {

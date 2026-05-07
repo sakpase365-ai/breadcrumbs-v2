@@ -10,7 +10,14 @@ vi.mock('@anthropic-ai/sdk', () => ({
 }));
 
 // Import after mocking so the module-level `client` uses the mock
-import { tagEntry, FALLBACK_PROMPTS, FAMILY_AGENT_SYSTEM, answerFamilyQuestion, normalizeQuestion } from '../src/lib/ai';
+import {
+  tagEntry,
+  FALLBACK_PROMPTS,
+  pickFallbackPrompt,
+  FAMILY_AGENT_SYSTEM,
+  answerFamilyQuestion,
+  normalizeQuestion,
+} from '../src/lib/ai';
 import type { FamilyAgentContext } from '../src/lib/family-agent-context';
 
 describe('tagEntry', () => {
@@ -318,14 +325,25 @@ describe('answerFamilyQuestion', () => {
 // ── FALLBACK_PROMPTS ──────────────────────────────────────────────
 
 describe('FALLBACK_PROMPTS', () => {
-  it('contains at least 10 prompts', () => {
-    expect(FALLBACK_PROMPTS.length).toBeGreaterThanOrEqual(10);
+  it('contains a large pool of prompts for offline variety', () => {
+    expect(FALLBACK_PROMPTS.length).toBeGreaterThanOrEqual(35);
   });
 
   it('all prompts are non-empty strings', () => {
     for (const p of FALLBACK_PROMPTS) {
       expect(typeof p).toBe('string');
       expect(p.trim().length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('pickFallbackPrompt', () => {
+  it('avoids an exact match when another fallback exists', () => {
+    const avoid = FALLBACK_PROMPTS[0];
+    const picked = pickFallbackPrompt([avoid]);
+    expect(FALLBACK_PROMPTS).toContain(picked);
+    if (FALLBACK_PROMPTS.length > 1) {
+      expect(picked).not.toBe(avoid);
     }
   });
 });

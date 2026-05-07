@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateDailyPrompt, FALLBACK_PROMPTS } from '@/lib/ai';
+import { generateDailyPrompt, pickFallbackPrompt } from '@/lib/ai';
 import { getSessionClient, getServiceClient } from '@/lib/supabase';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
@@ -42,11 +42,20 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Read optional recipientId from request body
-  let recipientId: string | null = null;
+  // Read optional recipientId + session prompt history from request body
+  let recipientId:          string | null = null;
+  let excludePriorPrompts:  string[] | undefined;
   try {
     const body = await req.json();
     if (typeof body?.recipientId === 'string') recipientId = body.recipientId;
+    if (Array.isArray(body?.excludePriorPrompts)) {
+      excludePriorPrompts = body.excludePriorPrompts
+        .filter((x: unknown): x is string => typeof x === 'string')
+        .map((s) => s.trim().slice(0, 500))
+        .filter(Boolean)
+        .slice(0, 5);
+      if (excludePriorPrompts.length === 0) excludePriorPrompts = undefined;
+    }
   } catch {
     // no body — all-descendants mode
   }
@@ -119,11 +128,12 @@ export async function POST(req: NextRequest) {
       recipientName,
       recipientAge,
       recentTopics,
+      excludePriorPrompts,
     });
     logger.info('prompt generated', { route: 'generate-prompt', parentId: profile.id, remaining });
     return NextResponse.json({ prompt });
   } catch (err) {
-    const fallback = FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)];
+    const fallback = pickFallbackPrompt(excludePriorPrompts ?? []);
     logger.warn('AI failed, serving fallback prompt', {
       route:    'generate-prompt',
       parentId: profile.id,

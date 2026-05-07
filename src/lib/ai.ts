@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { FamilyAgentContext } from '@/lib/family-agent-context';
 import { formatContextBlock } from '@/lib/family-agent-context';
+import { AI_TAG_LIBRARY_LINES, dedupeTags } from '@/lib/breadcrumb-tags';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -18,17 +19,86 @@ export const FALLBACK_PROMPTS = [
   'Write about a place that made you feel like yourself. What was it about that place?',
   'When has someone close to you surprised you in a way that changed how you see them?',
   'What is something small from your everyday life that you never want them to forget?',
+  'Describe a fight you had with someone you love, and what it taught you about saying sorry.',
+  'What is one rule in your house you care about — and the story of why it exists?',
+  'Tell them about a time you failed publicly or dramatically, and what you did next.',
+  'What is a question you still do not have an answer to, but want them to keep asking?',
+  'Describe a teacher, coach, or boss who changed how you see yourself.',
+  'What do you want them to know about loving a partner — the unglamorous parts included?',
+  'Write about a habit you are glad you built, and how you actually stuck with it.',
+  'What should they know about taking care of their body without turning it into shame?',
+  'Describe a holiday or yearly tradition and what you hope it feels like to them.',
+  'What is something you used to believe that you no longer believe — and how that shift happened?',
+  'Tell a story about your siblings or cousins that explains how you fit in the family.',
+  'What is a risk you took that did not pay off, and whether you would take it again?',
+  'Describe a time you felt lonely, and what actually helped — not what you expected would help.',
+  'What is a song, movie, or book that hit you at the right time — what were you going through?',
+  'What do you want them to remember about how you show up when someone is sick or scared?',
+  'Write about money stress: what did you do, what did you refuse to do, and what you would repeat?',
+  'What is something you are still working on in yourself that you want them to see clearly?',
+  'Describe a moment you realized you were wrong — and how you fixed it with the other person.',
+  'What skill or craft do you hope they invest in, even if it never pays the bills?',
+  'Tell them about your first real job: what shocked you, and what stuck?',
+  'What boundary did you learn to hold that improved your life?',
+  'Describe a place you never want to return to, and what you took away from it.',
+  'What do you hope they understand about anger — yours or someone else\'s?',
+  'Write about faith, doubt, or meaning in your life without telling them what to believe.',
+  'What is a family story about immigration, moving, or starting over that shaped you?',
+  'What do you want them to know about asking for help — including who is safe to ask?',
+  'Describe a small kindness someone did for you that you still think about.',
+  'What is something you do when you are overwhelmed that you want them to feel permission to do too?',
+  'Tell them about a time you had to stand alone and how you steadied yourself.',
+  'What is a purchase or financial habit you regret, and what you changed afterward?',
+  'Describe a moment when you were proud of them (or a kid like them) — be specific.',
+  'What do you want them to know about technology, phones, and staying human in a noisy world?',
+  'Write about grief or loss: not platitudes — what was hard, and what helped months later?',
+  'What is a fear you carry about their future, said honestly, without trying to fix it for them?',
+  'Tell a funny story about yourself at their age — what would you want them to notice?',
 ];
 
+const VARIETY_DIRECTIVES = [
+  'Angle: ask for one concrete scene with sensory detail (sound, smell, touch, temperature).',
+  'Angle: focus on repair or apology — something you wish you had said or done differently.',
+  'Angle: focus on humor or lightness — a funny family story or a moment of joy.',
+  'Angle: focus on a belief or habit you hold now that you did not always hold.',
+  'Angle: focus on a skill, craft, or kind of work you want them to understand.',
+  'Angle: focus on fear, doubt, or anxiety — and what practically helped, not slogans.',
+  'Angle: focus on a tradition, routine, or ritual your family keeps.',
+  'Angle: focus on money, work, or a financial choice in plain language.',
+  'Angle: focus on friendship, neighbors, or community outside the household.',
+  'Angle: focus on a relationship that clarified what you want (or do not want) in love.',
+];
+
+function pickVarietyDirective(): string {
+  return VARIETY_DIRECTIVES[Math.floor(Math.random() * VARIETY_DIRECTIVES.length)];
+}
+
+/** Random fallback when the model is unavailable; avoids exact repeats from this session. */
+export function pickFallbackPrompt(excludeTexts: string[]): string {
+  const keys = new Set(
+    excludeTexts
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean)
+      .map((t) => t.slice(0, 240)),
+  );
+  let pool = FALLBACK_PROMPTS.filter((p) => !keys.has(p.trim().toLowerCase().slice(0, 240)));
+  if (!pool.length) pool = [...FALLBACK_PROMPTS];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+export type DailyPromptContext = {
+  ownerName:              string;
+  ownerRole?:             string;
+  recipientName?:         string;
+  recipientAge?:          number;
+  recentTopics:           string[];
+  /** Prompt lines already shown this session — avoid same wording or theme. */
+  excludePriorPrompts?:   string[];
+};
+
 // ── Prompt generation ──────────────────────────────────────────
-export async function generateDailyPrompt(context: {
-  ownerName:         string;
-  ownerRole?:        string;
-  recipientName?:    string;
-  recipientAge?:     number;
-  recentTopics:      string[];
-}): Promise<string> {
-  const { ownerName, ownerRole, recipientName, recipientAge, recentTopics } = context;
+export async function generateDailyPrompt(context: DailyPromptContext): Promise<string> {
+  const { ownerName, ownerRole, recipientName, recipientAge, recentTopics, excludePriorPrompts } = context;
 
   const writerDescription = ownerRole && ownerRole !== 'other'
     ? `${ownerRole} named ${ownerName}`
@@ -38,6 +108,17 @@ export async function generateDailyPrompt(context: {
     ? `${recipientName}${recipientAge != null ? `, who is currently ${recipientAge} years old` : ''}`
     : 'someone they love';
 
+  const prior = (excludePriorPrompts ?? ([] as string[]))
+    .filter((t) => t.trim())
+    .slice(0, 5)
+    .map((t) => t.trim().slice(0, 400));
+
+  const priorBlock = prior.length
+    ? `\n- Do NOT repeat or closely paraphrase any of these prompts the writer already saw this session:\n${prior.map((p) => `  • ${p}`).join('\n')}`
+    : '';
+
+  const variety = pickVarietyDirective();
+
   const msg = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 300,
@@ -45,14 +126,15 @@ export async function generateDailyPrompt(context: {
       role: 'user',
       content: `You are a thoughtful guide helping a ${writerDescription} write a meaningful letter to ${recipientDescription}.
 
-Generate ONE short, specific, emotionally resonant writing prompt. The prompt should invite the writer to share a real memory, lesson, or piece of wisdom.
+Generate ONE short, specific, emotionally resonant writing prompt. The prompt should invite the writer to share a real memory, belief, mistake, hope, or scene.
 
 Rules:
 - One prompt only — no lists, no options
 - 1-2 sentences maximum
-- Avoid these recently used topics: ${recentTopics.join(', ') || 'none'}
+- Avoid these recently used topics in prior letters: ${recentTopics.join(', ') || 'none'}
+- ${variety}
 - Do not use the word "journey", "legacy", or "wisdom"
-- Speak directly to the writer, not about them
+- Speak directly to the writer, not about them${priorBlock}
 
 Return only the prompt text. No preamble.`
     }],
@@ -109,6 +191,102 @@ Return only valid JSON. No markdown, no explanation.`
   const summary = typeof parsed.summary === 'string' ? parsed.summary.slice(0, 200) : '';
 
   return { domain, relevantAge, deliveryType, summary };
+}
+
+export const CONTEXTUAL_TAG_MODEL = 'claude-sonnet-4-6';
+
+export type ContextualTagResult = {
+  tags:               string[];
+  reasoning_summary:  string;
+  confidence:         Record<string, number>;
+};
+
+function stripJsonFence(raw: string): string {
+  let t = raw.trim();
+  if (t.startsWith('```')) {
+    t = t.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  }
+  return t.trim();
+}
+
+/** AI-only JSON tagging for breadcrumbs. Returns null if the model call or parse fails (caller saves without blocking). */
+export async function generateContextualTags(input: {
+  content:                 string;
+  breadcrumbType:          string;
+  userSuggestedTags?:      string[];
+  recipientRelationHint?:  string;
+}): Promise<ContextualTagResult | null> {
+  const libraryBlock = AI_TAG_LIBRARY_LINES.join('\n');
+
+  const userHint = input.userSuggestedTags?.length
+    ? `The writer optionally pre-selected these hints (use only if they fit the text): ${input.userSuggestedTags.join(', ')}`
+    : '';
+
+  const recipientHint = input.recipientRelationHint
+    ? `Recipient or audience hint: ${input.recipientRelationHint}`
+    : '';
+
+  try {
+    const msg = await client.messages.create({
+      model:      CONTEXTUAL_TAG_MODEL,
+      max_tokens: 600,
+      messages: [{
+        role: 'user',
+        content: `You classify a private family "breadcrumb" (note, letter, memory, etc.) for search and retrieval.
+
+Preferred tags when they clearly apply (output lowercase kebab-case):
+${libraryBlock}
+
+Rules:
+- Return exactly one JSON object. No markdown, no prose outside JSON.
+- "tags": 2 to 6 strings, lowercase kebab-case (hyphens only), no spaces.
+- Prefer library tags. Add at most ONE custom kebab tag if an important theme is missing from the library.
+- Avoid near-duplicates (e.g. not both "hope" and "encouragement" unless clearly distinct).
+- Do not output the tag "journey". Use "legacy" only as a theme if it truly fits.
+- Tags describe theme, tone, relationship, intent, or values — NOT media type alone.
+- Breadcrumb type hint (do not mirror blindly): ${input.breadcrumbType}
+
+${userHint}
+${recipientHint}
+
+Text:
+"""${input.content.slice(0, 7000)}"""
+
+JSON shape:
+{"tags":["example-one","example-two"],"reasoning_summary":"one short internal sentence","confidence":{"example-one":0.92,"example-two":0.85}}`
+      }],
+    });
+
+    const raw = stripJsonFence((msg.content[0] as { text: string }).text);
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+
+    const rawTags = parsed.tags;
+    if (!Array.isArray(rawTags)) return null;
+    const tags = dedupeTags(rawTags.filter((t): t is string => typeof t === 'string'));
+    if (tags.length === 0) return null;
+    if (tags.length > 6) tags.length = 6;
+
+    const reasoning = typeof parsed.reasoning_summary === 'string'
+      ? parsed.reasoning_summary.trim().slice(0, 500)
+      : '';
+
+    let confidence: Record<string, number> = {};
+    if (parsed.confidence && typeof parsed.confidence === 'object' && parsed.confidence !== null) {
+      for (const t of tags) {
+        const v = (parsed.confidence as Record<string, unknown>)[t];
+        if (typeof v === 'number' && v >= 0 && v <= 1) confidence[t] = v;
+      }
+    }
+
+    return { tags, reasoning_summary: reasoning, confidence };
+  } catch {
+    return null;
+  }
 }
 
 // ── Family Agent answer ────────────────────────────────────────

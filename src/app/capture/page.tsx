@@ -8,6 +8,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { DESCENDENT_ROLES } from '@/lib/roles';
 import { firstName } from '@/lib/nameUtils';
 import { BREADCRUMB_TYPES, VALUE_TAGS } from '@/lib/breadcrumbs';
+import { formatTagForDisplay } from '@/lib/breadcrumb-tags';
 
 const DRAFT_KEY    = 'breadcrumbs_draft';
 const PREFILL_KEY  = 'breadcrumbs_prefill';
@@ -36,11 +37,14 @@ function collectiveLabel(members: FamilyMember[]): string {
   return 'your children';
 }
 
-async function fetchPrompt(recipientId: string | null): Promise<string> {
+async function fetchPrompt(recipientId: string | null, excludePriorPrompts?: string[]): Promise<string> {
+  const body: Record<string, unknown> = { recipientId };
+  if (excludePriorPrompts?.length) body.excludePriorPrompts = excludePriorPrompts;
+
   const res = await fetch('/api/generate-prompt', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ recipientId }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error('prompt fetch failed');
   const { prompt } = await res.json();
@@ -68,11 +72,32 @@ function CaptureFlow() {
   const [followUpAddition,    setFollowUpAddition]   = useState('');
   const [savedBreadcrumbId,   setSavedBreadcrumbId]  = useState<string | null>(null);
   const [savedAt,             setSavedAt]            = useState<string | null>(null);
+  const [savedTags,          setSavedTags]         = useState<string[]>([]);
+  const [tagEditorOpen,       setTagEditorOpen]      = useState(false);
+  const [tagDraft,            setTagDraft]           = useState('');
+  const [tagSaving,           setTagSaving]          = useState(false);
   const [saving,              setSaving]             = useState(false);
   const [charCount,           setCharCount]          = useState(0);
   const [draftRestored,       setDraftRestored]      = useState(false);
   const [prefillRestored,     setPrefillRestored]    = useState(false);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recentPromptsRef = useRef<string[]>([]);
+
+  function excludePriorPromptsForFetch(currentPrompt: string): string[] | undefined {
+    const seen  = new Set<string>();
+    const out: string[] = [];
+    for (const t of recentPromptsRef.current) {
+      const s = t.trim();
+      if (s && !seen.has(s)) {
+        seen.add(s);
+        out.push(s);
+      }
+    }
+    const cur = currentPrompt.trim();
+    if (cur && !seen.has(cur)) out.push(cur);
+    const slice = out.slice(-5);
+    return slice.length ? slice : undefined;
+  }
 
   // Restore draft or prefill from Foundation
   useEffect(() => {
@@ -116,6 +141,7 @@ function CaptureFlow() {
 
         const dailyPrompt = await fetchPrompt(null);
         setPrompt(dailyPrompt);
+        recentPromptsRef.current = [dailyPrompt];
 
         setStage(localStorage.getItem(DRAFT_KEY) || localStorage.getItem(PREFILL_KEY) ? 'writing' : 'prompted');
       } catch {
@@ -129,10 +155,24 @@ function CaptureFlow() {
     if (stage === 'prompted') {
       setPromptLoading(true);
       try {
-        const newPrompt = await fetchPrompt(member?.id ?? null);
+        const newPrompt = await fetchPrompt(member?.id ?? null, excludePriorPromptsForFetch(prompt));
         setPrompt(newPrompt);
+        recentPromptsRef.current = [...recentPromptsRef.current, newPrompt].slice(-8);
       } catch { /* keep existing prompt */ }
       finally { setPromptLoading(false); }
+    }
+  }
+
+  async function handleNewPrompt() {
+    if (promptLoading) return;
+    setPromptLoading(true);
+    try {
+      const next = await fetchPrompt(selectedRecipient?.id ?? null, excludePriorPromptsForFetch(prompt));
+      setPrompt(next);
+      recentPromptsRef.current = [...recentPromptsRef.current, next].slice(-8);
+    } catch { /* keep existing prompt */ }
+    finally {
+      setPromptLoading(false);
     }
   }
 
@@ -176,6 +216,8 @@ function CaptureFlow() {
       setFollowUp(data.followUp);
       setSavedBreadcrumbId(data.breadcrumb.id);
       setSavedAt(data.breadcrumb.created_at ?? new Date().toISOString());
+      setSavedTags(Array.isArray(data.breadcrumb.tags) ? data.breadcrumb.tags : []);
+      setTagEditorOpen(false);
       localStorage.removeItem(DRAFT_KEY);
       setStage('follow-up');
     } catch {
@@ -188,6 +230,28 @@ function CaptureFlow() {
   const recipientLabel = selectedRecipient
     ? firstName(selectedRecipient.name)
     : collectiveLabel(familyMembers);
+
+  async function saveTagsEdit() {
+    if (!savedBreadcrumbId || tagSaving) return;
+    const parts = tagDraft
+      .split(/[,\n]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    setTagSaving(true);
+    try {
+      const res = await fetch('/api/save-entry', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ breadcrumbId: savedBreadcrumbId, tags: parts }),
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { tags?: string[] };
+      setSavedTags(Array.isArray(data.tags) ? data.tags : parts);
+      setTagEditorOpen(false);
+    } finally {
+      setTagSaving(false);
+    }
+  }
 
   const doneLine = selectedRecipient
     ? `${firstName(selectedRecipient.name)} will have this when the time is right.`
@@ -299,31 +363,41 @@ function CaptureFlow() {
             </div>
 
             {/* Prompt */}
-            <div className="border-l-2 border-foreground/30 pl-5 py-1">
-              {promptLoading
-                ? <p className="text-muted-foreground text-sm">
-                    Refreshing prompt
-                    <span className="inline-flex">
-                      {[0, 1, 2].map((i) => (
-                        <motion.span
-                          key={i}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: [0, 1, 1, 0.4, 1] }}
-                          transition={{
-                            delay: i * 0.3,
-                            duration: 1.5,
-                            times: [0, 0.1, 0.5, 0.75, 1],
-                            repeat: Infinity,
-                            repeatDelay: 0.5,
-                          }}
-                        >
-                          .
-                        </motion.span>
-                      ))}
-                    </span>
-                  </p>
-                : <p className="font-serif text-foreground text-xl leading-relaxed">{prompt}</p>
-              }
+            <div className="border-l-2 border-foreground/30 pl-5 py-1 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+              <div className="min-w-0 flex-1">
+                {promptLoading
+                  ? <p className="text-muted-foreground text-sm">
+                      Refreshing prompt
+                      <span className="inline-flex">
+                        {[0, 1, 2].map((i) => (
+                          <motion.span
+                            key={i}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: [0, 1, 1, 0.4, 1] }}
+                            transition={{
+                              delay: i * 0.3,
+                              duration: 1.5,
+                              times: [0, 0.1, 0.5, 0.75, 1],
+                              repeat: Infinity,
+                              repeatDelay: 0.5,
+                            }}
+                          >
+                            .
+                          </motion.span>
+                        ))}
+                      </span>
+                    </p>
+                  : <p className="font-serif text-foreground text-xl leading-relaxed">{prompt}</p>
+                }
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleNewPrompt()}
+                disabled={promptLoading}
+                className="shrink-0 text-xs uppercase tracking-widest px-3 py-2 border border-border rounded-sm text-muted-foreground hover:text-foreground hover:border-foreground/40 transition disabled:opacity-50 disabled:pointer-events-none"
+              >
+                New prompt
+              </button>
             </div>
 
             {draftRestored && (
@@ -342,11 +416,15 @@ function CaptureFlow() {
 
             {/* Tags */}
             <div className="space-y-3">
+              <p className="text-xs text-muted-foreground/70">
+                Tags are organized automatically when you save. Optional hints below can guide the AI.
+              </p>
               <button
+                type="button"
                 onClick={() => setShowTags(!showTags)}
                 className="text-xs text-muted-foreground hover:text-foreground transition"
               >
-                {showTags ? '− Hide value tags' : '+ Add value tags (optional)'}
+                {showTags ? '− Hide optional tag hints' : '+ Optional tag hints before save'}
               </button>
               {showTags && (
                 <div className="flex flex-wrap gap-2">
@@ -383,6 +461,60 @@ function CaptureFlow() {
         {/* Follow-up */}
         {stage === 'follow-up' && (
           <div className="space-y-6">
+            {savedTags.length > 0 && (
+              <div className="space-y-3 rounded-sm border border-border/60 bg-card/30 px-4 py-3">
+                <p className="text-sm text-foreground">
+                  <span className="text-muted-foreground">Saved with tags: </span>
+                  {savedTags.map((t, i) => (
+                    <span key={t}>
+                      {i > 0 ? ', ' : ''}
+                      {formatTagForDisplay(t)}
+                    </span>
+                  ))}
+                </p>
+                {!tagEditorOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTagDraft(savedTags.join(', '));
+                      setTagEditorOpen(true);
+                    }}
+                    className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition"
+                  >
+                    Edit tags
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <label htmlFor="tag-draft" className="sr-only">Edit tags</label>
+                    <input
+                      id="tag-draft"
+                      value={tagDraft}
+                      onChange={(e) => setTagDraft(e.target.value)}
+                      className="w-full bg-card border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-foreground/60 outline-none"
+                      placeholder="parenting, gratitude, life-lesson"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void saveTagsEdit()}
+                        disabled={tagSaving}
+                        className="text-xs px-3 py-1.5 border border-foreground text-foreground rounded-sm disabled:opacity-40"
+                      >
+                        {tagSaving ? 'Saving…' : 'Save tags'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setTagEditorOpen(false); }}
+                        className="text-xs px-3 py-1.5 border border-border text-muted-foreground rounded-sm"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="glass-card px-6 py-5">
               <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3">One more thought</p>
               <p className="font-serif text-foreground text-lg leading-relaxed">{followUp}</p>
@@ -432,6 +564,59 @@ function CaptureFlow() {
           <div className="py-20 text-center space-y-6">
             <div className="w-12 h-px bg-foreground/30 mx-auto" />
             <p className="font-serif text-foreground text-2xl">{doneLine}</p>
+            {savedTags.length > 0 && (
+              <div className="space-y-3 max-w-md mx-auto text-left rounded-sm border border-border/60 bg-card/30 px-4 py-3">
+                <p className="text-sm text-foreground">
+                  <span className="text-muted-foreground">Tags: </span>
+                  {savedTags.map((t, i) => (
+                    <span key={t}>
+                      {i > 0 ? ', ' : ''}
+                      {formatTagForDisplay(t)}
+                    </span>
+                  ))}
+                </p>
+                {!tagEditorOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTagDraft(savedTags.join(', '));
+                      setTagEditorOpen(true);
+                    }}
+                    className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition"
+                  >
+                    Edit tags
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <label htmlFor="tag-draft-done" className="sr-only">Edit tags</label>
+                    <input
+                      id="tag-draft-done"
+                      value={tagDraft}
+                      onChange={(e) => setTagDraft(e.target.value)}
+                      className="w-full bg-card border border-border rounded-sm px-3 py-2 text-sm text-foreground outline-none"
+                      placeholder="parenting, gratitude, life-lesson"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void saveTagsEdit()}
+                        disabled={tagSaving}
+                        className="text-xs px-3 py-1.5 border border-foreground text-foreground rounded-sm disabled:opacity-40"
+                      >
+                        {tagSaving ? 'Saving…' : 'Save tags'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTagEditorOpen(false)}
+                        className="text-xs px-3 py-1.5 border border-border text-muted-foreground rounded-sm"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             {savedAt && (
               <p className="text-xs text-muted-foreground">
                 Saved {new Date(savedAt).toLocaleDateString('en-US', {

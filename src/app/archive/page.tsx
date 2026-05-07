@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { BREADCRUMB_TYPE_LABEL } from '@/lib/breadcrumbs';
+import { formatTagForDisplay } from '@/lib/breadcrumb-tags';
 
 const DOMAIN_COLORS: Record<string, string> = {
   relationships: 'border-rose-800 text-rose-400',
@@ -166,12 +167,12 @@ export default function ArchivePage() {
                     )}
                   </div>
 
-                  {/* Value tags */}
+                  {/* Context tags */}
                   {e.tags && e.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {e.tags.map((tag) => (
                         <span key={tag} className="text-xs px-2 py-0.5 border border-border/50 text-muted-foreground/60 rounded-sm">
-                          {tag}
+                          {formatTagForDisplay(tag)}
                         </span>
                       ))}
                     </div>
