@@ -10,7 +10,6 @@ import {
   PRIMARY_MEMBER_ROLES,
   SECONDARY_MEMBER_ROLES,
 } from '@/lib/roles';
-import ProductAttribution from '@/components/ProductAttribution';
 
 // ─── Shared style tokens ──────────────────────────────────────
 const INPUT =
@@ -283,9 +282,6 @@ export default function SignupPage() {
             <span className="text-foreground">{email}</span> to finish
             setting up your family profile.
           </p>
-          <div className="pt-6">
-            <ProductAttribution />
-          </div>
         </div>
       </main>
     );
@@ -442,10 +438,6 @@ export default function SignupPage() {
           Your entries are private to you. We do not share or sell your
           family&apos;s data.
         </p>
-
-        <div className="pt-4">
-          <ProductAttribution />
-        </div>
       </div>
     </main>
   );

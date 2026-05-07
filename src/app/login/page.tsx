@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import ProductAttribution from '@/components/ProductAttribution';
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -113,10 +112,6 @@ function LoginForm() {
             Create an account
           </a>
         </p>
-
-        <div className="pt-6">
-          <ProductAttribution />
-        </div>
       </div>
     </main>
   );

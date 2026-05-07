@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { createBrowserClient } from '@supabase/ssr';
 import TypewriterText from '@/components/TypewriterText';
-import ProductAttribution from '@/components/ProductAttribution';
 
 type AuthState = 'loading' | 'unauthenticated' | 'authenticated';
 
@@ -130,15 +129,6 @@ export default function Home() {
               Sign in · Create account
             </Link>
           )}
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2.8, duration: 0.5 }}
-          className="pt-10 pb-4"
-        >
-          <ProductAttribution />
         </motion.div>
 
       </div>
