@@ -4,3 +4,7 @@ node_modules/
 .next/
 out/
 .DS_Store
+tsconfig.tsbuildinfo
+
+# Xcode — avoid user-specific scheme/UI state
+ios/**/xcuserdata/
