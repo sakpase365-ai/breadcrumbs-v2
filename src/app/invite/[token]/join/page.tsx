@@ -30,18 +30,28 @@ export default function InviteJoinPage({
     const redirectTo =
       `${window.location.origin}/auth/callback?next=/invite/${token}/finalize`;
 
-    const res  = await fetch('/api/send-magic-link', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ email: email.trim(), redirectTo }),
-    });
-    const json = await res.json();
-
-    if (json.error) {
-      setError(json.error);
-      setBusy(false);
-    } else {
+    try {
+      const res = await fetch('/api/send-magic-link', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ email: email.trim(), redirectTo }),
+      });
+      let json: { error?: string } = {};
+      try {
+        json = (await res.json()) as { error?: string };
+      } catch {
+        setError('Something went wrong. Please try again.');
+        return;
+      }
+      if (!res.ok || json.error) {
+        setError(json.error ?? 'Something went wrong. Please try again.');
+        return;
+      }
       setStep('sent');
+    } catch {
+      setError('Network error. Check your connection and try again.');
+    } finally {
+      setBusy(false);
     }
   }
 

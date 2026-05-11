@@ -241,34 +241,45 @@ export default function SignupPage() {
     }
 
     setBusy(true);
+    setError('');
 
-    const res = await fetch('/api/send-magic-link', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: email.trim(),
-        redirectTo: `${window.location.origin}/auth/callback?next=/capture`,
-        data: {
-          owner_name:        ownerName.trim(),
-          owner_role:        ownerRole,
-          custom_owner_role: null,
-          family_name:       familyName.trim() || null,
-          family_members:    members.map((m) => ({
-            name:              m.name.trim(),
-            role:              m.role,
-            custom_role_label: null,
-            birth_date:        m.birthDate || null,
-          })),
-        },
-      }),
-    });
-    const json = await res.json();
-
-    if (json.error) {
-      setError(json.error);
-      setBusy(false);
-    } else {
+    try {
+      const res = await fetch('/api/send-magic-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          redirectTo: `${window.location.origin}/auth/callback?next=/capture`,
+          data: {
+            owner_name:        ownerName.trim(),
+            owner_role:        ownerRole,
+            custom_owner_role: null,
+            family_name:       familyName.trim() || null,
+            family_members:    members.map((m) => ({
+              name:              m.name.trim(),
+              role:              m.role,
+              custom_role_label: null,
+              birth_date:        m.birthDate || null,
+            })),
+          },
+        }),
+      });
+      let json: { error?: string } = {};
+      try {
+        json = (await res.json()) as { error?: string };
+      } catch {
+        setError('Something went wrong. Please try again.');
+        return;
+      }
+      if (!res.ok || json.error) {
+        setError(json.error ?? 'Something went wrong. Please try again.');
+        return;
+      }
       setStep('sent');
+    } catch {
+      setError('Network error. Check your connection and try again.');
+    } finally {
+      setBusy(false);
     }
   }
 

@@ -53,20 +53,31 @@ function LoginForm() {
     if (!email.trim() || busy) return;
     setBusy(true);
     setError('');
-    const res = await fetch('/api/send-magic-link', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: email.trim(),
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
-      }),
-    });
-    const json = await res.json();
-    if (json.error) {
-      setError(json.error);
-      setBusy(false);
-    } else {
+    try {
+      const res = await fetch('/api/send-magic-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        }),
+      });
+      let json: { error?: string } = {};
+      try {
+        json = (await res.json()) as { error?: string };
+      } catch {
+        setError('Something went wrong. Please try again.');
+        return;
+      }
+      if (!res.ok || json.error) {
+        setError(json.error ?? 'Something went wrong. Please try again.');
+        return;
+      }
       setSent(true);
+    } catch {
+      setError('Network error. Check your connection and try again.');
+    } finally {
+      setBusy(false);
     }
   }
 
