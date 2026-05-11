@@ -49,12 +49,12 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     if (typeof body?.recipientId === 'string') recipientId = body.recipientId;
     if (Array.isArray(body?.excludePriorPrompts)) {
-      excludePriorPrompts = body.excludePriorPrompts
+      const parsed = body.excludePriorPrompts
         .filter((x: unknown): x is string => typeof x === 'string')
-        .map((s) => s.trim().slice(0, 500))
+        .map((s: string) => s.trim().slice(0, 500))
         .filter(Boolean)
         .slice(0, 5);
-      if (excludePriorPrompts.length === 0) excludePriorPrompts = undefined;
+      excludePriorPrompts = parsed.length > 0 ? parsed : undefined;
     }
   } catch {
     // no body — all-descendants mode
