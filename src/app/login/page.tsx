@@ -66,11 +66,15 @@ function LoginForm() {
       try {
         json = (await res.json()) as { error?: string };
       } catch {
-        setError('Something went wrong. Please try again.');
+        setError(
+          res.ok
+            ? 'Something went wrong. Please try again.'
+            : `Sign-in request failed (${res.status}). Please try again.`,
+        );
         return;
       }
       if (!res.ok || json.error) {
-        setError(json.error ?? 'Something went wrong. Please try again.');
+        setError(json.error ?? `Request failed (${res.status}). Please try again.`);
         return;
       }
       setSent(true);
