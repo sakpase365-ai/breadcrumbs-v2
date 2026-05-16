@@ -41,10 +41,12 @@ export default function AnimatedWordmark({
   const showDots = visibleCount >= WORD.length;
 
   return (
-    <h1 className={`${className} flex flex-nowrap items-baseline justify-center`}>
+    <h1
+      className={`${className} inline-flex max-w-full flex-nowrap items-baseline gap-2 whitespace-nowrap sm:gap-3`}
+    >
       <span className="min-h-[1.15em] shrink-0">{WORD.slice(0, visibleCount)}</span>
       {showDots ? (
-        <span className="inline-flex shrink-0 select-none" aria-hidden>
+        <span className="inline-flex shrink-0 items-baseline gap-px select-none" aria-hidden>
           {[0, 1, 2].map((d) => (
             <span
               key={d}
