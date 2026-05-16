@@ -119,12 +119,35 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  let aiTags: {
+    domain: string;
+    relevantAge: number;
+    deliveryType: 'age-locked' | 'milestone' | 'evergreen';
+    summary: string;
+  } = {
+    domain:         'identity',
+    relevantAge:    Math.max(0, Math.min(100, recipientAge || 18)),
+    deliveryType:   'evergreen',
+    summary:        '',
+  };
+  let followUp = '';
+
   try {
-    const [aiTags, followUp] = await Promise.all([
+    const [tagsResult, followResult] = await Promise.all([
       tagEntry(content, recipientAge),
       generateFollowUp(content),
     ]);
+    aiTags = tagsResult;
+    followUp = followResult;
+  } catch (err) {
+    logger.warn('save-entry AI summary/follow-up failed; saving with defaults', {
+      route: 'save-entry POST',
+      parentId: access.familyId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
 
+  try {
     const contextual = await generateContextualTags({
       content,
       breadcrumbType,
@@ -168,7 +191,24 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (bcError || !bcData) {
-      throw bcError ?? new Error('breadcrumbs insert returned no data');
+      const detail = bcError?.message ?? 'breadcrumbs insert returned no data';
+      const d = detail.toLowerCase();
+      const titleMissing = d.includes('title') && (d.includes('column') || d.includes('schema'));
+      logger.error('breadcrumbs insert failed', {
+        route:    'save-entry POST',
+        parentId: access.familyId,
+        detail,
+        code:     bcError && 'code' in bcError ? String((bcError as { code?: string }).code) : undefined,
+      });
+      return NextResponse.json(
+        {
+          error: titleMissing
+              ? 'Database is missing the title column. Run supabase_breadcrumbs_add_title.sql in the Supabase SQL editor, then try again.'
+              : 'Failed to save entry',
+          detail: process.env.NODE_ENV !== 'production' ? detail : undefined,
+        },
+        { status: 500 },
+      );
     }
 
     // SECONDARY: legacy entries bridge (non-fatal)
@@ -202,7 +242,13 @@ export async function POST(req: NextRequest) {
       parentId: access.familyId,
       error:    err instanceof Error ? err.message : String(err),
     });
-    return NextResponse.json({ error: 'Failed to save entry' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error:  'Failed to save entry',
+        detail: process.env.NODE_ENV !== 'production' && err instanceof Error ? err.message : undefined,
+      },
+      { status: 500 },
+    );
   }
 }
 

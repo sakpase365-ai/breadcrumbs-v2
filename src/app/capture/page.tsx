@@ -69,6 +69,7 @@ function CaptureFlow() {
   const [savedBreadcrumbId,   setSavedBreadcrumbId]  = useState<string | null>(null);
   const [savedAt,             setSavedAt]            = useState<string | null>(null);
   const [savedTags,          setSavedTags]         = useState<string[]>([]);
+  const [saveError,          setSaveError]          = useState('');
   const [tagEditorOpen,       setTagEditorOpen]      = useState(false);
   const [tagDraft,            setTagDraft]           = useState('');
   const [tagSaving,           setTagSaving]          = useState(false);
@@ -196,6 +197,7 @@ function CaptureFlow() {
   async function handleSave() {
     if (!entry.trim() || saving) return;
     setSaving(true);
+    setSaveError('');
     try {
       const res = await fetch('/api/save-entry', {
         method: 'POST',
@@ -207,16 +209,26 @@ function CaptureFlow() {
           tags:            selectedTags,
         }),
       });
-      if (!res.ok) { setStage('error'); return; }
-      const data = await res.json();
-      setFollowUp(data.followUp);
-      setSavedBreadcrumbId(data.breadcrumb.id);
-      setSavedAt(data.breadcrumb.created_at ?? new Date().toISOString());
-      setSavedTags(Array.isArray(data.breadcrumb.tags) ? data.breadcrumb.tags : []);
+      const data = (await res.json()) as { error?: string; detail?: string; breadcrumb?: unknown; followUp?: string };
+      if (!res.ok) {
+        const msg =
+          data.error ??
+          (typeof data.detail === 'string' ? data.detail : null) ??
+          `Could not save (${res.status}). Try again.`;
+        setSaveError(msg);
+        setStage('error');
+        return;
+      }
+      const bc = data.breadcrumb as { id: string; created_at?: string; tags?: unknown };
+      setFollowUp(data.followUp ?? '');
+      setSavedBreadcrumbId(bc.id);
+      setSavedAt(bc.created_at ?? new Date().toISOString());
+      setSavedTags(Array.isArray(bc.tags) ? bc.tags : []);
       setTagEditorOpen(false);
       localStorage.removeItem(DRAFT_KEY);
       setStage('follow-up');
     } catch {
+      setSaveError('Network error. Check your connection and try again.');
       setStage('error');
     } finally {
       setSaving(false);
@@ -644,9 +656,13 @@ function CaptureFlow() {
         {stage === 'error' && (
           <div className="py-20 text-center space-y-4">
             <p className="font-serif text-foreground text-xl">Something went wrong.</p>
-            <p className="text-muted-foreground text-sm">Check your connection and try again.</p>
+            {saveError ? (
+              <p className="text-red-400/90 text-sm max-w-md mx-auto">{saveError}</p>
+            ) : (
+              <p className="text-muted-foreground text-sm">Check your connection and try again.</p>
+            )}
             <button
-              onClick={() => { setStage('loading'); setEntry(''); }}
+              onClick={() => { setSaveError(''); setStage('loading'); setEntry(''); }}
               className="mt-4 py-3 px-6 border border-foreground text-foreground text-sm tracking-wide hover:bg-foreground hover:text-background transition"
             >
               Try again
