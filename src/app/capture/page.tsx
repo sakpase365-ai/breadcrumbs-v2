@@ -149,15 +149,13 @@ function CaptureFlow() {
 
   async function handleRecipientSelect(member: FamilyMember | null) {
     setSelectedRecipient(member);
-    if (stage === 'prompted') {
-      setPromptLoading(true);
-      try {
-        const newPrompt = await fetchPrompt(member?.id ?? null, excludePriorPromptsForFetch(prompt));
-        setPrompt(newPrompt);
-        recentPromptsRef.current = [...recentPromptsRef.current, newPrompt].slice(-8);
-      } catch { /* keep existing prompt */ }
-      finally { setPromptLoading(false); }
-    }
+    setPromptLoading(true);
+    try {
+      const newPrompt = await fetchPrompt(member?.id ?? null, excludePriorPromptsForFetch(prompt));
+      setPrompt(newPrompt);
+      recentPromptsRef.current = [...recentPromptsRef.current, newPrompt].slice(-8);
+    } catch { /* keep existing prompt */ }
+    finally { setPromptLoading(false); }
   }
 
   async function handleNewPrompt() {
@@ -261,6 +259,8 @@ function CaptureFlow() {
     }
   }
 
+  const hasContent = entry.trim().length > 0;
+
   const doneLine = selectedRecipient
     ? `${firstName(selectedRecipient.name)} will have this when the time is right.`
     : `${collectiveLabel(familyMembers) === 'your family' ? 'Your family' : 'Your children'} will have this when the time is right.`;
@@ -319,79 +319,21 @@ function CaptureFlow() {
           </div>
         )}
 
-        {/* Prompt + Writing */}
+        {/* Prompt + Writing — capture first, classify after there is text */}
         {(stage === 'prompted' || stage === 'writing') && profile && (
           <div className="space-y-6">
+            <h1 className="font-serif text-2xl text-foreground tracking-tight sm:text-3xl">
+              Leave a breadcrumb
+            </h1>
 
-            {/* Recipient selector */}
-            {familyMembers.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground uppercase tracking-widest">Writing for</p>
-                <div className="flex gap-2 flex-wrap">
-                  <button
-                    onClick={() => handleRecipientSelect(null)}
-                    disabled={promptLoading}
-                    className={`px-4 py-1.5 text-sm border rounded-sm transition disabled:opacity-50 ${
-                      !selectedRecipient
-                        ? 'border-foreground bg-foreground text-background'
-                        : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Everyone
-                  </button>
-                  {familyMembers.map((m) => (
-                    <button
-                      key={m.id}
-                      onClick={() => handleRecipientSelect(m)}
-                      disabled={promptLoading}
-                      className={`px-4 py-1.5 text-sm border rounded-sm transition disabled:opacity-50 ${
-                        selectedRecipient?.id === m.id
-                          ? 'border-foreground bg-foreground text-background'
-                          : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
-                      }`}
-                    >
-                      {firstName(m.name)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* What are you leaving? */}
-            <div className="space-y-3">
-              <p className="text-xs text-muted-foreground uppercase tracking-widest">
-                What are you leaving?
-              </p>
-              <div className="space-y-2">
-                {CAPTURE_INTENT_OPTIONS.map((opt) => {
-                  const selected = breadcrumbType === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setBreadcrumbType(opt.value)}
-                      className={`w-full text-left rounded-sm border px-4 py-3 transition ${
-                        selected
-                          ? 'border-foreground bg-card ring-1 ring-foreground/25'
-                          : 'border-border hover:border-foreground/35'
-                      }`}
-                    >
-                      <p className="text-sm text-foreground font-medium tracking-wide">{opt.label}</p>
-                      <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                        {opt.description}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Prompt */}
-            <div className="border-l-2 border-foreground/30 pl-5 py-1 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4 rounded-sm border border-border/40 bg-card/20 px-4 py-3">
               <div className="min-w-0 flex-1">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/80 mb-1.5">
+                  Today&apos;s prompt
+                </p>
                 {promptLoading
-                  ? <p className="text-muted-foreground text-sm">
-                      Refreshing prompt
+                  ? <p className="text-muted-foreground/90 text-sm">
+                      Refreshing
                       <span className="inline-flex">
                         {[0, 1, 2].map((i) => (
                           <motion.span
@@ -411,14 +353,14 @@ function CaptureFlow() {
                         ))}
                       </span>
                     </p>
-                  : <p className="font-serif text-foreground text-xl leading-relaxed">{prompt}</p>
+                  : <p className="font-serif text-foreground/80 text-base leading-relaxed sm:text-lg">{prompt}</p>
                 }
               </div>
               <button
                 type="button"
                 onClick={() => void handleNewPrompt()}
                 disabled={promptLoading}
-                className="shrink-0 text-xs uppercase tracking-widest px-3 py-2 border border-border rounded-sm text-muted-foreground hover:text-foreground hover:border-foreground/40 transition disabled:opacity-50 disabled:pointer-events-none"
+                className="shrink-0 self-start text-[10px] uppercase tracking-widest px-2.5 py-1.5 border border-border/60 rounded-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition disabled:opacity-50 disabled:pointer-events-none"
               >
                 New prompt
               </button>
@@ -438,47 +380,110 @@ function CaptureFlow() {
               onChange={(e) => handleEntryChange(e.target.value)}
             />
 
-            {/* Tags */}
-            <div className="space-y-3">
-              <p className="text-xs text-muted-foreground/70">
-                Tags are organized automatically when you save. Optional hints below can guide the AI.
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowTags(!showTags)}
-                className="text-xs text-muted-foreground hover:text-foreground transition"
-              >
-                {showTags ? '− Hide optional tag hints' : '+ Optional tag hints before save'}
-              </button>
-              {showTags && (
-                <div className="flex flex-wrap gap-2">
-                  {VALUE_TAGS.map((tag) => (
-                    <button
-                      key={tag}
-                      onClick={() => toggleTag(tag)}
-                      className={`px-3 py-1 text-xs border rounded-sm transition ${
-                        selectedTags.includes(tag)
-                          ? 'border-foreground text-foreground bg-foreground/5'
-                          : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground'
-                      }`}
-                    >
-                      {tag}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            {hasContent && (
+              <>
+                {familyMembers.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest">Who is this for?</p>
+                    <div className="flex gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => void handleRecipientSelect(null)}
+                        disabled={promptLoading}
+                        className={`px-4 py-1.5 text-sm border rounded-sm transition disabled:opacity-50 ${
+                          !selectedRecipient
+                            ? 'border-foreground bg-foreground text-background'
+                            : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Everyone
+                      </button>
+                      {familyMembers.map((m) => (
+                        <button
+                          type="button"
+                          key={m.id}
+                          onClick={() => void handleRecipientSelect(m)}
+                          disabled={promptLoading}
+                          className={`px-4 py-1.5 text-sm border rounded-sm transition disabled:opacity-50 ${
+                            selectedRecipient?.id === m.id
+                              ? 'border-foreground bg-foreground text-background'
+                              : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+                          }`}
+                        >
+                          {firstName(m.name)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">{charCount} characters</span>
-              <button
-                onClick={handleSave}
-                disabled={!entry.trim() || saving}
-                className="py-3 px-8 border border-foreground text-foreground text-sm tracking-wide disabled:opacity-30 hover:bg-foreground hover:text-background transition"
-              >
-                {saving ? 'Saving…' : 'Save this letter'}
-              </button>
-            </div>
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest">Save as a</p>
+                  <div className="flex flex-wrap gap-2">
+                    {CAPTURE_INTENT_OPTIONS.map((opt) => {
+                      const selected = breadcrumbType === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setBreadcrumbType(opt.value)}
+                          className={`px-3 py-1.5 text-xs border rounded-sm transition ${
+                            selected
+                              ? 'border-foreground text-foreground bg-foreground/5'
+                              : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground/70">
+                    Tags are organized automatically when you save. Optional hints below can guide the AI.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowTags(!showTags)}
+                    className="text-xs text-muted-foreground hover:text-foreground transition"
+                  >
+                    {showTags ? '− Hide optional tag hints' : '+ Optional tag hints before save'}
+                  </button>
+                  {showTags && (
+                    <div className="flex flex-wrap gap-2">
+                      {VALUE_TAGS.map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => toggleTag(tag)}
+                          className={`px-3 py-1 text-xs border rounded-sm transition ${
+                            selectedTags.includes(tag)
+                              ? 'border-foreground text-foreground bg-foreground/5'
+                              : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground'
+                          }`}
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <span className="text-xs text-muted-foreground">{charCount} characters</span>
+                  <button
+                    type="button"
+                    onClick={() => void handleSave()}
+                    disabled={saving}
+                    className="py-3 px-8 border border-foreground text-foreground text-sm tracking-wide disabled:opacity-30 hover:bg-foreground hover:text-background transition sm:shrink-0"
+                  >
+                    {saving ? 'Saving…' : 'Save Breadcrumb'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 
