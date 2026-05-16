@@ -112,7 +112,7 @@ export default function ArchivePage() {
               onClick={() => router.push('/capture')}
               className="mt-4 inline-block py-3 px-8 border border-foreground text-foreground text-sm tracking-wide hover:bg-foreground hover:text-background transition"
             >
-              Write today's letter
+              Leave A Breadcrumb
             </button>
           </div>
         )}

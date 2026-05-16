@@ -92,7 +92,7 @@ export default function Home() {
             href="/capture"
             className="w-full py-4 px-8 border border-foreground text-foreground text-sm font-normal tracking-wide text-center hover:bg-foreground hover:text-background transition"
           >
-            Write today&apos;s letter
+            Leave A Breadcrumb
           </Link>
 
           {/* Primary — guidance layer */}
