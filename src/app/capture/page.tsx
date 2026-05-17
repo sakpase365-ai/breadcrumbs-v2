@@ -64,7 +64,7 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
-type CaptureMode = 'write' | 'record_audio' | null;
+type CaptureMode = 'write' | 'record_audio';
 
 function CaptureFlow() {
   const router = useRouter();
@@ -92,21 +92,45 @@ function CaptureFlow() {
   const [charCount,           setCharCount]          = useState(0);
   const [draftRestored,       setDraftRestored]      = useState(false);
   const [prefillRestored,     setPrefillRestored]    = useState(false);
-  const [captureMode,         setCaptureMode]        = useState<CaptureMode>(null);
+  const [captureMode,         setCaptureMode]        = useState<CaptureMode>('write');
   const [showAiPrompt,        setShowAiPrompt]       = useState(false);
   const [audioBlob,           setAudioBlob]          = useState<Blob | null>(null);
   const [audioPreviewUrl,     setAudioPreviewUrl]    = useState<string | null>(null);
   const [recording,           setRecording]          = useState(false);
+  const [recordSec,          setRecordSec]          = useState(0);
   const [recordError,         setRecordError]        = useState('');
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recentPromptsRef = useRef<string[]>([]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<BlobPart[]>([]);
   const audioObjectUrlRef = useRef<string | null>(null);
+  const writeAreaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => () => {
     if (audioObjectUrlRef.current) URL.revokeObjectURL(audioObjectUrlRef.current);
   }, []);
+
+  useEffect(() => {
+    if (!recording) {
+      setRecordSec(0);
+      return;
+    }
+    const started = Date.now();
+    const tick = () => {
+      setRecordSec(Math.floor((Date.now() - started) / 1000));
+    };
+    tick();
+    const id = window.setInterval(tick, 300);
+    return () => window.clearInterval(id);
+  }, [recording]);
+
+  useEffect(() => {
+    if (captureMode !== 'write') return;
+    const id = requestAnimationFrame(() => {
+      writeAreaRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(id);
+  }, [captureMode]);
 
   function cleanupAudio() {
     if (audioObjectUrlRef.current) {
@@ -477,18 +501,21 @@ function CaptureFlow() {
           </div>
         )}
 
-        {/* Action-first capture: write / record, optional AI, then classify when saving */}
+        {/* Action-first capture: write / record → optional AI → classify when saving */}
         {(stage === 'prompted' || stage === 'writing') && profile && (
-          <div className="space-y-6">
-            <h1 className="font-serif text-2xl text-foreground tracking-tight sm:text-3xl">
-              Leave A Breadcrumb
-            </h1>
+          <div className="space-y-4">
+            <div className="w-full text-center">
+              <h1 className="font-serif text-2xl text-foreground tracking-tight sm:text-3xl">
+                Leave A Breadcrumb
+              </h1>
+            </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-2 gap-2 max-w-md mx-auto w-full">
               <button
                 type="button"
+                aria-pressed={captureMode === 'write'}
                 onClick={selectWriteMode}
-                className={`px-5 py-2.5 text-sm border rounded-sm transition ${
+                className={`px-4 py-2.5 text-sm border rounded-sm transition text-center ${
                   captureMode === 'write'
                     ? 'border-foreground bg-foreground text-background'
                     : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
@@ -498,8 +525,9 @@ function CaptureFlow() {
               </button>
               <button
                 type="button"
+                aria-pressed={captureMode === 'record_audio'}
                 onClick={selectRecordMode}
-                className={`px-5 py-2.5 text-sm border rounded-sm transition ${
+                className={`px-4 py-2.5 text-sm border rounded-sm transition text-center ${
                   captureMode === 'record_audio'
                     ? 'border-foreground bg-foreground text-background'
                     : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
@@ -509,16 +537,88 @@ function CaptureFlow() {
               </button>
             </div>
 
-            <button
-              type="button"
-              onClick={() => void openAiPromptPanel()}
-              className="text-xs uppercase tracking-widest px-3 py-2 border border-border/50 rounded-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition w-full sm:w-auto"
-            >
-              {showAiPrompt ? 'Hide AI suggestions' : 'AI Prompt for suggestions'}
-            </button>
+            {captureMode === 'write' && (
+              <textarea
+                ref={writeAreaRef}
+                className="w-full h-56 sm:h-64 bg-card border border-border rounded-sm px-5 py-4 text-foreground text-base leading-relaxed placeholder:text-muted-foreground focus:border-foreground/60 transition"
+                placeholder="Write something you want them to have..."
+                value={entry}
+                onChange={(e) => handleEntryChange(e.target.value)}
+              />
+            )}
+
+            {captureMode === 'record_audio' && (
+              <div className="space-y-3 rounded-sm border border-border/40 bg-card/20 px-4 py-4">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Record something you want them to hear...
+                </p>
+                {recordError ? (
+                  <p className="text-xs text-red-400/90">{recordError}</p>
+                ) : null}
+                {!audioBlob && !recording && (
+                  <button
+                    type="button"
+                    onClick={() => void startRecording()}
+                    className="px-4 py-2 text-sm border border-foreground text-foreground rounded-sm hover:bg-foreground hover:text-background transition"
+                  >
+                    Start recording
+                  </button>
+                )}
+                {recording && (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-xs text-muted-foreground tabular-nums" aria-live="polite">
+                      Recording{' '}
+                      {`${Math.floor(recordSec / 60)}:${String(recordSec % 60).padStart(2, '0')}`}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={stopRecording}
+                      className="px-4 py-2 text-sm border border-foreground text-foreground rounded-sm hover:bg-foreground hover:text-background transition"
+                    >
+                      Stop
+                    </button>
+                  </div>
+                )}
+                {audioPreviewUrl && !recording && (
+                  <div className="space-y-2">
+                    <audio src={audioPreviewUrl} controls className="w-full max-w-full" />
+                    <button
+                      type="button"
+                      onClick={() => { cleanupAudio(); setRecordError(''); }}
+                      className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground border border-border/60 rounded-sm px-2.5 py-1.5"
+                    >
+                      Re-record
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {(draftRestored || prefillRestored) && (
+              <div className="text-xs text-muted-foreground/60 space-y-0.5">
+                {draftRestored ? <p>Draft restored.</p> : null}
+                {prefillRestored ? <p>From your Family Foundation.</p> : null}
+              </div>
+            )}
+
+            <div className="space-y-2 pt-1">
+              <p className="text-xs text-muted-foreground">Need help starting?</p>
+              <button
+                type="button"
+                aria-expanded={showAiPrompt}
+                aria-controls="capture-ai-prompt-panel"
+                onClick={() => void openAiPromptPanel()}
+                className="text-xs uppercase tracking-widest px-3 py-2 border border-border/50 rounded-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition w-full sm:w-auto"
+              >
+                {showAiPrompt ? 'Hide AI Suggestions' : 'AI Prompt for Suggestions'}
+              </button>
+            </div>
 
             {showAiPrompt && (
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4 rounded-sm border border-border/40 bg-card/20 px-4 py-3">
+              <div
+                id="capture-ai-prompt-panel"
+                className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4 rounded-sm border border-border/40 bg-card/20 px-4 py-3"
+              >
                 <div className="min-w-0 flex-1">
                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground/80 mb-1.5">
                     Today&apos;s prompt
@@ -557,70 +657,13 @@ function CaptureFlow() {
                   disabled={promptLoading}
                   className="shrink-0 self-start text-[10px] uppercase tracking-widest px-2.5 py-1.5 border border-border/60 rounded-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition disabled:opacity-50 disabled:pointer-events-none"
                 >
-                  New prompt
+                  New Prompt
                 </button>
               </div>
             )}
 
-            {draftRestored && (
-              <p className="text-xs text-muted-foreground/60">Draft restored.</p>
-            )}
-            {prefillRestored && (
-              <p className="text-xs text-muted-foreground/60">From your Family Foundation.</p>
-            )}
-
-            {captureMode === 'write' && (
-              <textarea
-                className="w-full h-64 bg-card border border-border rounded-sm px-5 py-4 text-foreground text-base leading-relaxed placeholder:text-muted-foreground focus:border-foreground/60 transition"
-                placeholder="Write something you want them to have..."
-                value={entry}
-                onChange={(e) => handleEntryChange(e.target.value)}
-              />
-            )}
-
-            {captureMode === 'record_audio' && (
-              <div className="space-y-3 rounded-sm border border-border/40 bg-card/20 px-4 py-4">
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Record something you want them to hear...
-                </p>
-                {recordError ? (
-                  <p className="text-xs text-red-400/90">{recordError}</p>
-                ) : null}
-                {!audioBlob && !recording && (
-                  <button
-                    type="button"
-                    onClick={() => void startRecording()}
-                    className="px-4 py-2 text-sm border border-foreground text-foreground rounded-sm hover:bg-foreground hover:text-background transition"
-                  >
-                    Start recording
-                  </button>
-                )}
-                {recording && (
-                  <button
-                    type="button"
-                    onClick={stopRecording}
-                    className="px-4 py-2 text-sm border border-foreground text-foreground rounded-sm hover:bg-foreground hover:text-background transition"
-                  >
-                    Stop
-                  </button>
-                )}
-                {audioPreviewUrl && !recording && (
-                  <div className="space-y-2">
-                    <audio src={audioPreviewUrl} controls className="w-full max-w-full" />
-                    <button
-                      type="button"
-                      onClick={() => { cleanupAudio(); setRecordError(''); }}
-                      className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground border border-border/60 rounded-sm px-2.5 py-1.5"
-                    >
-                      Re-record
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
             {hasContent && (
-              <>
+              <div className="space-y-4 border-t border-border/30 pt-5">
                 {familyMembers.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-xs text-muted-foreground">Who is this for?</p>
@@ -629,7 +672,7 @@ function CaptureFlow() {
                         type="button"
                         onClick={() => void handleRecipientSelect(null)}
                         disabled={recipientBusy}
-                        className={`px-4 py-1.5 text-sm border rounded-sm transition disabled:opacity-50 ${
+                        className={`px-3 py-1.5 text-sm border rounded-sm transition disabled:opacity-50 ${
                           !selectedRecipient
                             ? 'border-foreground bg-foreground text-background'
                             : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
@@ -643,7 +686,7 @@ function CaptureFlow() {
                           key={m.id}
                           onClick={() => void handleRecipientSelect(m)}
                           disabled={recipientBusy}
-                          className={`px-4 py-1.5 text-sm border rounded-sm transition disabled:opacity-50 ${
+                          className={`px-3 py-1.5 text-sm border rounded-sm transition disabled:opacity-50 ${
                             selectedRecipient?.id === m.id
                               ? 'border-foreground bg-foreground text-background'
                               : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
@@ -679,7 +722,21 @@ function CaptureFlow() {
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                  <span className="text-xs text-muted-foreground order-2 sm:order-1">
+                    {captureMode === 'record_audio' ? 'Voice note ready' : `${charCount} characters`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void handleSave()}
+                    disabled={saving}
+                    className="order-1 sm:order-2 py-3 px-8 border border-foreground text-foreground text-sm tracking-wide disabled:opacity-30 hover:bg-foreground hover:text-background transition sm:shrink-0 w-full sm:w-auto"
+                  >
+                    {saving ? 'Saving…' : 'Save Breadcrumb'}
+                  </button>
+                </div>
+
+                <div className="space-y-3 pt-1">
                   <p className="text-xs text-muted-foreground/70">
                     Tags are organized automatically when you save. Optional hints below can guide the AI.
                   </p>
@@ -709,21 +766,7 @@ function CaptureFlow() {
                     </div>
                   )}
                 </div>
-
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    {captureMode === 'record_audio' ? 'Voice note ready' : `${charCount} characters`}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => void handleSave()}
-                    disabled={saving}
-                    className="py-3 px-8 border border-foreground text-foreground text-sm tracking-wide disabled:opacity-30 hover:bg-foreground hover:text-background transition sm:shrink-0"
-                  >
-                    {saving ? 'Saving…' : 'Save Breadcrumb'}
-                  </button>
-                </div>
-              </>
+              </div>
             )}
           </div>
         )}
@@ -926,7 +969,7 @@ function CaptureFlow() {
               onClick={() => {
                 setSaveError('');
                 cleanupAudio();
-                setCaptureMode(null);
+                setCaptureMode('write');
                 setShowAiPrompt(false);
                 setEntry('');
                 setCharCount(0);
