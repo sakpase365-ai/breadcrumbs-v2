@@ -1,4 +1,7 @@
 # CLAUDE.md — Breadcrumbs v2
+
+> **Working directory:** Always use `/Users/manna/claude/breadcrumbs-v2` as the project root.
+> The Xcode project at `/Users/manna/Developments Projects/Xcode/Breadcrumbs` is the iOS app — ignore it unless explicitly asked.
 **Repository:** `sakpase365-ai/legacy-wisdom-stream`
 **Maintained by:** MANNA Holdings LLC
 **Architecture version:** 2.0 — Compressed Single-Flow
