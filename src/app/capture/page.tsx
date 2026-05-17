@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense, type ChangeEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { getBrowserSupabase } from '@/lib/supabase-browser';
@@ -12,6 +12,15 @@ import { formatTagForDisplay } from '@/lib/breadcrumb-tags';
 
 const DRAFT_KEY    = 'breadcrumbs_draft';
 const PREFILL_KEY  = 'breadcrumbs_prefill';
+
+/** Short, conversational sparks — inspiration only; user writes/records in the main surface */
+const CAPTURE_INSPIRATION_PROMPTS = [
+  'Tell them something you learned too late in life.',
+  'Describe a moment that changed you.',
+  'Tell them what kind of person matters most.',
+] as const;
+
+const HESITATION_MS = 10_000;
 
 interface Profile {
   id:                string;
@@ -37,20 +46,6 @@ function collectiveLabel(members: FamilyMember[]): string {
   return 'your children';
 }
 
-async function fetchPrompt(recipientId: string | null, excludePriorPrompts?: string[]): Promise<string> {
-  const body: Record<string, unknown> = { recipientId };
-  if (excludePriorPrompts?.length) body.excludePriorPrompts = excludePriorPrompts;
-
-  const res = await fetch('/api/generate-prompt', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error('prompt fetch failed');
-  const { prompt } = await res.json();
-  return prompt as string;
-}
-
 function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
@@ -66,6 +61,32 @@ function blobToBase64(blob: Blob): Promise<string> {
 
 type CaptureMode = 'write' | 'record_audio';
 
+/** Inline thinking dots — calm pulse on the title baseline */
+function CaptureTitleThinkingDots() {
+  return (
+    <span className="inline-flex items-baseline select-none" aria-hidden>
+      {[0, 1, 2].map((i) => (
+        <motion.span
+          key={i}
+          className="inline-block text-muted-foreground/80"
+          initial={{ opacity: 0.35 }}
+          animate={{ opacity: [0.35, 0.95, 0.95, 0.45, 0.95] }}
+          transition={{
+            delay: i * 0.35,
+            duration: 2.2,
+            times: [0, 0.2, 0.45, 0.7, 1],
+            repeat: Infinity,
+            repeatDelay: 1.4,
+            ease: 'easeInOut',
+          }}
+        >
+          .
+        </motion.span>
+      ))}
+    </span>
+  );
+}
+
 function CaptureFlow() {
   const router = useRouter();
 
@@ -75,9 +96,7 @@ function CaptureFlow() {
   const [breadcrumbType,      setBreadcrumbType]     = useState<string>('message');
   const [selectedTags,        setSelectedTags]       = useState<string[]>([]);
   const [showTags,            setShowTags]           = useState(false);
-  const [promptLoading,       setPromptLoading]      = useState(false);
   const [stage,               setStage]              = useState<Stage>('loading');
-  const [prompt,              setPrompt]             = useState('');
   const [entry,               setEntry]              = useState('');
   const [followUp,            setFollowUp]           = useState('');
   const [followUpAddition,    setFollowUpAddition]   = useState('');
@@ -93,18 +112,20 @@ function CaptureFlow() {
   const [draftRestored,       setDraftRestored]      = useState(false);
   const [prefillRestored,     setPrefillRestored]    = useState(false);
   const [captureMode,         setCaptureMode]        = useState<CaptureMode>('write');
-  const [showAiPrompt,        setShowAiPrompt]       = useState(false);
+  const [helpExpanded,        setHelpExpanded]       = useState(false);
+  const [showHesitationHint,  setShowHesitationHint] = useState(false);
   const [audioBlob,           setAudioBlob]          = useState<Blob | null>(null);
   const [audioPreviewUrl,     setAudioPreviewUrl]    = useState<string | null>(null);
   const [recording,           setRecording]          = useState(false);
   const [recordSec,          setRecordSec]          = useState(0);
   const [recordError,         setRecordError]        = useState('');
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const recentPromptsRef = useRef<string[]>([]);
+  const hesitationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<BlobPart[]>([]);
   const audioObjectUrlRef = useRef<string | null>(null);
   const writeAreaRef = useRef<HTMLTextAreaElement | null>(null);
+  const recordSurfaceRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => () => {
     if (audioObjectUrlRef.current) URL.revokeObjectURL(audioObjectUrlRef.current);
@@ -132,6 +153,28 @@ function CaptureFlow() {
     return () => cancelAnimationFrame(id);
   }, [captureMode]);
 
+  useEffect(() => {
+    if (captureMode !== 'record_audio' || recording || audioBlob) return;
+    const t = window.setTimeout(() => setShowHesitationHint(true), HESITATION_MS);
+    return () => window.clearTimeout(t);
+  }, [captureMode, recording, audioBlob]);
+
+  function clearHesitationTimer() {
+    if (hesitationTimerRef.current) {
+      window.clearTimeout(hesitationTimerRef.current);
+      hesitationTimerRef.current = null;
+    }
+  }
+
+  function scheduleWriteHesitation() {
+    clearHesitationTimer();
+    if (captureMode !== 'write') return;
+    hesitationTimerRef.current = window.setTimeout(() => {
+      hesitationTimerRef.current = null;
+      setShowHesitationHint(true);
+    }, HESITATION_MS);
+  }
+
   function cleanupAudio() {
     if (audioObjectUrlRef.current) {
       URL.revokeObjectURL(audioObjectUrlRef.current);
@@ -150,6 +193,8 @@ function CaptureFlow() {
 
   function selectWriteMode() {
     cleanupAudio();
+    clearHesitationTimer();
+    setShowHesitationHint(false);
     setCaptureMode('write');
     setRecordError('');
   }
@@ -159,6 +204,8 @@ function CaptureFlow() {
     setCharCount(0);
     localStorage.removeItem(DRAFT_KEY);
     cleanupAudio();
+    clearHesitationTimer();
+    setShowHesitationHint(false);
     setCaptureMode('record_audio');
     setRecordError('');
   }
@@ -198,6 +245,7 @@ function CaptureFlow() {
       };
       mr.start();
       mediaRecorderRef.current = mr;
+      setShowHesitationHint(false);
       setRecording(true);
     } catch {
       setRecordError('Microphone access was denied or recording is not supported here.');
@@ -209,22 +257,6 @@ function CaptureFlow() {
     if (mr && mr.state !== 'inactive') mr.stop();
     mediaRecorderRef.current = null;
     setRecording(false);
-  }
-
-  function excludePriorPromptsForFetch(currentPrompt: string): string[] | undefined {
-    const seen  = new Set<string>();
-    const out: string[] = [];
-    for (const t of recentPromptsRef.current) {
-      const s = t.trim();
-      if (s && !seen.has(s)) {
-        seen.add(s);
-        out.push(s);
-      }
-    }
-    const cur = currentPrompt.trim();
-    if (cur && !seen.has(cur)) out.push(cur);
-    const slice = out.slice(-5);
-    return slice.length ? slice : undefined;
   }
 
   // Restore draft or prefill from Foundation
@@ -275,46 +307,8 @@ function CaptureFlow() {
     })();
   }, [router]);
 
-  async function handleRecipientSelect(member: FamilyMember | null) {
+  function handleRecipientSelect(member: FamilyMember | null) {
     setSelectedRecipient(member);
-    if (!showAiPrompt) return;
-    setPromptLoading(true);
-    try {
-      const newPrompt = await fetchPrompt(member?.id ?? null, excludePriorPromptsForFetch(prompt));
-      setPrompt(newPrompt);
-      recentPromptsRef.current = [...recentPromptsRef.current, newPrompt].slice(-8);
-    } catch { /* keep existing prompt */ }
-    finally { setPromptLoading(false); }
-  }
-
-  async function openAiPromptPanel() {
-    const opening = !showAiPrompt;
-    setShowAiPrompt(opening);
-    if (!opening) return;
-    if (prompt.trim()) return;
-    setPromptLoading(true);
-    try {
-      const p = await fetchPrompt(selectedRecipient?.id ?? null);
-      setPrompt(p);
-      recentPromptsRef.current = [p];
-    } catch {
-      setPrompt('What do you want them to remember?');
-    } finally {
-      setPromptLoading(false);
-    }
-  }
-
-  async function handleNewPrompt() {
-    if (promptLoading) return;
-    setPromptLoading(true);
-    try {
-      const next = await fetchPrompt(selectedRecipient?.id ?? null, excludePriorPromptsForFetch(prompt));
-      setPrompt(next);
-      recentPromptsRef.current = [...recentPromptsRef.current, next].slice(-8);
-    } catch { /* keep existing prompt */ }
-    finally {
-      setPromptLoading(false);
-    }
   }
 
   function toggleTag(tag: string) {
@@ -336,6 +330,18 @@ function CaptureFlow() {
         localStorage.removeItem(DRAFT_KEY);
       }
     }, 500);
+  }
+
+  function onWriteAreaChange(e: ChangeEvent<HTMLTextAreaElement>) {
+    const value = e.target.value;
+    clearHesitationTimer();
+    setShowHesitationHint(false);
+    handleEntryChange(value);
+    requestAnimationFrame(() => {
+      if (writeAreaRef.current === document.activeElement && !value.trim()) {
+        scheduleWriteHesitation();
+      }
+    });
   }
 
   async function handleSave() {
@@ -441,15 +447,13 @@ function CaptureFlow() {
     (captureMode === 'write' && entry.trim().length > 0)
     || (captureMode === 'record_audio' && !!audioBlob);
 
-  const recipientBusy = showAiPrompt && promptLoading;
-
   const doneLine = selectedRecipient
     ? `${firstName(selectedRecipient.name)} will have this when the time is right.`
     : `${collectiveLabel(familyMembers) === 'your family' ? 'Your family' : 'Your children'} will have this when the time is right.`;
 
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center justify-start px-6 py-14">
-      <div className="max-w-xl w-full space-y-8">
+    <main className="min-h-screen bg-background flex flex-col items-center justify-start px-5 sm:px-6 py-10 sm:py-12">
+      <div className="max-w-xl w-full space-y-6">
 
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -501,12 +505,13 @@ function CaptureFlow() {
           </div>
         )}
 
-        {/* Action-first capture: write / record → optional AI → classify when saving */}
+        {/* Capture: write / record → light inspiration → save when ready */}
         {(stage === 'prompted' || stage === 'writing') && profile && (
-          <div className="space-y-4">
-            <div className="w-full text-center">
-              <h1 className="font-serif text-2xl text-foreground tracking-tight sm:text-3xl">
-                Leave A Breadcrumb
+          <div className="space-y-3.5 sm:space-y-4">
+            <div className="w-full flex justify-center px-1">
+              <h1 className="font-serif text-2xl text-foreground tracking-tight sm:text-3xl inline-flex flex-nowrap items-baseline justify-center gap-1 text-center">
+                <span className="whitespace-nowrap">Leave A Breadcrumb</span>
+                <CaptureTitleThinkingDots />
               </h1>
             </div>
 
@@ -515,7 +520,7 @@ function CaptureFlow() {
                 type="button"
                 aria-pressed={captureMode === 'write'}
                 onClick={selectWriteMode}
-                className={`px-4 py-2.5 text-sm border rounded-sm transition text-center ${
+                className={`px-4 py-2.5 text-sm font-normal border rounded-sm transition text-center ${
                   captureMode === 'write'
                     ? 'border-foreground bg-foreground text-background'
                     : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
@@ -527,45 +532,63 @@ function CaptureFlow() {
                 type="button"
                 aria-pressed={captureMode === 'record_audio'}
                 onClick={selectRecordMode}
-                className={`px-4 py-2.5 text-sm border rounded-sm transition text-center ${
+                className={`px-4 py-2.5 text-sm font-normal border rounded-sm transition text-center ${
                   captureMode === 'record_audio'
                     ? 'border-foreground bg-foreground text-background'
                     : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
                 }`}
               >
-                Record Audio
+                Record
               </button>
             </div>
 
             {captureMode === 'write' && (
               <textarea
                 ref={writeAreaRef}
-                className="w-full h-56 sm:h-64 bg-card border border-border rounded-sm px-5 py-4 text-foreground text-base leading-relaxed placeholder:text-muted-foreground focus:border-foreground/60 transition"
-                placeholder="Write something you want them to have..."
+                className="w-full min-h-[14.5rem] sm:min-h-[17rem] bg-card/80 border border-border/80 rounded-sm px-5 py-5 text-foreground text-base leading-[1.65] placeholder:text-muted-foreground/55 focus:border-foreground/45 focus:outline-none transition shadow-none resize-y"
+                placeholder="What do you want them to remember?"
                 value={entry}
-                onChange={(e) => handleEntryChange(e.target.value)}
+                onChange={onWriteAreaChange}
+                onFocus={() => {
+                  setShowHesitationHint(false);
+                  if (!entry.trim()) scheduleWriteHesitation();
+                }}
+                onBlur={() => clearHesitationTimer()}
               />
             )}
 
             {captureMode === 'record_audio' && (
-              <div className="space-y-3 rounded-sm border border-border/40 bg-card/20 px-4 py-4">
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Record something you want them to hear...
+              <div
+                ref={recordSurfaceRef}
+                className="space-y-4 rounded-sm border border-border/35 bg-card/15 px-4 py-5"
+              >
+                <p className="text-sm text-muted-foreground/90 leading-relaxed text-center">
+                  Record something they&apos;ll always have.
                 </p>
                 {recordError ? (
-                  <p className="text-xs text-red-400/90">{recordError}</p>
+                  <p className="text-xs text-red-400/90 text-center">{recordError}</p>
                 ) : null}
                 {!audioBlob && !recording && (
-                  <button
-                    type="button"
-                    onClick={() => void startRecording()}
-                    className="px-4 py-2 text-sm border border-foreground text-foreground rounded-sm hover:bg-foreground hover:text-background transition"
-                  >
-                    Start recording
-                  </button>
+                  <div className="flex justify-center pt-0.5">
+                    <motion.button
+                      type="button"
+                      onClick={() => void startRecording()}
+                      aria-label="Record a voice note"
+                      animate={{ opacity: [0.88, 1, 0.88] }}
+                      transition={{
+                        duration: 2.4,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      }}
+                      className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm border border-foreground/90 text-foreground rounded-sm hover:bg-foreground hover:text-background transition w-auto max-w-full"
+                    >
+                      <span className="inline-block w-2 h-2 rounded-full bg-[#c45c5c] shadow-[0_0_10px_rgba(196,92,92,0.45)]" aria-hidden />
+                      Record
+                    </motion.button>
+                  </div>
                 )}
                 {recording && (
-                  <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex flex-wrap items-center justify-center gap-3">
                     <p className="text-xs text-muted-foreground tabular-nums" aria-live="polite">
                       Recording{' '}
                       {`${Math.floor(recordSec / 60)}:${String(recordSec % 60).padStart(2, '0')}`}
@@ -581,84 +604,80 @@ function CaptureFlow() {
                 )}
                 {audioPreviewUrl && !recording && (
                   <div className="space-y-2">
-                    <audio src={audioPreviewUrl} controls className="w-full max-w-full" />
-                    <button
-                      type="button"
-                      onClick={() => { cleanupAudio(); setRecordError(''); }}
-                      className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground border border-border/60 rounded-sm px-2.5 py-1.5"
-                    >
-                      Re-record
-                    </button>
+                    <audio src={audioPreviewUrl} controls className="w-full max-w-full mx-auto" />
+                    <div className="flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => { cleanupAudio(); setRecordError(''); }}
+                        className="text-xs tracking-wide text-muted-foreground hover:text-foreground border border-border/45 rounded-sm px-3 py-1.5"
+                      >
+                        Discard and try again
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
             )}
 
-            {(draftRestored || prefillRestored) && (
-              <div className="text-xs text-muted-foreground/60 space-y-0.5">
-                {draftRestored ? <p>Draft restored.</p> : null}
-                {prefillRestored ? <p>From your Family Foundation.</p> : null}
-              </div>
-            )}
-
-            <div className="space-y-2 pt-1">
-              <p className="text-xs text-muted-foreground">Need help starting?</p>
-              <button
-                type="button"
-                aria-expanded={showAiPrompt}
-                aria-controls="capture-ai-prompt-panel"
-                onClick={() => void openAiPromptPanel()}
-                className="text-xs uppercase tracking-widest px-3 py-2 border border-border/50 rounded-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition w-full sm:w-auto"
-              >
-                {showAiPrompt ? 'Hide AI Suggestions' : 'AI Prompt for Suggestions'}
-              </button>
-            </div>
-
-            {showAiPrompt && (
-              <div
-                id="capture-ai-prompt-panel"
-                className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4 rounded-sm border border-border/40 bg-card/20 px-4 py-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground/80 mb-1.5">
-                    Today&apos;s prompt
-                  </p>
-                  {promptLoading
-                    ? (
-                        <p className="text-muted-foreground/90 text-sm">
-                          Refreshing
-                          <span className="inline-flex">
-                            {[0, 1, 2].map((i) => (
-                              <motion.span
-                                key={i}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: [0, 1, 1, 0.4, 1] }}
-                                transition={{
-                                  delay: i * 0.3,
-                                  duration: 1.5,
-                                  times: [0, 0.1, 0.5, 0.75, 1],
-                                  repeat: Infinity,
-                                  repeatDelay: 0.5,
-                                }}
-                              >
-                                .
-                              </motion.span>
-                            ))}
-                          </span>
-                        </p>
-                      )
-                    : (
-                        <p className="font-serif text-foreground/80 text-base leading-relaxed sm:text-lg">{prompt}</p>
-                      )}
-                </div>
+            <div className="pt-1 space-y-2">
+              {showHesitationHint ? (
+                <p className="text-xs text-muted-foreground/75">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHelpExpanded(true);
+                      setShowHesitationHint(false);
+                    }}
+                    className="border-b border-muted-foreground/30 hover:border-foreground/50 hover:text-foreground text-left transition"
+                  >
+                    Need inspiration?
+                  </button>
+                </p>
+              ) : null}
+              <div className="flex flex-col gap-1.5">
                 <button
                   type="button"
-                  onClick={() => void handleNewPrompt()}
-                  disabled={promptLoading}
-                  className="shrink-0 self-start text-[10px] uppercase tracking-widest px-2.5 py-1.5 border border-border/60 rounded-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition disabled:opacity-50 disabled:pointer-events-none"
+                  aria-expanded={helpExpanded}
+                  aria-controls="capture-inspiration-panel"
+                  onClick={() => {
+                    setHelpExpanded((v) => !v);
+                    setShowHesitationHint(false);
+                  }}
+                  className="text-left text-xs text-muted-foreground/90 hover:text-foreground border-b border-transparent hover:border-foreground/25 pb-0.5 transition w-full sm:w-auto sm:inline-block"
                 >
-                  New Prompt
+                  Need help getting started?
                 </button>
+                {helpExpanded ? (
+                  <div
+                    id="capture-inspiration-panel"
+                    className="pt-1 pl-0.5 border-l border-border/30 space-y-2"
+                  >
+                    {CAPTURE_INSPIRATION_PROMPTS.map((line) => (
+                      <button
+                        key={line}
+                        type="button"
+                        onClick={() => {
+                          if (captureMode === 'write') {
+                            writeAreaRef.current?.focus();
+                            writeAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          } else {
+                            recordSurfaceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          }
+                        }}
+                        className="block w-full text-left text-sm text-foreground/85 leading-snug hover:text-foreground py-1.5 px-1 rounded-sm hover:bg-foreground/5 transition"
+                      >
+                        {line}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            {(draftRestored || prefillRestored) && (
+              <div className="text-xs text-muted-foreground/55 space-y-0.5">
+                {draftRestored ? <p>Draft restored.</p> : null}
+                {prefillRestored ? <p>From your Family Foundation.</p> : null}
               </div>
             )}
 
@@ -671,8 +690,7 @@ function CaptureFlow() {
                       <button
                         type="button"
                         onClick={() => void handleRecipientSelect(null)}
-                        disabled={recipientBusy}
-                        className={`px-3 py-1.5 text-sm border rounded-sm transition disabled:opacity-50 ${
+                        className={`px-3 py-1.5 text-sm border rounded-sm transition ${
                           !selectedRecipient
                             ? 'border-foreground bg-foreground text-background'
                             : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
@@ -685,8 +703,7 @@ function CaptureFlow() {
                           type="button"
                           key={m.id}
                           onClick={() => void handleRecipientSelect(m)}
-                          disabled={recipientBusy}
-                          className={`px-3 py-1.5 text-sm border rounded-sm transition disabled:opacity-50 ${
+                          className={`px-3 py-1.5 text-sm border rounded-sm transition ${
                             selectedRecipient?.id === m.id
                               ? 'border-foreground bg-foreground text-background'
                               : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
@@ -970,7 +987,8 @@ function CaptureFlow() {
                 setSaveError('');
                 cleanupAudio();
                 setCaptureMode('write');
-                setShowAiPrompt(false);
+                setHelpExpanded(false);
+                setShowHesitationHint(false);
                 setEntry('');
                 setCharCount(0);
                 setStage('prompted');
