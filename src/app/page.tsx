@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { useRouter } from 'next/navigation';
 import { getBrowserSupabase } from '@/lib/supabase-browser';
 import AnimatedWordmark from '@/components/AnimatedWordmark';
 import TypewriterText from '@/components/TypewriterText';
@@ -11,7 +10,6 @@ import TypewriterText from '@/components/TypewriterText';
 type AuthState = 'loading' | 'unauthenticated' | 'authenticated';
 
 export default function Home() {
-  const router = useRouter();
   const [authState, setAuthState] = useState<AuthState>('loading');
   const [foundationComplete, setFoundationComplete] = useState(false);
 
@@ -28,10 +26,24 @@ export default function Home() {
         setAuthState('unauthenticated');
         return;
       }
-      // Authenticated users go directly to capture
-      router.push('/capture');
+
+      try {
+        const res = await fetch('/api/foundation');
+        if (res.ok) {
+          const { answers } = await res.json() as {
+            answers: Record<string, { content: string } | null>;
+          };
+          const answeredCount = Object.values(answers).filter(
+            (v) => v?.content?.trim()
+          ).length;
+          setFoundationComplete(answeredCount >= 6);
+        }
+      } catch {
+        // non-fatal — show setup prompt by default
+      }
+      setAuthState('authenticated');
     })();
-  }, [router]);
+  }, []);
 
   return (
     <main className="min-h-screen w-full bg-background flex flex-col items-center justify-center px-4 py-8">
@@ -40,20 +52,34 @@ export default function Home() {
         {/* Wordmark */}
         <AnimatedWordmark className="text-5xl font-serif font-light tracking-tight text-foreground sm:text-6xl md:text-7xl" />
 
-        {/* Tagline */}
+        {/* Tagline — full ceremony for guests; quiet and immediate when signed in */}
         <p className="max-w-md text-base font-light text-muted-foreground sm:text-lg">
-          <TypewriterText
-            text="Leave something that lasts."
-            delay={0.8}
-            speed={0.04}
-          />
+          {authState === 'authenticated' ? (
+            'Leave something that lasts.'
+          ) : authState === 'loading' ? (
+            <span className="text-muted-foreground/45">Leave something that lasts.</span>
+          ) : (
+            <TypewriterText
+              text="Leave something that lasts."
+              delay={0.8}
+              speed={0.04}
+            />
+          )}
         </p>
 
         {/* CTAs */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 2.4, duration: 0.5 }}
+          transition={{
+            delay:
+              authState === 'authenticated'
+                ? 0.15
+                : authState === 'loading'
+                  ? 0.35
+                  : 2.4,
+            duration: 0.45,
+          }}
           className="flex flex-col gap-3 w-full max-w-xs pt-2"
         >
           {/* Primary — capture layer */}

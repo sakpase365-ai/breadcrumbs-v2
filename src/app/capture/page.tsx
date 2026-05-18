@@ -53,6 +53,19 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
+async function fetchPromptText(recipientId: string | null, excludePriorPrompts?: string[]): Promise<string> {
+  const body: Record<string, unknown> = { recipientId };
+  if (excludePriorPrompts?.length) body.excludePriorPrompts = excludePriorPrompts;
+  const res = await fetch('/api/generate-prompt', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error('prompt fetch failed');
+  const { prompt } = await res.json();
+  return prompt as string;
+}
+
 /** Returns the shared chip className for mode/recipient/type toggles. */
 function chipCls(active: boolean, size: 'sm' | 'xs' = 'sm') {
   const text = size === 'xs' ? 'text-xs' : 'text-sm';
@@ -61,31 +74,6 @@ function chipCls(active: boolean, size: 'sm' | 'xs' = 'sm') {
       ? 'border-foreground bg-foreground text-background'
       : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
   }`;
-}
-
-function CaptureTitleThinkingDots() {
-  return (
-    <span className="inline-flex items-baseline select-none" aria-hidden>
-      {[0, 1, 2].map((i) => (
-        <motion.span
-          key={i}
-          className="inline-block text-muted-foreground/80"
-          initial={{ opacity: 0.35 }}
-          animate={{ opacity: [0.35, 0.95, 0.95, 0.45, 0.95] }}
-          transition={{
-            delay: i * 0.35,
-            duration: 2.2,
-            times: [0, 0.2, 0.45, 0.7, 1],
-            repeat: Infinity,
-            repeatDelay: 1.4,
-            ease: 'easeInOut',
-          }}
-        >
-          .
-        </motion.span>
-      ))}
-    </span>
-  );
 }
 
 function CaptureFlow() {
@@ -130,6 +118,7 @@ function CaptureFlow() {
   const audioObjectUrlRef  = useRef<string | null>(null);
   const writeAreaRef       = useRef<HTMLTextAreaElement | null>(null);
   const recordSurfaceRef   = useRef<HTMLDivElement | null>(null);
+  const recentPromptsRef   = useRef<string[]>([]);
 
   // Revoke object URL on unmount
   useEffect(() => () => {
@@ -275,6 +264,40 @@ function CaptureFlow() {
     }
   }, []);
 
+  function excludePriorPromptsForFetch(currentPrompt: string): string[] | undefined {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const t of recentPromptsRef.current) {
+      const s = t.trim();
+      if (s && !seen.has(s)) {
+        seen.add(s);
+        out.push(s);
+      }
+    }
+    const cur = currentPrompt.trim();
+    if (cur && !seen.has(cur)) out.push(cur);
+    const slice = out.slice(-5);
+    return slice.length ? slice : undefined;
+  }
+
+  async function handleNewPrompt() {
+    if (promptLoading) return;
+    setPromptLoading(true);
+    try {
+      const cur = aiPrompt ?? '';
+      const next = await fetchPromptText(
+        selectedRecipient?.id ?? null,
+        excludePriorPromptsForFetch(cur),
+      );
+      setAiPrompt(next);
+      recentPromptsRef.current = [...recentPromptsRef.current, next].slice(-8);
+    } catch {
+      /* keep existing prompt */
+    } finally {
+      setPromptLoading(false);
+    }
+  }
+
   // Load profile
   useEffect(() => {
     (async () => {
@@ -289,16 +312,12 @@ function CaptureFlow() {
         setStage('capture');
         setPromptLoading(true);
         try {
-          const pr = await fetch('/api/generate-prompt', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ excludePriorPrompts: [] }),
-          });
-          if (pr.ok) {
-            const { prompt } = await pr.json() as { prompt: string };
-            setAiPrompt(prompt);
-          }
-        } catch { /* non-fatal — user can still write freely */ } finally {
+          const prompt = await fetchPromptText(selectedRecipient?.id ?? null);
+          setAiPrompt(prompt);
+          recentPromptsRef.current = [prompt];
+        } catch {
+          /* non-fatal — user can still write freely */
+        } finally {
           setPromptLoading(false);
         }
       } catch {
@@ -534,26 +553,59 @@ function CaptureFlow() {
           <div className="space-y-6">
 
             {/* AI Prompt — the anchor for the session */}
-            <div className="border-y border-border/20 py-8 space-y-3 text-center">
-              <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/40">
-                Today&apos;s prompt
-              </p>
-              {promptLoading ? (
-                <div className="flex justify-center py-1">
-                  <span className="font-serif text-xl text-muted-foreground/30">
-                    <CaptureTitleThinkingDots />
-                  </span>
+            <div className="rounded-sm border border-border/35 bg-card/15 px-4 py-4 w-full">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                <div className="min-w-0 flex-1 text-left space-y-2.5">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                    Today&apos;s prompt
+                  </p>
+                  {promptLoading ? (
+                    <p className="text-muted-foreground/90 text-sm font-sans">
+                      Loading
+                      <span className="inline-flex">
+                        {[0, 1, 2].map((i) => (
+                          <motion.span
+                            key={i}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: [0, 1, 1, 0.4, 1] }}
+                            transition={{
+                              delay: i * 0.3,
+                              duration: 1.5,
+                              times: [0, 0.1, 0.5, 0.75, 1],
+                              repeat: Infinity,
+                              repeatDelay: 0.5,
+                            }}
+                          >
+                            .
+                          </motion.span>
+                        ))}
+                      </span>
+                    </p>
+                  ) : aiPrompt ? (
+                    <motion.p
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: hasContent ? 0.5 : 1, y: 0 }}
+                      transition={{ opacity: { duration: 0.35 }, y: { duration: 0.45 } }}
+                      className="font-sans text-[0.9375rem] leading-[1.65] text-foreground/88 font-normal antialiased max-w-none"
+                    >
+                      {aiPrompt}
+                    </motion.p>
+                  ) : (
+                    <p className="font-sans text-[0.9375rem] leading-[1.65] text-muted-foreground/90">
+                      What do you want them to remember?
+                    </p>
+                  )}
                 </div>
-              ) : aiPrompt ? (
-                <motion.p
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: hasContent ? 0.5 : 1, y: 0 }}
-                  transition={{ opacity: { duration: 0.35 }, y: { duration: 0.45 } }}
-                  className="font-serif text-2xl sm:text-3xl text-foreground leading-[1.35] max-w-sm mx-auto px-2"
-                >
-                  {aiPrompt}
-                </motion.p>
-              ) : null}
+                {!promptLoading && (
+                  <button
+                    type="button"
+                    onClick={() => void handleNewPrompt()}
+                    className="shrink-0 self-start sm:self-start text-[10px] uppercase tracking-widest px-2.5 py-1.5 border border-border/60 rounded-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition"
+                  >
+                    New prompt
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Write / Record */}
@@ -570,7 +622,7 @@ function CaptureFlow() {
             {captureMode === 'write' && (
               <textarea
                 ref={writeAreaRef}
-                className="w-full min-h-[15rem] sm:min-h-[17rem] bg-card/80 border border-border/80 rounded-sm px-5 py-5 text-foreground text-base leading-[1.65] placeholder:text-muted-foreground/50 focus:border-foreground/60 focus:outline-none transition resize-none"
+                className="w-full min-h-[15rem] sm:min-h-[17rem] bg-card/80 border border-border/80 rounded-sm px-5 py-5 text-foreground text-[0.9375rem] leading-[1.65] placeholder:text-muted-foreground/50 focus:border-foreground/60 focus:outline-none transition resize-none"
                 placeholder={aiPrompt ? 'Write your response here…' : 'What do you want them to remember?'}
                 value={entry}
                 onChange={onWriteAreaChange}

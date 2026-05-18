@@ -1,8 +1,8 @@
 # AGENTS.md — Breadcrumbs v2
 
-> **Working directory:** Always use `/Users/manna/Codex/breadcrumbs-v2` as the project root.
-> The Xcode project at `/Users/manna/Developments Projects/Xcode/Breadcrumbs` is the iOS app — ignore it unless explicitly asked.
-**Repository:** `sakpase365-ai/legacy-wisdom-stream`
+> **Master repository:** This repo (`sakpase365-ai/breadcrumbs-v2`) is canonical for web and product code. **Work here** unless the task is iOS-only in the Xcode mirror.
+> **Xcode path** (`Developments Projects/Xcode/Breadcrumbs`): mirror for `ios/` + local Next.js copy — sync from this repo after changes land here.
+**Remote:** `git@github.com:sakpase365-ai/breadcrumbs-v2.git`
 **Maintained by:** MANNA Holdings LLC
 **Architecture version:** 2.0 — Compressed Single-Flow
 
