@@ -6,8 +6,6 @@ import {
   PRIMARY_OWNER_ROLES,
   SECONDARY_OWNER_ROLES,
   SECONDARY_OWNER_VALUES,
-  PRIMARY_MEMBER_ROLES,
-  SECONDARY_MEMBER_ROLES,
 } from '@/lib/roles';
 
 const INPUT =
@@ -80,20 +78,19 @@ function OwnerRoleSelector({
   );
 }
 
-interface MemberDraft {
-  localId: string;
-  name: string;
-  role: string;
+interface ChildDraft {
+  localId:   string;
+  name:      string;
   birthDate: string;
 }
 
-function MemberRow({
-  member,
+function ChildCard({
+  child,
   onChange,
   onRemove,
 }: {
-  member: MemberDraft;
-  onChange: (m: MemberDraft) => void;
+  child:    ChildDraft;
+  onChange: (c: ChildDraft) => void;
   onRemove: () => void;
 }) {
   return (
@@ -102,47 +99,27 @@ function MemberRow({
         <input
           type="text"
           placeholder="Name"
-          value={member.name}
-          onChange={(e) => onChange({ ...member, name: e.target.value })}
+          value={child.name}
+          onChange={(e) => onChange({ ...child, name: e.target.value })}
           className="flex-1 bg-card border border-border px-4 py-3 text-foreground text-sm placeholder:text-muted-foreground focus:border-foreground/60 transition rounded-sm outline-none"
         />
         <button
           type="button"
           onClick={onRemove}
-          aria-label="Remove member"
+          aria-label="Remove child"
           className="shrink-0 w-10 h-10 flex items-center justify-center border border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground transition rounded-sm text-base"
         >
           ×
         </button>
       </div>
-
-      <select
-        value={member.role}
-        onChange={(e) => onChange({ ...member, role: e.target.value })}
-        className={SELECT}
-      >
-        <option value="" disabled>Relationship…</option>
-        <optgroup label="Family">
-          {PRIMARY_MEMBER_ROLES.map((r) => (
-            <option key={r.value} value={r.value}>{r.label}</option>
-          ))}
-        </optgroup>
-        <optgroup label="Extended family">
-          {SECONDARY_MEMBER_ROLES.map((r) => (
-            <option key={r.value} value={r.value}>{r.label}</option>
-          ))}
-        </optgroup>
-      </select>
-
-
       <div className="space-y-1">
         <label className="text-xs text-muted-foreground/60">Birthday (optional)</label>
         <input
           type="date"
-          value={member.birthDate}
-          onChange={(e) => onChange({ ...member, birthDate: e.target.value })}
+          value={child.birthDate}
+          onChange={(e) => onChange({ ...child, birthDate: e.target.value })}
           max={new Date().toISOString().split('T')[0]}
-          className={INPUT}
+          className="w-full bg-card border border-border px-4 py-3 text-foreground text-sm focus:border-foreground/60 transition rounded-sm outline-none"
         />
       </div>
     </div>
@@ -153,17 +130,19 @@ function nextLocalId() {
   return `${Date.now()}-${Math.random()}`;
 }
 
-type Step = 'family-profile' | 'members';
+type Step = 'family-profile' | 'members' | 'verify-phone';
 
 export default function SetupPage() {
   const router = useRouter();
 
   const [step, setStep] = useState<Step>('family-profile');
 
-  const [familyName,      setFamilyName]      = useState('');
-  const [ownerName,       setOwnerName]       = useState('');
-  const [ownerRole,       setOwnerRole]       = useState('parent');
-  const [members,         setMembers]         = useState<MemberDraft[]>([]);
+  const [familyName,  setFamilyName]  = useState('');
+  const [ownerName,   setOwnerName]   = useState('');
+  const [ownerRole,   setOwnerRole]   = useState('parent');
+  const [spouseName,  setSpouseName]  = useState('');
+  const [children,    setChildren]    = useState<ChildDraft[]>([]);
+  const [setupPhone,  setSetupPhone]  = useState('');
 
   const [error, setError] = useState('');
   const [busy,  setBusy]  = useState(false);
@@ -178,50 +157,44 @@ export default function SetupPage() {
   async function handleFinalSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-
-    for (const m of members) {
-      if (!m.name.trim()) {
-        setError('Each family member needs a name.');
-        return;
-      }
-      if (!m.role) {
-        setError('Please select a relationship for each family member.');
-        return;
-      }
+    for (const c of children) {
+      if (!c.name.trim()) { setError('Each child needs a name.'); return; }
     }
-
     setBusy(true);
-
     try {
+      const members = [
+        ...(spouseName.trim()
+          ? [{ name: spouseName.trim(), role: 'spouse', customRoleLabel: null, birthDate: null }]
+          : []),
+        ...children.map((c) => ({
+          name:            c.name.trim(),
+          role:            'child',
+          customRoleLabel: null,
+          birthDate:       c.birthDate || null,
+        })),
+      ];
       const res = await fetch('/api/setup', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body:    JSON.stringify({
           ownerName:       ownerName.trim(),
           ownerRole,
           customOwnerRole: null,
           familyName:      familyName.trim() || null,
-          members:         members.map((m) => ({
-            name:              m.name.trim(),
-            role:              m.role,
-            customRoleLabel:   null,
-            birthDate:         m.birthDate || null,
-          })),
+          members,
         }),
       });
-
       if (res.status === 401) { router.push('/login'); return; }
-
       if (!res.ok) {
         const data = await res.json();
         setError(data.error ?? 'Something went wrong. Please try again.');
         setBusy(false);
         return;
       }
-
-      router.push('/capture');
+      setStep('verify-phone');
     } catch {
       setError('Could not save your profile. Check your connection.');
+    } finally {
       setBusy(false);
     }
   }
@@ -275,38 +248,56 @@ export default function SetupPage() {
 
         {/* ── Step 2: Members ──────────────────────────────────── */}
         {step === 'members' && (
-          <form onSubmit={handleFinalSubmit} className="space-y-4">
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Add the people you&apos;re writing for. You can always add more later.
-            </p>
+          <form onSubmit={(e) => void handleFinalSubmit(e)} className="space-y-6">
+
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground uppercase tracking-widest">
+                Spouse / partner
+              </p>
+              <input
+                type="text"
+                placeholder="Their first name (optional)"
+                value={spouseName}
+                onChange={(e) => setSpouseName(e.target.value)}
+                className="w-full bg-card border border-border px-4 py-3 text-foreground text-sm placeholder:text-muted-foreground focus:border-foreground/60 transition rounded-sm outline-none"
+              />
+            </div>
+
+            <div className="border-t border-border/30" />
 
             <div className="space-y-3">
-              {members.map((m, i) => (
-                <MemberRow
-                  key={m.localId}
-                  member={m}
+              <p className="text-xs text-muted-foreground uppercase tracking-widest">
+                Children
+              </p>
+              {children.map((c, i) => (
+                <ChildCard
+                  key={c.localId}
+                  child={c}
                   onChange={(updated) =>
-                    setMembers((prev) => prev.map((x, j) => (j === i ? updated : x)))
+                    setChildren((prev) => prev.map((x, j) => (j === i ? updated : x)))
                   }
                   onRemove={() =>
-                    setMembers((prev) => prev.filter((_, j) => j !== i))
+                    setChildren((prev) => prev.filter((_, j) => j !== i))
                   }
                 />
               ))}
+              <button
+                type="button"
+                onClick={() =>
+                  setChildren((prev) => [
+                    ...prev,
+                    { localId: nextLocalId(), name: '', birthDate: '' },
+                  ])
+                }
+                className="w-full py-3 border border-dashed border-border text-muted-foreground text-sm tracking-wide hover:border-foreground/40 hover:text-foreground transition rounded-sm"
+              >
+                + Add {children.length === 0 ? 'a child' : 'another child'}
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={() =>
-                setMembers((prev) => [
-                  ...prev,
-                  { localId: nextLocalId(), name: '', role: '', birthDate: '' },
-                ])
-              }
-              className="w-full py-3 border border-border text-muted-foreground text-sm tracking-wide hover:border-foreground/40 hover:text-foreground transition"
-            >
-              + Add family member
-            </button>
+            <p className="text-xs text-muted-foreground/60 text-center">
+              You can always add more family members later.
+            </p>
 
             {error && <p className="text-sm text-red-400">{error}</p>}
 
