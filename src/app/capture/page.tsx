@@ -501,8 +501,8 @@ function CaptureFlow() {
   }
 
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center justify-start px-5 sm:px-6 py-10 sm:py-12">
-      <div className="max-w-xl w-full space-y-6">
+    <main className="min-h-screen bg-background flex flex-col items-center justify-start px-5 sm:px-6 py-4 sm:py-5">
+      <div className="max-w-lg w-full space-y-4">
 
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -550,70 +550,73 @@ function CaptureFlow() {
 
         {/* Capture */}
         {stage === 'capture' && profile && (
-          <div className="space-y-6">
+          <div className="space-y-5">
 
-            {/* AI Prompt — the anchor for the session */}
-            <div className="rounded-sm border border-border/35 bg-card/15 px-4 py-4 w-full">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                <div className="min-w-0 flex-1 text-left space-y-2.5">
-                  <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                    Today&apos;s prompt
-                  </p>
-                  {promptLoading ? (
-                    <p className="text-muted-foreground/90 text-sm font-sans">
-                      Loading
-                      <span className="inline-flex">
-                        {[0, 1, 2].map((i) => (
-                          <motion.span
-                            key={i}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: [0, 1, 1, 0.4, 1] }}
-                            transition={{
-                              delay: i * 0.3,
-                              duration: 1.5,
-                              times: [0, 0.1, 0.5, 0.75, 1],
-                              repeat: Infinity,
-                              repeatDelay: 0.5,
-                            }}
-                          >
-                            .
-                          </motion.span>
-                        ))}
-                      </span>
-                    </p>
-                  ) : aiPrompt ? (
-                    <motion.p
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: hasContent ? 0.5 : 1, y: 0 }}
-                      transition={{ opacity: { duration: 0.35 }, y: { duration: 0.45 } }}
-                      className="font-sans text-[0.9375rem] leading-[1.65] text-foreground/88 font-normal antialiased max-w-none"
-                    >
-                      {aiPrompt}
-                    </motion.p>
-                  ) : (
-                    <p className="font-sans text-[0.9375rem] leading-[1.65] text-muted-foreground/90">
-                      What do you want them to remember?
-                    </p>
-                  )}
-                </div>
+            {/* AI Prompt */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/40">
+                  Today&apos;s prompt
+                </p>
                 {!promptLoading && (
                   <button
                     type="button"
                     onClick={() => void handleNewPrompt()}
-                    className="shrink-0 self-start sm:self-start text-[10px] uppercase tracking-widest px-2.5 py-1.5 border border-border/60 rounded-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition"
+                    className="text-[10px] uppercase tracking-widest text-muted-foreground/40 hover:text-muted-foreground/80 transition"
                   >
-                    New prompt
+                    ↻ New
                   </button>
+                )}
+              </div>
+              <div className="pl-3 border-l border-foreground/15">
+                {promptLoading ? (
+                  <p className="text-sm text-muted-foreground/50">
+                    Loading<span className="inline-flex">
+                      {[0, 1, 2].map((i) => (
+                        <motion.span
+                          key={i}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: [0, 1, 1, 0.4, 1] }}
+                          transition={{ delay: i * 0.3, duration: 1.5, times: [0, 0.1, 0.5, 0.75, 1], repeat: Infinity, repeatDelay: 0.5 }}
+                        >
+                          .
+                        </motion.span>
+                      ))}
+                    </span>
+                  </p>
+                ) : aiPrompt ? (
+                  <motion.p
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: hasContent ? 0.4 : 0.82, y: 0 }}
+                    transition={{ opacity: { duration: 0.35 }, y: { duration: 0.45 } }}
+                    className="text-sm leading-[1.62] text-foreground font-normal"
+                  >
+                    {aiPrompt}
+                  </motion.p>
+                ) : (
+                  <p className="text-sm leading-[1.62] text-muted-foreground/60">
+                    What do you want them to remember?
+                  </p>
                 )}
               </div>
             </div>
 
             {/* Write / Record */}
-            <div className="grid grid-cols-2 gap-2 max-w-xs mx-auto w-full">
-              <button type="button" aria-pressed={captureMode === 'write'} onClick={selectWriteMode} className={chipCls(captureMode === 'write')}>
+            <div className="flex rounded-full border border-border/50 overflow-hidden max-w-[200px] mx-auto">
+              <button
+                type="button"
+                aria-pressed={captureMode === 'write'}
+                onClick={selectWriteMode}
+                className={`flex-1 py-2.5 text-sm transition ${captureMode === 'write' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
+              >
                 Write
               </button>
-              <button type="button" aria-pressed={captureMode === 'record_audio'} onClick={selectRecordMode} className={chipCls(captureMode === 'record_audio')}>
+              <button
+                type="button"
+                aria-pressed={captureMode === 'record_audio'}
+                onClick={selectRecordMode}
+                className={`flex-1 py-2.5 text-sm transition ${captureMode === 'record_audio' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
+              >
                 Record
               </button>
             </div>
@@ -622,7 +625,7 @@ function CaptureFlow() {
             {captureMode === 'write' && (
               <textarea
                 ref={writeAreaRef}
-                className="w-full min-h-[15rem] sm:min-h-[17rem] bg-card/80 border border-border/80 rounded-sm px-5 py-5 text-foreground text-[0.9375rem] leading-[1.65] placeholder:text-muted-foreground/50 focus:border-foreground/60 focus:outline-none transition resize-none"
+                className="w-full min-h-[38vh] sm:min-h-[42vh] bg-card/40 border border-border/40 rounded-sm px-4 py-4 text-foreground text-[0.9375rem] leading-[1.72] placeholder:text-muted-foreground/35 focus:border-foreground/30 focus:outline-none transition resize-none"
                 placeholder={aiPrompt ? 'Write your response here…' : 'What do you want them to remember?'}
                 value={entry}
                 onChange={onWriteAreaChange}
