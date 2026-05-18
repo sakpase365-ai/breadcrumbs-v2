@@ -550,74 +550,54 @@ function CaptureFlow() {
 
         {/* Capture */}
         {stage === 'capture' && profile && (
-          <div className="space-y-5">
+          <div className="space-y-4">
 
             {/* AI Prompt */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/40">
-                  Today&apos;s prompt
-                </p>
-                {!promptLoading && (
-                  <button
-                    type="button"
-                    onClick={() => void handleNewPrompt()}
-                    className="text-[10px] uppercase tracking-widest text-muted-foreground/40 hover:text-muted-foreground/80 transition"
-                  >
-                    ↻ New
-                  </button>
-                )}
-              </div>
-              <div className="pl-3 border-l border-foreground/15">
+            {(aiPrompt || promptLoading) && (
+              <div className="flex items-start gap-3">
                 {promptLoading ? (
-                  <p className="text-sm text-muted-foreground/50">
-                    Loading<span className="inline-flex">
-                      {[0, 1, 2].map((i) => (
-                        <motion.span
-                          key={i}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: [0, 1, 1, 0.4, 1] }}
-                          transition={{ delay: i * 0.3, duration: 1.5, times: [0, 0.1, 0.5, 0.75, 1], repeat: Infinity, repeatDelay: 0.5 }}
-                        >
-                          .
-                        </motion.span>
-                      ))}
-                    </span>
-                  </p>
-                ) : aiPrompt ? (
-                  <motion.p
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: hasContent ? 0.4 : 0.82, y: 0 }}
-                    transition={{ opacity: { duration: 0.35 }, y: { duration: 0.45 } }}
-                    className="text-sm leading-[1.62] text-foreground font-normal"
-                  >
-                    {aiPrompt}
-                  </motion.p>
+                  <p className="flex-1 text-xs text-foreground/20">···</p>
                 ) : (
-                  <p className="text-sm leading-[1.62] text-muted-foreground/60">
-                    What do you want them to remember?
-                  </p>
+                  <>
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: hasContent ? 0.22 : 0.45 }}
+                      transition={{ duration: 0.5 }}
+                      className="flex-1 text-xs leading-[1.6] text-foreground"
+                    >
+                      {aiPrompt}
+                    </motion.p>
+                    <button
+                      type="button"
+                      onClick={() => void handleNewPrompt()}
+                      aria-label="New prompt"
+                      className="shrink-0 mt-0.5 text-[11px] text-foreground/20 hover:text-foreground/50 transition"
+                    >
+                      ↻
+                    </button>
+                  </>
                 )}
               </div>
-            </div>
+            )}
 
             {/* Write / Record */}
-            <div className="flex rounded-full border border-border/50 overflow-hidden max-w-[200px] mx-auto">
+            <div className="flex items-center justify-center gap-4">
               <button
                 type="button"
                 aria-pressed={captureMode === 'write'}
                 onClick={selectWriteMode}
-                className={`flex-1 py-2.5 text-sm transition ${captureMode === 'write' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`text-xs tracking-wide transition ${captureMode === 'write' ? 'text-foreground/80' : 'text-foreground/25 hover:text-foreground/50'}`}
               >
                 Write
               </button>
+              <span className="text-foreground/15 text-xs select-none">·</span>
               <button
                 type="button"
                 aria-pressed={captureMode === 'record_audio'}
                 onClick={selectRecordMode}
-                className={`flex-1 py-2.5 text-sm transition ${captureMode === 'record_audio' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`text-xs tracking-wide transition ${captureMode === 'record_audio' ? 'text-foreground/80' : 'text-foreground/25 hover:text-foreground/50'}`}
               >
-                Record
+                Voice
               </button>
             </div>
 
@@ -625,7 +605,7 @@ function CaptureFlow() {
             {captureMode === 'write' && (
               <textarea
                 ref={writeAreaRef}
-                className="w-full min-h-[38vh] sm:min-h-[42vh] bg-card/40 border border-border/40 rounded-sm px-4 py-4 text-foreground text-[0.9375rem] leading-[1.72] placeholder:text-muted-foreground/35 focus:border-foreground/30 focus:outline-none transition resize-none"
+                className="w-full min-h-[44vh] sm:min-h-[48vh] bg-transparent border-0 px-0 py-2 text-foreground text-[0.9375rem] leading-[1.72] placeholder:text-foreground/20 focus:outline-none resize-none"
                 placeholder={aiPrompt ? 'Write your response here…' : 'What do you want them to remember?'}
                 value={entry}
                 onChange={onWriteAreaChange}
