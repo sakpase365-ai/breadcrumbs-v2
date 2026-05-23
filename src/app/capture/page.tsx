@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense, type ChangeEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getBrowserSupabase } from '@/lib/supabase-browser';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { DESCENDENT_ROLES } from '@/lib/roles';
@@ -10,10 +10,14 @@ import { firstName } from '@/lib/nameUtils';
 import { CAPTURE_INTENT_OPTIONS, VALUE_TAGS, normalizePrefillBreadcrumbType } from '@/lib/breadcrumbs';
 import { formatTagForDisplay } from '@/lib/breadcrumb-tags';
 
-const DRAFT_KEY   = 'breadcrumbs_draft';
-const PREFILL_KEY = 'breadcrumbs_prefill';
+const DRAFT_KEY     = 'breadcrumbs_draft';
+const PREFILL_KEY   = 'breadcrumbs_prefill';
 const HESITATION_MS = 10_000;
 
+type Stage        = 'loading' | 'capture' | 'follow-up' | 'done' | 'error';
+type CaptureStage = 'spark' | 'write' | 'voice';
+
+const STAGE_ORDER: CaptureStage[] = ['spark', 'write', 'voice'];
 
 interface Profile {
   id:                string;
@@ -30,9 +34,6 @@ interface FamilyMember {
   custom_role_label: string | null;
   birth_date:        string | null;
 }
-
-type Stage       = 'loading' | 'capture' | 'follow-up' | 'done' | 'error';
-type CaptureMode = 'write' | 'record_audio';
 
 function collectiveLabel(members: FamilyMember[]): string {
   return members.filter((m) => DESCENDENT_ROLES.has(m.role)).length === 0
@@ -57,16 +58,15 @@ async function fetchPromptText(recipientId: string | null, excludePriorPrompts?:
   const body: Record<string, unknown> = { recipientId };
   if (excludePriorPrompts?.length) body.excludePriorPrompts = excludePriorPrompts;
   const res = await fetch('/api/generate-prompt', {
-    method: 'POST',
+    method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body:    JSON.stringify(body),
   });
   if (!res.ok) throw new Error('prompt fetch failed');
   const { prompt } = await res.json();
   return prompt as string;
 }
 
-/** Returns the shared chip className for mode/recipient/type toggles. */
 function chipCls(active: boolean, size: 'sm' | 'xs' = 'sm') {
   const text = size === 'xs' ? 'text-xs' : 'text-sm';
   return `px-3 py-1.5 ${text} border rounded-sm transition ${
@@ -86,12 +86,11 @@ function CaptureFlow() {
   const [selectedTags,       setSelectedTags]      = useState<string[]>([]);
   const [showTags,           setShowTags]          = useState(false);
   const [stage,              setStage]             = useState<Stage>('loading');
-  const [captureMode,        setCaptureMode]       = useState<CaptureMode>('write');
+  const [captureStage,       setCaptureStage]      = useState<CaptureStage>('write');
   const [entry,              setEntry]             = useState('');
   const [charCount,          setCharCount]         = useState(0);
   const [draftRestored,      setDraftRestored]     = useState(false);
   const [prefillRestored,    setPrefillRestored]   = useState(false);
-  const [helpExpanded,       setHelpExpanded]      = useState(false);
   const [showHesitationHint, setShowHesitationHint] = useState(false);
   const [audioBlob,          setAudioBlob]         = useState<Blob | null>(null);
   const [audioPreviewUrl,    setAudioPreviewUrl]   = useState<string | null>(null);
@@ -117,8 +116,8 @@ function CaptureFlow() {
   const audioChunksRef     = useRef<BlobPart[]>([]);
   const audioObjectUrlRef  = useRef<string | null>(null);
   const writeAreaRef       = useRef<HTMLTextAreaElement | null>(null);
-  const recordSurfaceRef   = useRef<HTMLDivElement | null>(null);
   const recentPromptsRef   = useRef<string[]>([]);
+  const touchStartX        = useRef<number>(0);
 
   // Revoke object URL on unmount
   useEffect(() => () => {
@@ -135,19 +134,12 @@ function CaptureFlow() {
     return () => clearInterval(id);
   }, [recording]);
 
-  // Auto-focus write surface when entering write mode
+  // Auto-focus textarea when entering write stage
   useEffect(() => {
-    if (captureMode !== 'write') return;
+    if (captureStage !== 'write') return;
     const id = requestAnimationFrame(() => writeAreaRef.current?.focus());
     return () => cancelAnimationFrame(id);
-  }, [captureMode]);
-
-  // Hesitation hint when idle in record mode (suppress if panel already open)
-  useEffect(() => {
-    if (captureMode !== 'record_audio' || recording || audioBlob || helpExpanded) return;
-    const t = setTimeout(() => setShowHesitationHint(true), HESITATION_MS);
-    return () => clearTimeout(t);
-  }, [captureMode, recording, audioBlob, helpExpanded]);
+  }, [captureStage]);
 
   function clearHesitationTimer() {
     if (hesitationTimerRef.current) {
@@ -158,11 +150,30 @@ function CaptureFlow() {
 
   function scheduleWriteHesitation() {
     clearHesitationTimer();
-    if (captureMode !== 'write' || helpExpanded) return;
+    if (captureStage !== 'write') return;
     hesitationTimerRef.current = setTimeout(() => {
       hesitationTimerRef.current = null;
       setShowHesitationHint(true);
     }, HESITATION_MS);
+  }
+
+  function handleStageChange(next: CaptureStage) {
+    if (next !== 'voice' && captureStage === 'voice' && !audioBlob) cleanupAudio();
+    clearHesitationTimer();
+    setShowHesitationHint(false);
+    setRecordError('');
+    setCaptureStage(next);
+  }
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    const dx  = e.changedTouches[0].clientX - touchStartX.current;
+    const idx = STAGE_ORDER.indexOf(captureStage);
+    if (dx < -50 && idx < STAGE_ORDER.length - 1) handleStageChange(STAGE_ORDER[idx + 1]);
+    if (dx > 50  && idx > 0)                       handleStageChange(STAGE_ORDER[idx - 1]);
   }
 
   function cleanupAudio() {
@@ -181,32 +192,16 @@ function CaptureFlow() {
     setRecording(false);
   }
 
-  function selectWriteMode() {
-    cleanupAudio();
-    clearHesitationTimer();
-    setShowHesitationHint(false);
-    setCaptureMode('write');
-    setRecordError('');
-  }
-
-  function selectRecordMode() {
-    cleanupAudio();
-    clearHesitationTimer();
-    setShowHesitationHint(false);
-    setCaptureMode('record_audio');
-    setRecordError('');
-  }
-
   async function startRecording() {
     setRecordError('');
     if (typeof MediaRecorder === 'undefined') {
-      setRecordError('Voice recording is not available in this browser. Try Write or Chrome.');
+      setRecordError('Voice recording is not available in this browser.');
       return;
     }
     cleanupAudio();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      const mime   = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
         : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
       const mr = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
@@ -226,7 +221,7 @@ function CaptureFlow() {
       setShowHesitationHint(false);
       setRecording(true);
     } catch {
-      setRecordError('Microphone access was denied or recording is not supported here.');
+      setRecordError('Microphone access was denied.');
     }
   }
 
@@ -247,7 +242,7 @@ function CaptureFlow() {
           setEntry(prefill.content);
           setCharCount(prefill.content.length);
           setPrefillRestored(true);
-          setCaptureMode('write');
+          setCaptureStage('write');
         }
         if (prefill.breadcrumbType) setBreadcrumbType(normalizePrefillBreadcrumbType(prefill.breadcrumbType));
         localStorage.removeItem(PREFILL_KEY);
@@ -260,7 +255,7 @@ function CaptureFlow() {
       setEntry(saved);
       setCharCount(saved.length);
       setDraftRestored(true);
-      setCaptureMode('write');
+      setCaptureStage('write');
     }
   }, []);
 
@@ -269,10 +264,7 @@ function CaptureFlow() {
     const out: string[] = [];
     for (const t of recentPromptsRef.current) {
       const s = t.trim();
-      if (s && !seen.has(s)) {
-        seen.add(s);
-        out.push(s);
-      }
+      if (s && !seen.has(s)) { seen.add(s); out.push(s); }
     }
     const cur = currentPrompt.trim();
     if (cur && !seen.has(cur)) out.push(cur);
@@ -284,21 +276,19 @@ function CaptureFlow() {
     if (promptLoading) return;
     setPromptLoading(true);
     try {
-      const cur = aiPrompt ?? '';
+      const cur  = aiPrompt ?? '';
       const next = await fetchPromptText(
         selectedRecipient?.id ?? null,
         excludePriorPromptsForFetch(cur),
       );
       setAiPrompt(next);
       recentPromptsRef.current = [...recentPromptsRef.current, next].slice(-8);
-    } catch {
-      /* keep existing prompt */
-    } finally {
+    } catch { /* keep existing prompt */ } finally {
       setPromptLoading(false);
     }
   }
 
-  // Load profile
+  // Load profile + initial spark
   useEffect(() => {
     (async () => {
       try {
@@ -315,9 +305,7 @@ function CaptureFlow() {
           const prompt = await fetchPromptText(selectedRecipient?.id ?? null);
           setAiPrompt(prompt);
           recentPromptsRef.current = [prompt];
-        } catch {
-          /* non-fatal — user can still write freely */
-        } finally {
+        } catch { /* non-fatal */ } finally {
           setPromptLoading(false);
         }
       } catch {
@@ -338,7 +326,7 @@ function CaptureFlow() {
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     autosaveTimer.current = setTimeout(() => {
       if (value.trim()) localStorage.setItem(DRAFT_KEY, value);
-      else localStorage.removeItem(DRAFT_KEY);
+      else              localStorage.removeItem(DRAFT_KEY);
     }, 500);
   }
 
@@ -355,8 +343,8 @@ function CaptureFlow() {
   }
 
   async function handleSave() {
-    const textOk  = captureMode === 'write' && entry.trim().length > 0;
-    const audioOk = captureMode === 'record_audio' && !!audioBlob;
+    const textOk  = entry.trim().length > 0;
+    const audioOk = !!audioBlob;
     if ((!textOk && !audioOk) || saving) return;
     setSaving(true);
     setSaveError('');
@@ -367,7 +355,7 @@ function CaptureFlow() {
         tags:            selectedTags,
       };
 
-      if (captureMode === 'record_audio' && audioBlob) {
+      if (audioBlob) {
         if (audioBlob.size > 6 * 1024 * 1024) {
           setSaveError('Recording is too large. Try a shorter clip.');
           return;
@@ -439,16 +427,13 @@ function CaptureFlow() {
     }
   }
 
-  const hasContent =
-    (captureMode === 'write' && entry.trim().length > 0) ||
-    (captureMode === 'record_audio' && !!audioBlob);
+  const hasContent = entry.trim().length > 0 || !!audioBlob;
 
   const collective = collectiveLabel(familyMembers);
   const doneLine   = selectedRecipient
     ? `${firstName(selectedRecipient.name)} will have this when the time is right.`
     : `${collective === 'your family' ? 'Your family' : 'Your children'} will have this when the time is right.`;
 
-  // Rendered in both follow-up and done stages
   function renderTagEditor(inputId: string) {
     if (savedTags.length === 0) return null;
     return (
@@ -502,7 +487,7 @@ function CaptureFlow() {
 
   return (
     <main className="min-h-screen bg-background flex flex-col items-center justify-start px-5 sm:px-6 py-4 sm:py-5">
-      <div className="max-w-lg w-full space-y-4">
+      <div className="max-w-lg w-full space-y-5">
 
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -512,7 +497,7 @@ function CaptureFlow() {
           >
             ← Back
           </button>
-          <span className="text-xs text-muted-foreground uppercase tracking-widest">
+          <span className="text-xs text-muted-foreground/50 uppercase tracking-widest">
             {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
           </span>
           <button
@@ -521,7 +506,7 @@ function CaptureFlow() {
               if (supabase) await supabase.auth.signOut();
               router.push('/login');
             }}
-            className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition"
+            className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition"
           >
             Sign out
           </button>
@@ -530,8 +515,7 @@ function CaptureFlow() {
         {/* Loading */}
         {stage === 'loading' && (
           <div className="py-24 text-center">
-            <p className="text-muted-foreground text-sm">
-              Loading
+            <p className="text-foreground/30 text-sm">
               <span className="inline-flex">
                 {[0, 1, 2].map((i) => (
                   <motion.span
@@ -540,7 +524,7 @@ function CaptureFlow() {
                     animate={{ opacity: [0, 1, 1, 0.4, 1] }}
                     transition={{ delay: i * 0.3, duration: 1.5, times: [0, 0.1, 0.5, 0.75, 1], repeat: Infinity, repeatDelay: 0.5 }}
                   >
-                    .
+                    ·
                   </motion.span>
                 ))}
               </span>
@@ -548,148 +532,200 @@ function CaptureFlow() {
           </div>
         )}
 
-        {/* Capture */}
+        {/* ── CAPTURE ── */}
         {stage === 'capture' && profile && (
-          <div className="space-y-4">
+          <div className="space-y-5">
 
-            {/* AI Prompt */}
-            {(aiPrompt || promptLoading) && (
-              <div className="flex items-start gap-3">
-                {promptLoading ? (
-                  <p className="flex-1 text-xs text-foreground/20">···</p>
-                ) : (
-                  <>
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: hasContent ? 0.22 : 0.45 }}
-                      transition={{ duration: 0.5 }}
-                      className="flex-1 text-xs leading-[1.6] text-foreground"
-                    >
-                      {aiPrompt}
-                    </motion.p>
-                    <button
-                      type="button"
-                      onClick={() => void handleNewPrompt()}
-                      aria-label="New prompt"
-                      className="shrink-0 mt-0.5 text-[11px] text-foreground/20 hover:text-foreground/50 transition"
-                    >
-                      ↻
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Write / Record */}
-            <div className="flex items-center justify-center gap-4">
-              <button
-                type="button"
-                aria-pressed={captureMode === 'write'}
-                onClick={selectWriteMode}
-                className={`text-xs tracking-wide transition ${captureMode === 'write' ? 'text-foreground/80' : 'text-foreground/25 hover:text-foreground/50'}`}
-              >
-                Write
-              </button>
-              <span className="text-foreground/15 text-xs select-none">·</span>
-              <button
-                type="button"
-                aria-pressed={captureMode === 'record_audio'}
-                onClick={selectRecordMode}
-                className={`text-xs tracking-wide transition ${captureMode === 'record_audio' ? 'text-foreground/80' : 'text-foreground/25 hover:text-foreground/50'}`}
-              >
-                Voice
-              </button>
+            {/* Stage navigation */}
+            <div className="flex items-center justify-center gap-6">
+              {STAGE_ORDER.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => handleStageChange(s)}
+                  className={`text-xs tracking-wide capitalize transition ${
+                    captureStage === s
+                      ? 'text-foreground/75'
+                      : 'text-foreground/22 hover:text-foreground/50'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
             </div>
 
-            {/* Write surface */}
-            {captureMode === 'write' && (
-              <textarea
-                ref={writeAreaRef}
-                className="w-full min-h-[44vh] sm:min-h-[48vh] bg-transparent border-0 px-0 py-2 text-foreground text-[0.9375rem] leading-[1.72] placeholder:text-foreground/20 focus:outline-none resize-none"
-                placeholder={aiPrompt ? 'Write your response here…' : 'What do you want them to remember?'}
-                value={entry}
-                onChange={onWriteAreaChange}
-                onFocus={() => {
-                  setShowHesitationHint(false);
-                  if (!entry.trim()) scheduleWriteHesitation();
-                }}
-                onBlur={clearHesitationTimer}
-              />
-            )}
+            {/* Stage content — swipeable */}
+            <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+              <AnimatePresence mode="wait" initial={false}>
 
-            {/* Record surface */}
-            {captureMode === 'record_audio' && (
-              <div
-                ref={recordSurfaceRef}
-                className="space-y-4 rounded-sm border border-border/50 bg-card/25 px-4 py-6"
-              >
-                <p className="text-sm text-muted-foreground/90 text-center leading-relaxed">
-                  Record something they&apos;ll always have.
-                </p>
-                {recordError && (
-                  <p className="text-xs text-red-400/90 text-center">{recordError}</p>
-                )}
-                {!audioBlob && !recording && (
-                  <div className="flex justify-center">
-                    <motion.button
-                      type="button"
-                      onClick={() => void startRecording()}
-                      aria-label="Record a voice note"
-                      animate={{ opacity: [0.85, 1, 0.85] }}
-                      transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 text-sm border border-foreground/90 text-foreground rounded-sm hover:bg-foreground hover:text-background transition"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-[#c45c5c] shadow-[0_0_10px_rgba(196,92,92,0.45)]" aria-hidden />
-                      Record
-                    </motion.button>
-                  </div>
-                )}
-                {recording && (
-                  <div className="flex items-center justify-center gap-3">
-                    <span className="text-xs text-muted-foreground tabular-nums" aria-live="polite">
-                      {`${Math.floor(recordSec / 60)}:${String(recordSec % 60).padStart(2, '0')}`}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={stopRecording}
-                      className="px-4 py-2 text-sm border border-foreground text-foreground rounded-sm hover:bg-foreground hover:text-background transition"
-                    >
-                      Stop
-                    </button>
-                  </div>
-                )}
-                {audioPreviewUrl && !recording && (
-                  <div className="space-y-2">
-                    <audio src={audioPreviewUrl} controls className="w-full" />
-                    <div className="flex justify-center">
-                      <button
-                        type="button"
-                        onClick={() => { cleanupAudio(); setRecordError(''); }}
-                        className="text-xs text-muted-foreground hover:text-foreground border border-border/45 rounded-sm px-3 py-1.5 transition"
+                {/* ── SPARK ── */}
+                {captureStage === 'spark' && (
+                  <motion.div
+                    key="spark"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="min-h-[44vh] sm:min-h-[48vh] flex flex-col justify-center space-y-6 py-4"
+                  >
+                    {promptLoading ? (
+                      <p className="text-xs text-foreground/20 text-center">···</p>
+                    ) : aiPrompt ? (
+                      <motion.p
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.45 }}
+                        className="text-sm leading-[1.7] text-foreground/68 text-center px-4"
                       >
-                        Discard and try again
-                      </button>
+                        {aiPrompt}
+                      </motion.p>
+                    ) : (
+                      <p className="text-xs text-foreground/22 text-center">Need a moment to think.</p>
+                    )}
+                    <div className="flex items-center justify-center gap-5">
+                      {!promptLoading && (
+                        <button
+                          type="button"
+                          onClick={() => void handleNewPrompt()}
+                          className="text-xs text-foreground/22 hover:text-foreground/55 transition"
+                        >
+                          ↻ Different spark
+                        </button>
+                      )}
+                      {!promptLoading && aiPrompt && (
+                        <>
+                          <span className="text-foreground/12 text-xs select-none">·</span>
+                          <button
+                            type="button"
+                            onClick={() => handleStageChange('write')}
+                            className="text-xs text-foreground/38 hover:text-foreground/65 transition"
+                          >
+                            Start writing →
+                          </button>
+                        </>
+                      )}
                     </div>
-                  </div>
+                  </motion.div>
                 )}
-              </div>
-            )}
+
+                {/* ── WRITE ── */}
+                {captureStage === 'write' && (
+                  <motion.div
+                    key="write"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-3"
+                  >
+                    <textarea
+                      ref={writeAreaRef}
+                      className="w-full min-h-[44vh] sm:min-h-[48vh] bg-transparent border-0 px-0 py-2 text-foreground text-[0.9375rem] leading-[1.72] placeholder:text-foreground/18 focus:outline-none resize-none"
+                      placeholder="What do you want them to remember?"
+                      value={entry}
+                      onChange={onWriteAreaChange}
+                      onFocus={() => {
+                        setShowHesitationHint(false);
+                        if (!entry.trim()) scheduleWriteHesitation();
+                      }}
+                      onBlur={clearHesitationTimer}
+                    />
+                    {showHesitationHint && !entry.trim() && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 3 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4 }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleStageChange('spark')}
+                          className="text-xs text-foreground/28 hover:text-foreground/55 transition"
+                        >
+                          Need inspiration?
+                        </button>
+                      </motion.div>
+                    )}
+                  </motion.div>
+                )}
+
+                {/* ── VOICE ── */}
+                {captureStage === 'voice' && (
+                  <motion.div
+                    key="voice"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="min-h-[44vh] sm:min-h-[48vh] flex flex-col items-center justify-center space-y-6 py-4"
+                  >
+                    {!audioBlob && (
+                      <p className="text-xs text-foreground/32 text-center">Say it in your own voice.</p>
+                    )}
+                    {recordError && (
+                      <p className="text-xs text-red-400/75 text-center">{recordError}</p>
+                    )}
+                    {!audioBlob && !recording && (
+                      <motion.button
+                        type="button"
+                        onClick={() => void startRecording()}
+                        aria-label="Start recording"
+                        animate={{ opacity: [0.5, 0.85, 0.5] }}
+                        transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
+                        className="flex items-center gap-2.5 text-sm text-foreground/60 hover:text-foreground/90 transition"
+                      >
+                        <span className="w-2 h-2 rounded-full bg-[#c45c5c] shadow-[0_0_8px_rgba(196,92,92,0.45)]" aria-hidden />
+                        Record
+                      </motion.button>
+                    )}
+                    {recording && (
+                      <div className="flex items-center gap-5">
+                        <span className="text-xs text-foreground/38 tabular-nums" aria-live="polite">
+                          {`${Math.floor(recordSec / 60)}:${String(recordSec % 60).padStart(2, '0')}`}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={stopRecording}
+                          className="text-xs text-foreground/55 hover:text-foreground transition"
+                        >
+                          Stop
+                        </button>
+                      </div>
+                    )}
+                    {audioPreviewUrl && !recording && (
+                      <div className="w-full space-y-4">
+                        <audio src={audioPreviewUrl} controls className="w-full" />
+                        <div className="flex justify-center">
+                          <button
+                            type="button"
+                            onClick={() => { cleanupAudio(); setRecordError(''); }}
+                            className="text-xs text-foreground/25 hover:text-foreground/55 transition"
+                          >
+                            Discard and try again
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+
+              </AnimatePresence>
+            </div>
 
             {/* Draft / prefill notices */}
             {(draftRestored || prefillRestored) && (
-              <div className="text-xs text-muted-foreground/55">
+              <div className="text-xs text-foreground/28">
                 {draftRestored   && <p>Draft restored.</p>}
                 {prefillRestored && <p>From your Family Foundation.</p>}
               </div>
             )}
 
-            {/* Pre-save — appears only after content exists */}
+            {/* Pre-save — appears when content exists */}
             {hasContent && (
-              <div className="space-y-4 border-t border-border/30 pt-5">
+              <div className="space-y-4 border-t border-foreground/[0.07] pt-5">
 
                 {familyMembers.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">Who is this for?</p>
+                    <p className="text-xs text-foreground/35">Who is this for?</p>
                     <div className="flex gap-2 flex-wrap">
                       <button type="button" onClick={() => setSelectedRecipient(null)} className={chipCls(!selectedRecipient)}>
                         Everyone
@@ -704,7 +740,7 @@ function CaptureFlow() {
                 )}
 
                 <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">Save as a</p>
+                  <p className="text-xs text-foreground/35">Save as a</p>
                   <div className="flex flex-wrap gap-2">
                     {CAPTURE_INTENT_OPTIONS.map((opt) => (
                       <button
@@ -720,16 +756,16 @@ function CaptureFlow() {
                 </div>
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <span className="text-xs text-muted-foreground order-2 sm:order-1">
-                    {captureMode === 'record_audio' ? 'Voice note ready' : `${charCount} characters`}
+                  <span className="text-xs text-foreground/28 order-2 sm:order-1">
+                    {audioBlob ? 'Voice note ready' : `${charCount} characters`}
                   </span>
                   <button
                     type="button"
                     onClick={() => void handleSave()}
                     disabled={saving}
-                    className="order-1 sm:order-2 py-3 px-8 border border-foreground text-foreground text-sm tracking-wide disabled:opacity-30 hover:bg-foreground hover:text-background transition w-full sm:w-auto"
+                    className="order-1 sm:order-2 py-3 px-8 border border-foreground/60 text-foreground/80 text-sm tracking-wide disabled:opacity-30 hover:border-foreground hover:text-foreground transition w-full sm:w-auto"
                   >
-                    {saving ? 'Saving…' : 'Save Breadcrumb'}
+                    {saving ? 'Saving…' : 'Save'}
                   </button>
                 </div>
 
@@ -737,9 +773,9 @@ function CaptureFlow() {
                   <button
                     type="button"
                     onClick={() => setShowTags(!showTags)}
-                    className="text-xs text-muted-foreground/70 hover:text-foreground transition"
+                    className="text-xs text-foreground/22 hover:text-foreground/50 transition"
                   >
-                    {showTags ? '− Hide optional tag hints' : '+ Optional tag hints'}
+                    {showTags ? '− Hide tag hints' : '+ Tag hints'}
                   </button>
                   {showTags && (
                     <div className="flex flex-wrap gap-2">
@@ -750,8 +786,8 @@ function CaptureFlow() {
                           onClick={() => toggleTag(tag)}
                           className={`px-3 py-1 text-xs border rounded-sm transition ${
                             selectedTags.includes(tag)
-                              ? 'border-foreground text-foreground bg-foreground/5'
-                              : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground'
+                              ? 'border-foreground/60 text-foreground/80 bg-foreground/5'
+                              : 'border-foreground/15 text-foreground/30 hover:border-foreground/35 hover:text-foreground/60'
                           }`}
                         >
                           {tag}
@@ -820,13 +856,13 @@ function CaptureFlow() {
         {/* Done */}
         {stage === 'done' && profile && (
           <div className="py-20 text-center space-y-6">
-            <div className="w-12 h-px bg-foreground/30 mx-auto" />
+            <div className="w-12 h-px bg-foreground/25 mx-auto" />
             <p className="font-serif text-foreground text-2xl">{doneLine}</p>
             <div className="max-w-md mx-auto text-left">
               {renderTagEditor('tag-draft-done')}
             </div>
             {savedAt && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground/50">
                 Saved {new Date(savedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                 {' '}at {new Date(savedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
               </p>
@@ -863,8 +899,7 @@ function CaptureFlow() {
               onClick={() => {
                 setSaveError('');
                 cleanupAudio();
-                setCaptureMode('write');
-                setHelpExpanded(false);
+                setCaptureStage('write');
                 setShowHesitationHint(false);
                 setEntry('');
                 setCharCount(0);
