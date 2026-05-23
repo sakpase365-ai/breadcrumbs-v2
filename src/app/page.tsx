@@ -80,12 +80,12 @@ export default function Home() {
                   : 2.4,
             duration: 0.45,
           }}
-          className="flex flex-col gap-3 w-full max-w-xs pt-2"
+          className="flex flex-col items-center gap-3 w-full pt-2"
         >
           {/* Primary — capture layer */}
           <Link
             href="/capture"
-            className="w-full py-4 px-8 border border-foreground text-foreground text-sm font-normal tracking-wide text-center hover:bg-foreground hover:text-background transition"
+            className="py-4 px-10 border border-foreground text-foreground text-sm font-normal tracking-wide text-center hover:bg-foreground hover:text-background transition"
           >
             Leave A Breadcrumb
           </Link>
@@ -93,7 +93,7 @@ export default function Home() {
           {/* Primary — guidance layer */}
           <Link
             href="/ask"
-            className="w-full py-4 px-8 border border-border text-muted-foreground text-sm font-normal tracking-wide text-center hover:border-foreground/40 hover:text-foreground transition"
+            className="py-4 px-10 border border-border text-muted-foreground text-sm font-normal tracking-wide text-center hover:border-foreground/40 hover:text-foreground transition"
           >
             Ask the Family Agent
           </Link>
