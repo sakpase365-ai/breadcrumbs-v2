@@ -29,4 +29,7 @@ describe('maskPhone', () => {
   it('returns raw string for non-US-length number', () => {
     expect(maskPhone('+441234567890')).toBe('+441234567890');
   });
+  it('returns raw string for non-E164 input', () => {
+    expect(maskPhone('5551234567')).toBe('5551234567');
+  });
 });

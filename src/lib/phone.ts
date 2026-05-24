@@ -6,7 +6,7 @@ export function normalizePhone(raw: string): string | null {
   return null;
 }
 
-/** Returns a display-safe masked form: +1 (555) ···-4567 */
+/** Expects E.164 input from normalizePhone. Returns +1 (XXX) ···-XXXX for US numbers, raw string otherwise. */
 export function maskPhone(e164: string): string {
   const digits = e164.replace(/\D/g, '');
   if (digits.length === 11 && digits.startsWith('1')) {
