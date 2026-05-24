@@ -534,7 +534,12 @@ function CaptureFlow() {
 
         {/* ── CAPTURE ── */}
         {stage === 'capture' && profile && (
-          <div className="space-y-5">
+          <div
+            className="space-y-5"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            style={{ touchAction: 'pan-y' }}
+          >
 
             {/* Stage navigation */}
             <div className="flex items-center justify-center gap-6">
@@ -554,8 +559,8 @@ function CaptureFlow() {
               ))}
             </div>
 
-            {/* Stage content — swipeable */}
-            <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+            {/* Stage content */}
+            <div>
               <AnimatePresence mode="wait" initial={false}>
 
                 {/* ── SPARK ── */}
