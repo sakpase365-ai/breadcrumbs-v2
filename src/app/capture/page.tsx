@@ -809,7 +809,7 @@ function CaptureFlow() {
 
             <div className="glass-card px-6 py-5">
               <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3">One more thought</p>
-              <p className="font-serif text-foreground text-lg leading-relaxed">{followUp}</p>
+              <p className="font-sans text-[0.9375rem] leading-[1.65] text-foreground/88 font-normal antialiased">{followUp}</p>
             </div>
 
             <textarea
