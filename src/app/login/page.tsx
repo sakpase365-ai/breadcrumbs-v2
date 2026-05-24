@@ -75,6 +75,7 @@ function LoginForm() {
   async function handleCodeChange(value: string) {
     const digits = value.replace(/\D/g, '').slice(0, 6);
     setCode(digits);
+    setError('');
     if (digits.length < 6) return;
     setBusy(true);
     setError('');
