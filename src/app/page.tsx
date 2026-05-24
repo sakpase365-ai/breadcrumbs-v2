@@ -13,7 +13,6 @@ type AuthState = 'loading' | 'unauthenticated' | 'authenticated';
 export default function Home() {
   const router = useRouter();
   const [authState, setAuthState] = useState<AuthState>('loading');
-  const [foundationComplete, setFoundationComplete] = useState(false);
 
   useEffect(() => {
     const supabase = getBrowserSupabase();
@@ -34,6 +33,8 @@ export default function Home() {
     })();
   }, [router]);
 
+  if (authState === 'loading') return null;
+
   return (
     <main className="min-h-screen w-full bg-background flex flex-col items-center justify-center px-4 py-8">
       <div className="flex flex-col items-center text-center space-y-8">
@@ -45,8 +46,6 @@ export default function Home() {
         <p className="max-w-md text-base font-light text-muted-foreground sm:text-lg">
           {authState === 'authenticated' ? (
             'Leave something that lasts.'
-          ) : authState === 'loading' ? (
-            <span className="text-muted-foreground/45">Leave something that lasts.</span>
           ) : (
             <TypewriterText
               text="Leave something that lasts."
@@ -61,12 +60,7 @@ export default function Home() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{
-            delay:
-              authState === 'authenticated'
-                ? 0.15
-                : authState === 'loading'
-                  ? 0.35
-                  : 2.4,
+            delay: authState === 'authenticated' ? 0.15 : 2.4,
             duration: 0.45,
           }}
           className="flex flex-col items-center gap-3 w-full pt-2"
@@ -86,16 +80,6 @@ export default function Home() {
           >
             Ask the Family Agent
           </Link>
-
-          {/* Identity layer — only shown when setup is incomplete */}
-          {authState === 'authenticated' && !foundationComplete && (
-            <Link
-              href="/foundation"
-              className="w-full py-3 px-8 text-xs text-muted-foreground/70 tracking-wide text-center border border-dashed border-border/60 hover:text-foreground hover:border-border transition"
-            >
-              Complete your Family Foundation →
-            </Link>
-          )}
 
           {/* Memory layer — secondary, never dominant */}
           <Link
