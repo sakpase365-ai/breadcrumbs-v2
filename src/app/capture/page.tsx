@@ -117,7 +117,10 @@ function CaptureFlow() {
   const audioObjectUrlRef  = useRef<string | null>(null);
   const writeAreaRef       = useRef<HTMLTextAreaElement | null>(null);
   const recentPromptsRef   = useRef<string[]>([]);
+  const swipeContainerRef  = useRef<HTMLDivElement>(null);
+  const captureStageRef    = useRef<CaptureStage>('write');
   const touchStartX        = useRef<number>(0);
+  const touchStartY        = useRef<number>(0);
 
   // Revoke object URL on unmount
   useEffect(() => () => {
@@ -133,6 +136,46 @@ function CaptureFlow() {
     const id = setInterval(tick, 300);
     return () => clearInterval(id);
   }, [recording]);
+
+  // Keep stage ref in sync for native swipe listener
+  useEffect(() => { captureStageRef.current = captureStage; }, [captureStage]);
+
+  // Native swipe listener — passive:false on touchmove so we can preventDefault
+  // for horizontal swipes even inside the textarea
+  useEffect(() => {
+    const el = swipeContainerRef.current;
+    if (!el) return;
+
+    function onStart(e: TouchEvent) {
+      touchStartX.current = e.touches[0].clientX;
+      touchStartY.current = e.touches[0].clientY;
+    }
+
+    function onMove(e: TouchEvent) {
+      const dx = Math.abs(e.touches[0].clientX - touchStartX.current);
+      const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
+      if (dx > dy && dx > 10) e.preventDefault();
+    }
+
+    function onEnd(e: TouchEvent) {
+      const dx = e.changedTouches[0].clientX - touchStartX.current;
+      const dy = e.changedTouches[0].clientY - touchStartY.current;
+      if (Math.abs(dx) < Math.abs(dy) || Math.abs(dx) < 50) return;
+      const idx = STAGE_ORDER.indexOf(captureStageRef.current);
+      if (dx < 0 && idx < STAGE_ORDER.length - 1) handleStageChange(STAGE_ORDER[idx + 1]);
+      if (dx > 0 && idx > 0)                       handleStageChange(STAGE_ORDER[idx - 1]);
+    }
+
+    el.addEventListener('touchstart', onStart,  { passive: true });
+    el.addEventListener('touchmove',  onMove,   { passive: false });
+    el.addEventListener('touchend',   onEnd,    { passive: true });
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove',  onMove);
+      el.removeEventListener('touchend',   onEnd);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-focus textarea when entering write stage
   useEffect(() => {
@@ -165,16 +208,6 @@ function CaptureFlow() {
     setCaptureStage(next);
   }
 
-  function handleTouchStart(e: React.TouchEvent) {
-    touchStartX.current = e.touches[0].clientX;
-  }
-
-  function handleTouchEnd(e: React.TouchEvent) {
-    const dx  = e.changedTouches[0].clientX - touchStartX.current;
-    const idx = STAGE_ORDER.indexOf(captureStage);
-    if (dx < -50 && idx < STAGE_ORDER.length - 1) handleStageChange(STAGE_ORDER[idx + 1]);
-    if (dx > 50  && idx > 0)                       handleStageChange(STAGE_ORDER[idx - 1]);
-  }
 
   function cleanupAudio() {
     if (audioObjectUrlRef.current) {
@@ -534,12 +567,7 @@ function CaptureFlow() {
 
         {/* ── CAPTURE ── */}
         {stage === 'capture' && profile && (
-          <div
-            className="space-y-5"
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-            style={{ touchAction: 'pan-y' }}
-          >
+          <div ref={swipeContainerRef} className="space-y-5" style={{ touchAction: 'pan-y' }}>
 
             {/* Stage navigation */}
             <div className="flex items-center justify-center gap-6">
