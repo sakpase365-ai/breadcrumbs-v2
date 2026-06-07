@@ -570,7 +570,7 @@ function CaptureFlow() {
             {/* Recipient — always visible, not gated by content */}
             {familyMembers.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs text-foreground/35 tracking-wide">Who are you writing to?</p>
+                <p className="type-label text-foreground/35">Who are you writing to?</p>
                 <div className="flex gap-2 flex-wrap">
                   {familyMembers.map((m) => (
                     <button
@@ -633,7 +633,7 @@ function CaptureFlow() {
                     transition={{ duration: 0.2 }}
                     className="min-h-[44vh] sm:min-h-[48vh] flex flex-col justify-center space-y-6 py-4"
                   >
-                    <p className="text-[10px] uppercase tracking-widest text-foreground/30 text-center">Today&apos;s Spark</p>
+                    <p className="type-label text-foreground/30 text-center">Today&apos;s Spark</p>
                     {promptLoading ? (
                       <p className="text-xs text-foreground/20 text-center">···</p>
                     ) : aiPrompt ? (
@@ -641,7 +641,7 @@ function CaptureFlow() {
                         initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.45 }}
-                        className="text-sm leading-[1.7] text-foreground/68 text-center px-4"
+                        className="text-[17px] leading-[1.55] tracking-[-0.005em] font-[400] text-foreground/68 text-center px-4"
                       >
                         {aiPrompt}
                       </motion.p>
@@ -686,7 +686,7 @@ function CaptureFlow() {
                   >
                     <textarea
                       ref={writeAreaRef}
-                      className="w-full min-h-[44vh] sm:min-h-[48vh] bg-transparent border-0 px-0 py-2 text-foreground text-[0.9375rem] leading-[1.72] placeholder:text-foreground/18 focus:outline-none resize-none"
+                      className="w-full min-h-[44vh] sm:min-h-[48vh] bg-transparent border-0 px-0 py-2 text-foreground text-[17px] leading-[1.55] tracking-[-0.01em] placeholder:text-foreground/18 focus:outline-none resize-none"
                       placeholder="What do you want them to remember?"
                       value={entry}
                       onChange={onWriteAreaChange}
@@ -863,7 +863,7 @@ function CaptureFlow() {
 
             <div className="glass-card px-6 py-5">
               <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3">One more thought</p>
-              <p className="font-sans text-[0.9375rem] leading-[1.65] text-foreground/88 font-normal antialiased">{followUp}</p>
+              <p className="text-[16px] leading-[1.6] tracking-[-0.005em] text-foreground/88 font-normal">{followUp}</p>
             </div>
 
             <textarea
@@ -911,7 +911,7 @@ function CaptureFlow() {
         {stage === 'done' && profile && (
           <div className="py-20 text-center space-y-6">
             <div className="w-12 h-px bg-foreground/25 mx-auto" />
-            <p className="font-serif text-foreground text-2xl">{doneLine}</p>
+            <p className="font-display text-foreground text-[22px] font-[400] tracking-[-0.01em] leading-[1.35]">{doneLine}</p>
             <div className="max-w-md mx-auto text-left">
               {renderTagEditor('tag-draft-done')}
             </div>
