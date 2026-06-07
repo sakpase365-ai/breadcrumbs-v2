@@ -7,7 +7,7 @@ import { getBrowserSupabase } from '@/lib/supabase-browser';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { DESCENDENT_ROLES } from '@/lib/roles';
 import { firstName } from '@/lib/nameUtils';
-import { CAPTURE_INTENT_OPTIONS, VALUE_TAGS, normalizePrefillBreadcrumbType } from '@/lib/breadcrumbs';
+import { VALUE_TAGS, normalizePrefillBreadcrumbType } from '@/lib/breadcrumbs';
 import { formatTagForDisplay } from '@/lib/breadcrumb-tags';
 
 const DRAFT_KEY   = 'breadcrumbs_draft';
@@ -533,6 +533,22 @@ function CaptureFlow() {
         {stage === 'capture' && profile && (
           <div className="space-y-6">
 
+            {familyMembers.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Who is this for?</p>
+                <div className="flex gap-2 flex-wrap">
+                  <button type="button" onClick={() => setSelectedRecipient(null)} className={chipCls(!selectedRecipient)}>
+                    Everyone
+                  </button>
+                  {familyMembers.map((m) => (
+                    <button type="button" key={m.id} onClick={() => setSelectedRecipient(m)} className={chipCls(selectedRecipient?.id === m.id)}>
+                      {firstName(m.name)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* AI Prompt — the anchor for the session */}
             <div className="border-y border-border/20 py-8 space-y-3 text-center">
               <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/40">
@@ -652,38 +668,6 @@ function CaptureFlow() {
             {hasContent && (
               <div className="space-y-4 border-t border-border/30 pt-5">
 
-                {familyMembers.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">Who is this for?</p>
-                    <div className="flex gap-2 flex-wrap">
-                      <button type="button" onClick={() => setSelectedRecipient(null)} className={chipCls(!selectedRecipient)}>
-                        Everyone
-                      </button>
-                      {familyMembers.map((m) => (
-                        <button type="button" key={m.id} onClick={() => setSelectedRecipient(m)} className={chipCls(selectedRecipient?.id === m.id)}>
-                          {firstName(m.name)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">Save as a</p>
-                  <div className="flex flex-wrap gap-2">
-                    {CAPTURE_INTENT_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setBreadcrumbType(opt.value)}
-                        className={chipCls(breadcrumbType === opt.value, 'xs')}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-xs text-muted-foreground order-2 sm:order-1">
                     {captureMode === 'record_audio' ? 'Voice note ready' : `${charCount} characters`}
@@ -694,9 +678,20 @@ function CaptureFlow() {
                     disabled={saving}
                     className="order-1 sm:order-2 py-3 px-8 border border-foreground text-foreground text-sm tracking-wide disabled:opacity-30 hover:bg-foreground hover:text-background transition w-full sm:w-auto"
                   >
-                    {saving ? 'Saving…' : 'Save Breadcrumb'}
+                    {saving ? 'Saving…' : 'Leave A Breadcrumb'}
                   </button>
                 </div>
+
+                <p className="text-center text-xs text-muted-foreground/70">
+                  Not sure what to write?{' '}
+                  <button
+                    type="button"
+                    onClick={() => router.push('/ask')}
+                    className="text-muted-foreground hover:text-foreground underline underline-offset-2 transition"
+                  >
+                    Ask the Family Agent
+                  </button>
+                </p>
 
                 <div className="space-y-2">
                   <button

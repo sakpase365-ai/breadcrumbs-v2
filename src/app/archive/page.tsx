@@ -16,12 +16,6 @@ const DOMAIN_COLORS: Record<string, string> = {
   health:        'border-teal-800 text-teal-400',
 };
 
-const DELIVERY_LABELS: Record<string, string> = {
-  'age-locked': 'Age-locked',
-  'milestone':  'Milestone',
-  'evergreen':  'Evergreen',
-};
-
 interface EntryCard {
   id:              string;
   title:           string | null;
@@ -162,9 +156,6 @@ export default function ArchivePage() {
                     </span>
                     <span className={`text-xs px-2 py-0.5 border rounded-sm font-medium ${DOMAIN_COLORS[e.domain] ?? 'border-border text-muted-foreground'}`}>
                       {e.domain}
-                    </span>
-                    <span className="text-xs px-2 py-0.5 border border-border text-muted-foreground rounded-sm">
-                      {DELIVERY_LABELS[e.delivery_type]} · Age {e.relevant_age}
                     </span>
                     {e.delivered_at && (
                       <span className="text-xs px-2 py-0.5 border border-emerald-800 text-emerald-400 rounded-sm">
