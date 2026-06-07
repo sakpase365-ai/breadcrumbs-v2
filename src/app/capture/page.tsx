@@ -7,7 +7,7 @@ import { getBrowserSupabase } from '@/lib/supabase-browser';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { DESCENDENT_ROLES } from '@/lib/roles';
 import { firstName } from '@/lib/nameUtils';
-import { CAPTURE_INTENT_OPTIONS, VALUE_TAGS, normalizePrefillBreadcrumbType } from '@/lib/breadcrumbs';
+import { VALUE_TAGS } from '@/lib/breadcrumbs';
 import { formatTagForDisplay } from '@/lib/breadcrumb-tags';
 
 const DRAFT_KEY     = 'breadcrumbs_draft';
@@ -82,7 +82,6 @@ function CaptureFlow() {
   const [profile,            setProfile]           = useState<Profile | null>(null);
   const [familyMembers,      setFamilyMembers]     = useState<FamilyMember[]>([]);
   const [selectedRecipient,  setSelectedRecipient] = useState<FamilyMember | null>(null);
-  const [breadcrumbType,     setBreadcrumbType]    = useState<string>('message');
   const [selectedTags,       setSelectedTags]      = useState<string[]>([]);
   const [showTags,           setShowTags]          = useState(false);
   const [stage,              setStage]             = useState<Stage>('loading');
@@ -277,7 +276,6 @@ function CaptureFlow() {
           setPrefillRestored(true);
           setCaptureStage('write');
         }
-        if (prefill.breadcrumbType) setBreadcrumbType(normalizePrefillBreadcrumbType(prefill.breadcrumbType));
         localStorage.removeItem(PREFILL_KEY);
         localStorage.removeItem(DRAFT_KEY);
         return;
@@ -384,7 +382,7 @@ function CaptureFlow() {
     try {
       let payload: Record<string, unknown> = {
         recipientId:     selectedRecipient?.id ?? null,
-        breadcrumb_type: breadcrumbType,
+        breadcrumb_type: 'message',
         tags:            selectedTags,
       };
 
@@ -568,6 +566,40 @@ function CaptureFlow() {
         {/* ── CAPTURE ── */}
         {stage === 'capture' && profile && (
           <div ref={swipeContainerRef} className="space-y-5" style={{ touchAction: 'pan-y' }}>
+
+            {/* Recipient — always visible, not gated by content */}
+            {familyMembers.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-foreground/35 tracking-wide">Who are you writing to?</p>
+                <div className="flex gap-2 flex-wrap items-baseline">
+                  {familyMembers.map((m) => (
+                    <button
+                      type="button"
+                      key={m.id}
+                      onClick={() => setSelectedRecipient(selectedRecipient?.id === m.id ? null : m)}
+                      className={`text-sm transition ${
+                        selectedRecipient?.id === m.id
+                          ? 'text-foreground'
+                          : 'text-foreground/45 hover:text-foreground/70'
+                      }`}
+                    >
+                      {firstName(m.name)}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRecipient(null)}
+                    className={`text-xs transition ml-1 ${
+                      !selectedRecipient
+                        ? 'text-foreground/60'
+                        : 'text-foreground/25 hover:text-foreground/45'
+                    }`}
+                  >
+                    Everyone
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Stage navigation */}
             <div className="flex items-center justify-center gap-6">
@@ -756,38 +788,6 @@ function CaptureFlow() {
             {hasContent && (
               <div className="space-y-4 border-t border-foreground/[0.07] pt-5">
 
-                {familyMembers.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs text-foreground/35">Who is this for?</p>
-                    <div className="flex gap-2 flex-wrap">
-                      <button type="button" onClick={() => setSelectedRecipient(null)} className={chipCls(!selectedRecipient)}>
-                        Everyone
-                      </button>
-                      {familyMembers.map((m) => (
-                        <button type="button" key={m.id} onClick={() => setSelectedRecipient(m)} className={chipCls(selectedRecipient?.id === m.id)}>
-                          {firstName(m.name)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <p className="text-xs text-foreground/35">Save as a</p>
-                  <div className="flex flex-wrap gap-2">
-                    {CAPTURE_INTENT_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setBreadcrumbType(opt.value)}
-                        className={chipCls(breadcrumbType === opt.value, 'xs')}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-xs text-foreground/28 order-2 sm:order-1">
                     {audioBlob ? 'Voice note ready' : `${charCount} characters`}
@@ -798,7 +798,7 @@ function CaptureFlow() {
                     disabled={saving}
                     className="order-1 sm:order-2 py-3 px-8 border border-foreground/60 text-foreground/80 text-sm tracking-wide disabled:opacity-30 hover:border-foreground hover:text-foreground transition w-full sm:w-auto"
                   >
-                    {saving ? 'Saving…' : 'Save'}
+                    {saving ? 'Saving…' : 'Save Breadcrumb'}
                   </button>
                 </div>
 
@@ -830,6 +830,18 @@ function CaptureFlow() {
                   )}
                 </div>
 
+              </div>
+            )}
+
+            {/* Family Agent — always visible, outside content gate */}
+            {stage === 'capture' && (
+              <div className="pt-2 text-center">
+                <a
+                  href="/ask"
+                  className="text-xs text-foreground/22 hover:text-foreground/50 transition tracking-wide"
+                >
+                  Ask the Family Agent
+                </a>
               </div>
             )}
           </div>
