@@ -517,7 +517,7 @@ function CaptureFlow() {
   }
 
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center justify-start px-5 sm:px-6 py-4 sm:py-5">
+    <main className="min-h-screen bg-background flex flex-col items-center justify-start px-5 sm:px-6 pt-4 sm:pt-5 pb-24">
       <div className="max-w-lg w-full space-y-5">
 
         {/* Header */}
@@ -571,16 +571,16 @@ function CaptureFlow() {
             {familyMembers.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs text-foreground/35 tracking-wide">Who are you writing to?</p>
-                <div className="flex gap-2 flex-wrap items-baseline">
+                <div className="flex gap-2 flex-wrap">
                   {familyMembers.map((m) => (
                     <button
                       type="button"
                       key={m.id}
                       onClick={() => setSelectedRecipient(selectedRecipient?.id === m.id ? null : m)}
-                      className={`text-sm transition ${
+                      className={`px-3 py-1 text-sm rounded-full border transition ${
                         selectedRecipient?.id === m.id
-                          ? 'text-foreground'
-                          : 'text-foreground/45 hover:text-foreground/70'
+                          ? 'border-foreground text-foreground'
+                          : 'border-foreground/20 text-foreground/50 hover:border-foreground/45 hover:text-foreground/75'
                       }`}
                     >
                       {firstName(m.name)}
@@ -589,10 +589,10 @@ function CaptureFlow() {
                   <button
                     type="button"
                     onClick={() => setSelectedRecipient(null)}
-                    className={`text-xs transition ml-1 ${
+                    className={`px-3 py-1 text-sm rounded-full border transition ${
                       !selectedRecipient
-                        ? 'text-foreground/60'
-                        : 'text-foreground/25 hover:text-foreground/45'
+                        ? 'border-foreground text-foreground'
+                        : 'border-foreground/20 text-foreground/50 hover:border-foreground/45 hover:text-foreground/75'
                     }`}
                   >
                     Everyone
@@ -633,6 +633,7 @@ function CaptureFlow() {
                     transition={{ duration: 0.2 }}
                     className="min-h-[44vh] sm:min-h-[48vh] flex flex-col justify-center space-y-6 py-4"
                   >
+                    <p className="text-[10px] uppercase tracking-widest text-foreground/30 text-center">Today&apos;s Spark</p>
                     {promptLoading ? (
                       <p className="text-xs text-foreground/20 text-center">···</p>
                     ) : aiPrompt ? (
@@ -788,19 +789,11 @@ function CaptureFlow() {
             {hasContent && (
               <div className="space-y-4 border-t border-foreground/[0.07] pt-5">
 
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <span className="text-xs text-foreground/28 order-2 sm:order-1">
+                {hasContent && (
+                  <p className="text-xs text-foreground/28">
                     {audioBlob ? 'Voice note ready' : `${charCount} characters`}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => void handleSave()}
-                    disabled={saving}
-                    className="order-1 sm:order-2 py-3 px-8 border border-foreground/60 text-foreground/80 text-sm tracking-wide disabled:opacity-30 hover:border-foreground hover:text-foreground transition w-full sm:w-auto"
-                  >
-                    {saving ? 'Saving…' : 'Save Breadcrumb'}
-                  </button>
-                </div>
+                  </p>
+                )}
 
                 <div className="space-y-2">
                   <button
@@ -833,17 +826,33 @@ function CaptureFlow() {
               </div>
             )}
 
-            {/* Family Agent — always visible, outside content gate */}
-            {stage === 'capture' && (
-              <div className="pt-2 text-center">
-                <a
-                  href="/ask"
-                  className="text-xs text-foreground/22 hover:text-foreground/50 transition tracking-wide"
-                >
-                  Ask the Family Agent
-                </a>
-              </div>
-            )}
+          </div>
+        )}
+
+        {/* Fixed bottom bar */}
+        {stage === 'capture' && (
+          <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-foreground/[0.07] px-5 py-3 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => handleStageChange('spark')}
+              className="text-sm text-foreground/40 hover:text-foreground/70 transition"
+            >
+              Prompts
+            </button>
+            <a
+              href="/ask"
+              className="text-xs text-foreground/22 hover:text-foreground/50 transition"
+            >
+              Family Agent
+            </a>
+            <button
+              type="button"
+              onClick={() => void handleSave()}
+              disabled={!hasContent || saving}
+              className="px-5 py-1.5 text-sm border border-foreground/50 text-foreground/75 rounded-sm disabled:opacity-25 hover:border-foreground hover:text-foreground transition"
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </button>
           </div>
         )}
 
