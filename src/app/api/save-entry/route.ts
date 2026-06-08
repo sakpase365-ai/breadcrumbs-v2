@@ -65,10 +65,12 @@ export async function POST(req: NextRequest) {
     mediaUrl?:        unknown;
   };
 
+  // Accept both full https:// URLs (signed URLs from upload-voice) and bare storage paths
+  // (fallback returned when signed URL generation fails). The entries route normalizes both.
   const isAudioPayload =
     rawContentType === 'audio'
     && typeof rawMediaUrl === 'string'
-    && /^https?:\/\//i.test(rawMediaUrl.trim());
+    && (/^https?:\/\//i.test(rawMediaUrl.trim()) || /^[0-9a-f-]{36}\//i.test(rawMediaUrl.trim()));
 
   const mediaUrl = isAudioPayload ? rawMediaUrl.trim() : null;
 
@@ -414,10 +416,13 @@ export async function PATCH(req: NextRequest) {
     /* non-fatal; keep text update only */
   }
 
+  // Re-assert ownership on the write; the earlier fetch already confirmed it,
+  // but defense-in-depth ensures the update can never touch another family's row.
   const { error } = await db
     .from('breadcrumbs')
     .update(updateRow)
-    .eq('id', breadcrumbId);
+    .eq('id', breadcrumbId)
+    .eq('parent_id', access.familyId);
 
   if (error) {
     logger.error('failed to append follow-up', {

@@ -397,13 +397,15 @@ function CaptureFlow() {
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({ audioBase64: b64, mimeType: audioBlob.type || 'audio/webm' }),
         });
-        const upData = (await up.json()) as { error?: string; url?: string };
+        const upData = (await up.json()) as { error?: string; url?: string; path?: string };
         if (!up.ok) {
           setSaveError(typeof upData.error === 'string' ? upData.error : 'Could not upload recording.');
           setStage('error');
           return;
         }
-        payload = { ...payload, content: 'Voice note — something I want them to hear.', contentType: 'audio', mediaUrl: upData.url };
+        // url is a signed URL (preferred); path is the raw storage path returned when signing fails
+        const mediaRef = upData.url ?? upData.path;
+        payload = { ...payload, content: 'Voice note — something I want them to hear.', contentType: 'audio', mediaUrl: mediaRef };
       } else {
         payload = { ...payload, content: entry };
       }

@@ -5,7 +5,19 @@ import { logger } from '@/lib/logger';
 import { randomUUID } from 'crypto';
 
 const BUCKET   = 'breadcrumb-voice';
-const MAX_BYTES = 6 * 1024 * 1024; // ~6 MB
+const MAX_BYTES = 6 * 1024 * 1024; // 6 MB
+
+// Strict allowlist — must match the bucket's allowed_mime_types
+const ALLOWED_MIME_TYPES: Record<string, string> = {
+  'audio/webm':  'webm',
+  'audio/mp4':   'm4a',
+  'audio/mpeg':  'mp3',
+  'audio/wav':   'wav',
+  'audio/ogg':   'ogg',
+};
+
+// Signed URL expiry — 7 days; regenerated fresh each archive load (see entries route)
+const SIGNED_URL_EXPIRY_SECONDS = 60 * 60 * 24 * 7;
 
 export async function POST(req: NextRequest) {
   assertEnv();
@@ -24,13 +36,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const b64 = typeof body.audioBase64 === 'string' ? body.audioBase64 : '';
-  const mime = typeof body.mimeType === 'string' && body.mimeType.startsWith('audio/')
-    ? body.mimeType
-    : 'audio/webm';
+  const b64  = typeof body.audioBase64 === 'string' ? body.audioBase64 : '';
+  const mime = typeof body.mimeType === 'string' ? body.mimeType.trim().toLowerCase() : '';
 
   if (!b64.trim()) {
     return NextResponse.json({ error: 'audioBase64 required' }, { status: 400 });
+  }
+
+  // Strict MIME type check against an explicit allowlist
+  const ext = ALLOWED_MIME_TYPES[mime];
+  if (!ext) {
+    logger.warn('upload-voice: rejected unsupported MIME type', {
+      route: 'upload-voice',
+      mime,
+      userId: session.user.id,
+    });
+    return NextResponse.json(
+      { error: `Unsupported audio format. Allowed: ${Object.keys(ALLOWED_MIME_TYPES).join(', ')}` },
+      { status: 415 },
+    );
   }
 
   let buffer: Buffer;
@@ -44,39 +68,42 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Recording too large or empty' }, { status: 413 });
   }
 
-  const ext =
-    mime.includes('webm') ? 'webm'
-    : mime.includes('mp4') || mime.includes('m4a') ? 'm4a'
-    : mime.includes('mpeg') || mime.includes('mp3') ? 'mp3'
-    : mime.includes('wav') ? 'wav'
-    : 'webm';
-
-  const path = `${session.user.id}/${randomUUID()}.${ext}`;
+  // Scope the path under the user's own ID — enforces storage isolation by convention
+  const objectPath = `${session.user.id}/${randomUUID()}.${ext}`;
   const admin = getServiceClient();
 
   const { error: upError } = await admin.storage
     .from(BUCKET)
-    .upload(path, buffer, { contentType: mime, upsert: false });
+    .upload(objectPath, buffer, { contentType: mime, upsert: false });
 
   if (upError) {
     logger.error('voice upload failed', {
-      route: 'upload-voice',
+      route:   'upload-voice',
       message: upError.message,
+      userId:  session.user.id,
     });
     return NextResponse.json(
-      {
-        error:
-          'Could not store recording. Create the `breadcrumb-voice` storage bucket in Supabase (see supabase_storage_breadcrumb_voice.sql) or try again.',
-      },
+      { error: 'Could not store recording. Check that the `breadcrumb-voice` storage bucket exists.' },
       { status: 502 },
     );
   }
 
-  const { data: pub } = admin.storage.from(BUCKET).getPublicUrl(path);
-  const url = pub?.publicUrl;
-  if (!url) {
-    return NextResponse.json({ error: 'Upload succeeded but public URL missing' }, { status: 500 });
+  // Return a short-lived signed URL rather than a permanent public URL.
+  // The bucket should be set to private; see supabase_storage_private_voice.sql.
+  const { data: signed, error: signErr } = await admin.storage
+    .from(BUCKET)
+    .createSignedUrl(objectPath, SIGNED_URL_EXPIRY_SECONDS);
+
+  if (signErr || !signed?.signedUrl) {
+    // Non-fatal: the file is uploaded. Return the object path so the caller can fetch later.
+    logger.warn('upload-voice: signed URL generation failed, returning path only', {
+      route:  'upload-voice',
+      userId: session.user.id,
+    });
+    return NextResponse.json({ path: objectPath });
   }
 
-  return NextResponse.json({ url });
+  logger.info('voice uploaded', { route: 'upload-voice', userId: session.user.id });
+  // path is returned alongside url so the entries route can regenerate signed URLs on demand
+  return NextResponse.json({ url: signed.signedUrl, path: objectPath });
 }
