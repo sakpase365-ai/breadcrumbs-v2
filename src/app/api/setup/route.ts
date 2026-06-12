@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionClient, getServiceClient } from '@/lib/supabase';
+import { assertEnv } from '@/lib/env';
+import { logger } from '@/lib/logger';
 
 const VALID_ROLES = new Set([
   'parent', 'mother', 'father', 'child', 'son', 'daughter', 'sibling', 'brother', 'sister',
@@ -14,6 +16,8 @@ interface MemberInput {
 }
 
 export async function POST(req: NextRequest) {
+  assertEnv();
+
   const supabase = await getSessionClient();
   const { data: { session } } = await supabase.auth.getSession();
 
@@ -84,7 +88,10 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (profileError || !profile) {
-    console.error('[setup POST] profile insert failed', profileError);
+    logger.error('setup: profile insert failed', {
+      route: 'setup POST',
+      code:  profileError?.code,
+    });
     return NextResponse.json({ error: 'Failed to create profile' }, { status: 500 });
   }
 
@@ -105,7 +112,10 @@ export async function POST(req: NextRequest) {
       .select('id, name, role, custom_role_label, birth_date');
 
     if (memberError) {
-      console.error('[setup POST] family_members insert failed', memberError);
+      logger.error('setup: family_members insert failed', {
+        route: 'setup POST',
+        code:  memberError.code,
+      });
     } else {
       familyMembers = insertedMembers ?? [];
     }

@@ -1,10 +1,12 @@
 # CLAUDE.md — Breadcrumbs v2
 
-> **Working directory:** Always use `/Users/manna/claude/breadcrumbs-v2` as the project root.
-> The Xcode project at `/Users/manna/Developments Projects/Xcode/Breadcrumbs` is the iOS app — ignore it unless explicitly asked.
-**Repository:** `sakpase365-ai/legacy-wisdom-stream`
+> **This repository is the master (source of truth)** for the Breadcrumbs web app: `src/`, App Router, APIs, tests, Supabase SQL, and deployment config. **Land all product and web changes here first.**
+> **Mirror:** The Xcode workspace at `Developments Projects/Xcode/Breadcrumbs` carries the iOS WebView shell and a synced copy of the web tree for local builds — pull or copy from here when that mirror needs to catch up; do not invert that flow for web features.
+**Remote:** `git@github.com:sakpase365-ai/breadcrumbs-v2.git`
 **Maintained by:** MANNA Holdings LLC
 **Architecture version:** 2.0 — Compressed Single-Flow
+
+See **`REPOSITORY_HIERARCHY.md`** (same document exists in the Xcode mirror for agents that open that workspace first).
 
 ---
 
