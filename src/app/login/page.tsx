@@ -41,7 +41,7 @@ function LoginForm() {
 
     if (err === 'auth_failed') {
       setError(
-        'We could not finish sign-in. The link may have expired, already been used, or been opened on another device or browser than where you requested it. Request a new link and open it in the same browser when possible.',
+        'We could not finish sign-in. On iPhone: open your email in Safari (not the Gmail app) and tap the link there. Or request a new link below.',
       );
       return;
     }
