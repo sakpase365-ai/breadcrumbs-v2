@@ -7,7 +7,9 @@ import { getBrowserSupabase } from '@/lib/supabase-browser';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { DESCENDENT_ROLES } from '@/lib/roles';
 import { firstName } from '@/lib/nameUtils';
-import { VALUE_TAGS } from '@/lib/breadcrumbs';
+import {
+  VALUE_TAGS,
+} from '@/lib/breadcrumbs';
 import { formatTagForDisplay } from '@/lib/breadcrumb-tags';
 
 const DRAFT_KEY     = 'breadcrumbs_draft';
@@ -319,7 +321,7 @@ function CaptureFlow() {
     }
   }
 
-  // Load profile + initial spark
+  // Load profile + initial prompt suggestion
   useEffect(() => {
     (async () => {
       try {
@@ -333,7 +335,7 @@ function CaptureFlow() {
         setStage('capture');
         setPromptLoading(true);
         try {
-          const prompt = await fetchPromptText(selectedRecipient?.id ?? null);
+          const prompt = await fetchPromptText(null);
           setAiPrompt(prompt);
           recentPromptsRef.current = [prompt];
         } catch { /* non-fatal */ } finally {
@@ -624,7 +626,6 @@ function CaptureFlow() {
             {/* Stage content */}
             <div>
               <AnimatePresence mode="wait" initial={false}>
-
                 {/* ── SPARK ── */}
                 {captureStage === 'spark' && (
                   <motion.div
@@ -790,7 +791,6 @@ function CaptureFlow() {
             {/* Pre-save — appears when content exists */}
             {hasContent && (
               <div className="space-y-4 border-t border-foreground/[0.07] pt-5">
-
                 {hasContent && (
                   <p className="text-xs text-foreground/28">
                     {audioBlob ? 'Voice note ready' : `${charCount} characters`}
@@ -853,7 +853,7 @@ function CaptureFlow() {
               disabled={!hasContent || saving}
               className="px-5 py-1.5 text-sm border border-foreground/50 text-foreground/75 rounded-sm disabled:opacity-25 hover:border-foreground hover:text-foreground transition"
             >
-              {saving ? 'Saving…' : 'Save'}
+              {saving ? 'Saving…' : 'Save Breadcrumb'}
             </button>
           </div>
         )}
@@ -889,15 +889,25 @@ function CaptureFlow() {
                 onClick={async () => {
                   if (!followUpAddition.trim() || !savedBreadcrumbId) { setStage('done'); return; }
                   setSaving(true);
+                  setSaveError('');
                   try {
-                    await fetch('/api/save-entry', {
+                    const res = await fetch('/api/save-entry', {
                       method:  'PATCH',
                       headers: { 'Content-Type': 'application/json' },
                       body:    JSON.stringify({ breadcrumbId: savedBreadcrumbId, appendContent: followUpAddition }),
                     });
+                    if (!res.ok) {
+                      const data = await res.json().catch(() => ({})) as { error?: string };
+                      setSaveError(data.error ?? `Could not append follow-up (${res.status}).`);
+                      setStage('error');
+                      return;
+                    }
+                    setStage('done');
+                  } catch {
+                    setSaveError('Network error while saving follow-up. Try again.');
+                    setStage('error');
                   } finally {
                     setSaving(false);
-                    setStage('done');
                   }
                 }}
                 disabled={saving}

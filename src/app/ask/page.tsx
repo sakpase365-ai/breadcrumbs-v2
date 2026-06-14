@@ -45,7 +45,7 @@ export default function AskPage() {
         setProfileLoading(false);
       }
     })();
-  }, []);
+  }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

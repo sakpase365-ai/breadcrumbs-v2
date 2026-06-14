@@ -42,17 +42,13 @@ export default function Home() {
         {/* Wordmark */}
         <AnimatedWordmark className="text-5xl font-serif font-light tracking-tight text-foreground sm:text-6xl md:text-7xl" />
 
-        {/* Tagline — full ceremony for guests; quiet and immediate when signed in */}
+        {/* Tagline */}
         <p className="max-w-md text-base font-light text-muted-foreground sm:text-lg">
-          {authState === 'authenticated' ? (
-            'Leave something that lasts.'
-          ) : (
-            <TypewriterText
-              text="Leave something that lasts."
-              delay={0.8}
-              speed={0.04}
-            />
-          )}
+          <TypewriterText
+            text="Leave something that lasts."
+            delay={0.8}
+            speed={0.04}
+          />
         </p>
 
         {/* CTAs */}
@@ -63,12 +59,12 @@ export default function Home() {
             delay: authState === 'authenticated' ? 0.15 : 2.4,
             duration: 0.45,
           }}
-          className="flex flex-col items-center gap-3 w-full pt-2"
+          className="flex flex-col gap-3 w-full max-w-xs pt-2"
         >
           {/* Primary — capture layer */}
           <Link
             href="/capture"
-            className="py-4 px-10 border border-foreground text-foreground text-sm font-normal tracking-wide text-center hover:bg-foreground hover:text-background transition"
+            className="w-full py-4 px-8 border border-foreground text-foreground text-sm font-normal tracking-wide text-center hover:bg-foreground hover:text-background transition"
           >
             Leave A Breadcrumb
           </Link>
@@ -76,7 +72,7 @@ export default function Home() {
           {/* Primary — guidance layer */}
           <Link
             href="/ask"
-            className="py-4 px-10 border border-border text-muted-foreground text-sm font-normal tracking-wide text-center hover:border-foreground/40 hover:text-foreground transition"
+            className="w-full py-4 px-8 border border-border text-muted-foreground text-sm font-normal tracking-wide text-center hover:border-foreground/40 hover:text-foreground transition"
           >
             Ask the Family Agent
           </Link>

@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
 import type { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies';
+import { getPublicOrigin } from '@/lib/get-public-origin';
 
 const RATE_LIMIT     = 5;
 const RATE_WINDOW_MS = 15 * 60 * 1000; // 5 requests per 15 minutes per IP/email
@@ -11,15 +12,14 @@ const RATE_WINDOW_MS = 15 * 60 * 1000; // 5 requests per 15 minutes per IP/email
 // Rough email format check — not a full RFC validator but rejects obvious junk
 const EMAIL_RE = /^[^\s@]{1,254}@[^\s@]{1,253}\.[^\s@]{2,63}$/;
 
-// Only allow redirects to our own app (absolute URL or relative path)
-function isSafeRedirect(redirectTo: string | undefined, appUrl: string | undefined): boolean {
+// Only allow redirects to our own app (absolute URL or relative path).
+// In preview environments, request origin is also allowed.
+function isSafeRedirect(redirectTo: string | undefined, allowedOrigins: Set<string>): boolean {
   if (!redirectTo) return true;
   if (redirectTo.startsWith('/')) return true;
-  if (!appUrl) return false;
   try {
-    const target  = new URL(redirectTo);
-    const allowed = new URL(appUrl);
-    return target.origin === allowed.origin;
+    const target = new URL(redirectTo);
+    return allowedOrigins.has(target.origin);
   } catch {
     return false;
   }
@@ -45,9 +45,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
   }
 
-  // Validate redirectTo so we can't be used as an open redirector post-auth
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (!isSafeRedirect(redirectTo, appUrl)) {
+  const requestOrigin = getPublicOrigin(request);
+  const allowedOrigins = new Set<string>([requestOrigin]);
+  const configuredAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (configuredAppUrl) {
+    try { allowedOrigins.add(new URL(configuredAppUrl).origin); } catch { /* ignore invalid env */ }
+  }
+  if (configuredSiteUrl) {
+    try { allowedOrigins.add(new URL(configuredSiteUrl).origin); } catch { /* ignore invalid env */ }
+  }
+
+  // Validate redirectTo so we can't be used as an open redirector post-auth.
+  if (!isSafeRedirect(redirectTo, allowedOrigins)) {
     logger.warn('send-magic-link: rejected unsafe redirectTo', { redirectTo });
     return NextResponse.json({ error: 'Invalid redirect destination' }, { status: 400 });
   }
