@@ -12,6 +12,11 @@ import {
   CAPTURE_INTENT_OPTIONS,
 } from '@/lib/breadcrumbs';
 import { formatTagForDisplay } from '@/lib/breadcrumb-tags';
+import {
+  DEFAULT_USER_SETTINGS,
+  readUserSettings,
+  type UserSettings,
+} from '@/lib/user-settings';
 
 const DRAFT_KEY     = 'breadcrumbs_draft';
 const PREFILL_KEY   = 'breadcrumbs_prefill';
@@ -112,6 +117,8 @@ function CaptureFlow() {
   const [aiPrompt,           setAiPrompt]          = useState<string | null>(null);
   const [promptLoading,      setPromptLoading]     = useState(false);
   const [breadcrumbType,     setBreadcrumbType]    = useState<string | null>(null);
+  const [userSettings,       setUserSettings]      = useState<UserSettings>(DEFAULT_USER_SETTINGS);
+  const [confirmingSave,     setConfirmingSave]    = useState(false);
 
   const autosaveTimer      = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hesitationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -270,6 +277,7 @@ function CaptureFlow() {
 
   // Restore draft or prefill from Foundation
   useEffect(() => {
+    setUserSettings(readUserSettings());
     const prefillRaw = localStorage.getItem(PREFILL_KEY);
     if (prefillRaw) {
       try {
@@ -358,6 +366,10 @@ function CaptureFlow() {
   function handleEntryChange(value: string) {
     setEntry(value);
     setCharCount(value.length);
+    if (!userSettings.autoSaveDrafts) {
+      localStorage.removeItem(DRAFT_KEY);
+      return;
+    }
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     autosaveTimer.current = setTimeout(() => {
       if (value.trim()) localStorage.setItem(DRAFT_KEY, value);
@@ -381,6 +393,11 @@ function CaptureFlow() {
     const textOk  = entry.trim().length > 0;
     const audioOk = !!audioBlob;
     if ((!textOk && !audioOk) || saving) return;
+    if (userSettings.confirmBeforePublishing && !confirmingSave) {
+      setConfirmingSave(true);
+      return;
+    }
+    setConfirmingSave(false);
     setSaving(true);
     setSaveError('');
     try {
@@ -537,16 +554,25 @@ function CaptureFlow() {
           <span className="text-xs text-muted-foreground/50 uppercase tracking-widest">
             {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
           </span>
-          <button
-            onClick={async () => {
-              const supabase = getBrowserSupabase();
-              if (supabase) await supabase.auth.signOut();
-              router.push('/login');
-            }}
-            className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition"
-          >
-            Sign out
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => router.push('/settings')}
+              className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition"
+            >
+              Settings
+            </button>
+            <button
+              onClick={async () => {
+                const supabase = getBrowserSupabase();
+                if (supabase) await supabase.auth.signOut();
+                router.push('/login');
+              }}
+              className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
 
         {/* Loading */}
@@ -848,14 +874,34 @@ function CaptureFlow() {
             >
               Family Agent
             </a>
-            <button
-              type="button"
-              onClick={() => void handleSave()}
-              disabled={!hasContent || !breadcrumbType || saving}
-              className="px-5 py-1.5 text-sm border border-foreground/50 text-foreground/75 rounded-sm disabled:opacity-25 hover:border-foreground hover:text-foreground transition"
-            >
-              {saving ? 'Saving…' : 'Save'}
-            </button>
+            {confirmingSave ? (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmingSave(false)}
+                  className="px-3 py-1.5 text-xs border border-border text-muted-foreground rounded-sm hover:border-foreground/40 hover:text-foreground transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleSave()}
+                  disabled={saving}
+                  className="px-4 py-1.5 text-xs border border-foreground text-foreground rounded-sm hover:bg-foreground hover:text-background transition disabled:opacity-30"
+                >
+                  {saving ? 'Saving…' : 'Yes, save it'}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void handleSave()}
+                disabled={!hasContent || !breadcrumbType || saving}
+                className="px-5 py-1.5 text-sm border border-foreground/50 text-foreground/75 rounded-sm disabled:opacity-25 hover:border-foreground hover:text-foreground transition"
+              >
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+            )}
           </div>
         )}
 
@@ -971,6 +1017,7 @@ function CaptureFlow() {
                 setEntry('');
                 setCharCount(0);
                 setBreadcrumbType(null);
+                setConfirmingSave(false);
                 setStage('capture');
               }}
               className="mt-4 py-3 px-6 border border-foreground text-foreground text-sm tracking-wide hover:bg-foreground hover:text-background transition"

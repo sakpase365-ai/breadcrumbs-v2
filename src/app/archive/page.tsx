@@ -132,6 +132,12 @@ export default function ArchivePage() {
               + New
             </button>
             <button
+              onClick={() => router.push('/settings')}
+              className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition"
+            >
+              Settings
+            </button>
+            <button
               onClick={async () => {
                 const supabase = getBrowserSupabase();
                 if (supabase) await supabase.auth.signOut();

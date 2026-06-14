@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 @layer base {
+  /* ── Dark theme (default) ─────────────────────────── */
   :root {
     --background: 30 13% 9%;       /* #1A1714 warm dark */
     --foreground: 37 39% 94%;      /* #F5F0E8 warm off-white */
@@ -15,6 +16,32 @@
     --radius: 0.5rem;
     --font-display: "Playfair Display", "Hoefler Text", Georgia, serif;
     --font-ui: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  }
+
+  /* ── Light theme (System preference) ──────────────── */
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme='dark']) {
+      --background: 37 30% 95%;      /* warm cream */
+      --foreground: 30 13% 9%;       /* warm near-black */
+      --card: 37 25% 91%;            /* slightly darker cream */
+      --card-foreground: 30 13% 9%;
+      --border: 30 10% 78%;          /* warm soft divider */
+      --input: 30 10% 78%;
+      --muted: 37 28% 93%;
+      --muted-foreground: 30 8% 42%;
+    }
+  }
+
+  /* ── Light theme (explicit override) ──────────────── */
+  :root[data-theme='light'] {
+    --background: 37 30% 95%;
+    --foreground: 30 13% 9%;
+    --card: 37 25% 91%;
+    --card-foreground: 30 13% 9%;
+    --border: 30 10% 78%;
+    --input: 30 10% 78%;
+    --muted: 37 28% 93%;
+    --muted-foreground: 30 8% 42%;
   }
 
   * {
@@ -90,6 +117,15 @@ textarea {
 .wordmark-dot {
   display: inline-block;
   animation: wordmark-dot-pulse 1.75s ease-in-out infinite;
+}
+
+html[data-motion='reduce'] *,
+html[data-motion='reduce'] *::before,
+html[data-motion='reduce'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
