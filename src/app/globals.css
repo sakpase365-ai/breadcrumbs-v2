@@ -4,14 +4,14 @@
 
 @layer base {
   :root {
-    --background: 0 0% 0%;
-    --foreground: 0 0% 100%;
-    --card: 0 0% 5%;
-    --card-foreground: 0 0% 100%;
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 65%;
+    --background: 30 13% 9%;       /* #1A1714 warm dark */
+    --foreground: 37 39% 94%;      /* #F5F0E8 warm off-white */
+    --card: 30 13% 12%;            /* #231F1B elevated surface */
+    --card-foreground: 37 39% 94%;
+    --border: 30 10% 18%;          /* subtle warm divider */
+    --input: 30 10% 18%;
+    --muted: 30 13% 11%;           /* #221E1A bgElevated */
+    --muted-foreground: 30 4% 55%; /* ~55% opacity warm text */
     --radius: 0.5rem;
     --font-display: "Playfair Display", "Hoefler Text", Georgia, serif;
     --font-ui: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
@@ -97,4 +97,12 @@ textarea {
     animation: none;
     opacity: 0.55;
   }
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

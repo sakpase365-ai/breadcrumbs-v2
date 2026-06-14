@@ -9,6 +9,7 @@ import { DESCENDENT_ROLES } from '@/lib/roles';
 import { firstName } from '@/lib/nameUtils';
 import {
   VALUE_TAGS,
+  CAPTURE_INTENT_OPTIONS,
 } from '@/lib/breadcrumbs';
 import { formatTagForDisplay } from '@/lib/breadcrumb-tags';
 
@@ -17,9 +18,9 @@ const PREFILL_KEY   = 'breadcrumbs_prefill';
 const HESITATION_MS = 10_000;
 
 type Stage        = 'loading' | 'capture' | 'follow-up' | 'done' | 'error';
-type CaptureStage = 'spark' | 'write' | 'voice';
+type CaptureStage = 'write' | 'voice';
 
-const STAGE_ORDER: CaptureStage[] = ['spark', 'write', 'voice'];
+const STAGE_ORDER: CaptureStage[] = ['write', 'voice'];
 
 interface Profile {
   id:                string;
@@ -110,6 +111,7 @@ function CaptureFlow() {
   const [tagSaving,          setTagSaving]         = useState(false);
   const [aiPrompt,           setAiPrompt]          = useState<string | null>(null);
   const [promptLoading,      setPromptLoading]     = useState(false);
+  const [breadcrumbType,     setBreadcrumbType]    = useState<string | null>(null);
 
   const autosaveTimer      = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hesitationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -384,7 +386,7 @@ function CaptureFlow() {
     try {
       let payload: Record<string, unknown> = {
         recipientId:     selectedRecipient?.id ?? null,
-        breadcrumb_type: 'message',
+        breadcrumb_type: breadcrumbType ?? 'message',
         tags:            selectedTags,
       };
 
@@ -605,7 +607,7 @@ function CaptureFlow() {
               </div>
             )}
 
-            {/* Stage navigation */}
+            {/* Stage navigation — Write / Voice only */}
             <div className="flex items-center justify-center gap-6">
               {STAGE_ORDER.map((s) => (
                 <button
@@ -626,56 +628,6 @@ function CaptureFlow() {
             {/* Stage content */}
             <div>
               <AnimatePresence mode="wait" initial={false}>
-                {/* ── SPARK ── */}
-                {captureStage === 'spark' && (
-                  <motion.div
-                    key="spark"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="min-h-[44vh] sm:min-h-[48vh] flex flex-col justify-center space-y-6 py-4"
-                  >
-                    <p className="type-label text-foreground/30 text-center">Today&apos;s Spark</p>
-                    {promptLoading ? (
-                      <p className="text-xs text-foreground/20 text-center">···</p>
-                    ) : aiPrompt ? (
-                      <motion.p
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.45 }}
-                        className="text-[17px] leading-[1.55] tracking-[-0.005em] font-[400] text-foreground/68 text-center px-4"
-                      >
-                        {aiPrompt}
-                      </motion.p>
-                    ) : (
-                      <p className="text-xs text-foreground/22 text-center">Need a moment to think.</p>
-                    )}
-                    <div className="flex items-center justify-center gap-5">
-                      {!promptLoading && (
-                        <button
-                          type="button"
-                          onClick={() => void handleNewPrompt()}
-                          className="text-xs text-foreground/22 hover:text-foreground/55 transition"
-                        >
-                          ↻ Different spark
-                        </button>
-                      )}
-                      {!promptLoading && aiPrompt && (
-                        <>
-                          <span className="text-foreground/12 text-xs select-none">·</span>
-                          <button
-                            type="button"
-                            onClick={() => handleStageChange('write')}
-                            className="text-xs text-foreground/38 hover:text-foreground/65 transition"
-                          >
-                            Start writing →
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
 
                 {/* ── WRITE ── */}
                 {captureStage === 'write' && (
@@ -689,7 +641,7 @@ function CaptureFlow() {
                   >
                     <textarea
                       ref={writeAreaRef}
-                      className="w-full min-h-[44vh] sm:min-h-[48vh] bg-transparent border-0 px-0 py-2 text-foreground text-[17px] leading-[1.55] tracking-[-0.01em] placeholder:text-foreground/18 focus:outline-none resize-none"
+                      className="w-full min-h-[38vh] sm:min-h-[42vh] bg-transparent border-0 px-0 py-2 text-foreground text-[17px] leading-[1.55] tracking-[-0.01em] placeholder:text-foreground/18 focus:outline-none resize-none"
                       placeholder="What do you want them to remember?"
                       value={entry}
                       onChange={onWriteAreaChange}
@@ -699,20 +651,37 @@ function CaptureFlow() {
                       }}
                       onBlur={clearHesitationTimer}
                     />
-                    {showHesitationHint && !entry.trim() && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 3 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4 }}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => handleStageChange('spark')}
-                          className="text-xs text-foreground/28 hover:text-foreground/55 transition"
-                        >
-                          Need inspiration?
-                        </button>
-                      </motion.div>
+
+                    {/* Inline prompt card — always visible in write stage */}
+                    {(aiPrompt || promptLoading) && (
+                      <div className="border-t border-foreground/[0.06] pt-3 space-y-2">
+                        <p className="type-label text-foreground/22">Today&apos;s Spark</p>
+                        {promptLoading ? (
+                          <p className="text-xs text-foreground/18">···</p>
+                        ) : (
+                          <AnimatePresence mode="wait">
+                            <motion.p
+                              key={aiPrompt ?? 'prompt'}
+                              initial={{ opacity: 0, y: 4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -4 }}
+                              transition={{ duration: 0.3 }}
+                              className="text-sm leading-relaxed text-foreground/38 font-display italic"
+                            >
+                              {aiPrompt}
+                            </motion.p>
+                          </AnimatePresence>
+                        )}
+                        {!promptLoading && (
+                          <button
+                            type="button"
+                            onClick={() => void handleNewPrompt()}
+                            className="text-xs text-foreground/20 hover:text-foreground/50 transition"
+                          >
+                            ↻ New spark
+                          </button>
+                        )}
+                      </div>
                     )}
                   </motion.div>
                 )}
@@ -790,12 +759,43 @@ function CaptureFlow() {
 
             {/* Pre-save — appears when content exists */}
             {hasContent && (
-              <div className="space-y-4 border-t border-foreground/[0.07] pt-5">
-                {hasContent && (
-                  <p className="text-xs text-foreground/28">
-                    {audioBlob ? 'Voice note ready' : `${charCount} characters`}
-                  </p>
-                )}
+              <div className="space-y-5 border-t border-foreground/[0.07] pt-5">
+
+                {/* Type picker — required before save */}
+                <div className="space-y-2.5">
+                  <p className="type-label text-foreground/30">What kind of breadcrumb is this?</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {CAPTURE_INTENT_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setBreadcrumbType(opt.value)}
+                        className={`px-4 py-1.5 text-sm border rounded-sm transition ${
+                          breadcrumbType === opt.value
+                            ? 'border-foreground text-foreground bg-foreground/5'
+                            : 'border-foreground/18 text-foreground/40 hover:border-foreground/45 hover:text-foreground/70'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  {breadcrumbType && (
+                    <motion.p
+                      key={breadcrumbType}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.25 }}
+                      className="text-xs text-foreground/28"
+                    >
+                      {CAPTURE_INTENT_OPTIONS.find((o) => o.value === breadcrumbType)?.description}
+                    </motion.p>
+                  )}
+                </div>
+
+                <p className="text-xs text-foreground/22">
+                  {audioBlob ? 'Voice note ready' : `${charCount} characters`}
+                </p>
 
                 <div className="space-y-2">
                   <button
@@ -836,10 +836,11 @@ function CaptureFlow() {
           <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-foreground/[0.07] px-5 py-3 flex items-center justify-between">
             <button
               type="button"
-              onClick={() => handleStageChange('spark')}
-              className="text-sm text-foreground/40 hover:text-foreground/70 transition"
+              onClick={() => void handleNewPrompt()}
+              disabled={promptLoading}
+              className="text-sm text-foreground/35 hover:text-foreground/65 transition disabled:opacity-30"
             >
-              Prompts
+              ↻ Spark
             </button>
             <a
               href="/ask"
@@ -850,10 +851,10 @@ function CaptureFlow() {
             <button
               type="button"
               onClick={() => void handleSave()}
-              disabled={!hasContent || saving}
+              disabled={!hasContent || !breadcrumbType || saving}
               className="px-5 py-1.5 text-sm border border-foreground/50 text-foreground/75 rounded-sm disabled:opacity-25 hover:border-foreground hover:text-foreground transition"
             >
-              {saving ? 'Saving…' : 'Save Breadcrumb'}
+              {saving ? 'Saving…' : 'Save'}
             </button>
           </div>
         )}
@@ -969,6 +970,7 @@ function CaptureFlow() {
                 setShowHesitationHint(false);
                 setEntry('');
                 setCharCount(0);
+                setBreadcrumbType(null);
                 setStage('capture');
               }}
               className="mt-4 py-3 px-6 border border-foreground text-foreground text-sm tracking-wide hover:bg-foreground hover:text-background transition"
