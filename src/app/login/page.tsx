@@ -41,7 +41,7 @@ function LoginForm() {
 
     if (err === 'auth_failed') {
       setError(
-        'We could not finish sign-in. On iPhone: open your email in Safari (not the Gmail app) and tap the link there. Or request a new link below.',
+        'That sign-in link has expired or already been used. Request a new one below.',
       );
       return;
     }

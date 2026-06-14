@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
-import type { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies';
 import { getPublicOrigin } from '@/lib/get-public-origin';
 
 const RATE_LIMIT     = 5;
@@ -95,16 +93,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const cookieStore = await cookies();
-    const pendingCookies: Array<{ name: string; value: string; options: Partial<ResponseCookie> }> = [];
-
-    const supabase = createServerClient(supabaseUrl, supabaseAnon, {
-      cookies: {
-        getAll() { return cookieStore.getAll(); },
-        setAll(cookiesToSet) {
-          pendingCookies.push(...cookiesToSet);
-        },
-      },
+    // Use a plain (non-SSR) client with implicit flow so no PKCE code verifier
+    // is generated. This means Supabase sends a token_hash link instead of a
+    // code link — the token_hash works in any browser (Gmail app, Safari, etc.)
+    // rather than only in the browser that requested the OTP.
+    const supabase = createClient(supabaseUrl, supabaseAnon, {
+      auth: { flowType: 'implicit', persistSession: false, autoRefreshToken: false },
     });
 
     const { error } = await supabase.auth.signInWithOtp({
@@ -138,11 +132,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Could not send sign-in link. Please try again.' }, { status: 400 });
     }
 
-    const response = NextResponse.json({ ok: true });
-    pendingCookies.forEach(({ name, value, options }) => {
-      response.cookies.set(name, value, options);
-    });
-    return response;
+    return NextResponse.json({ ok: true });
 
   } catch {
     logger.error('send-magic-link: unexpected error');
