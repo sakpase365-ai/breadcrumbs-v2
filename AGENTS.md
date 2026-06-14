@@ -1,94 +1,58 @@
-# AGENTS.md — Breadcrumbs v2
+# AGENTS.md — Breadcrumbs v2 (Current State)
 
-> **Master repository:** This repo (`sakpase365-ai/breadcrumbs-v2`) is canonical for web and product code. **Work here** unless the task is iOS-only in the Xcode mirror.
-> **Xcode path** (`Developments Projects/Xcode/Breadcrumbs`): mirror for `ios/` + local Next.js copy — sync from this repo after changes land here.
-**Remote:** `git@github.com:sakpase365-ai/breadcrumbs-v2.git`
-**Maintained by:** MANNA Holdings LLC
-**Architecture version:** 2.0 — Compressed Single-Flow
+Master repo: `sakpase365-ai/breadcrumbs-v2`  
+Mirror workspace: `Developments Projects/Xcode/Breadcrumbs` (`ios/` shell only)  
+Remote: `git@github.com:sakpase365-ai/breadcrumbs-v2.git`
 
----
+## Product Constitution (Active)
 
-## 1. Project Vision
+Breadcrumbs is a private family intelligence product, not a journaling app.
 
-Breadcrumbs is an AI-native platform for intergenerational wisdom and family legacy.
-Its sole job: help a parent write one meaningful letter to their child per session,
-and ensure that letter is delivered at the right moment in the child's life.
+- Capture starts action-first: **Write** or **Record Audio**.
+- Prompt suggestions support capture; they do not replace action-first entry.
+- Capture copy should ask: **"Who are you speaking to today?"**
+- Recipient is explicit when family members exist (no implicit default).
+- After content is created, parent chooses classification: **Message / Memory / Lesson**.
+- Family Agent answers in first-person voice for the family speaker profile.
 
-It is not a journaling app. Not a social network. Not a photo album.
-It is a **legacy delivery system** — the connective tissue between who a parent is
-and who their child becomes.
+## Stack (As Implemented)
 
----
+- Next.js App Router (`next@16`)
+- React 18 + TypeScript strict
+- Supabase Auth + Postgres + Storage
+- Anthropic SDK (`claude-sonnet-4-6`)
+- Tailwind CSS + Framer Motion
+- Vitest test suite
 
-## 2. Architecture — Compressed (v2)
+## Current App Surfaces
 
-Three layers. One owner each. No cross-layer user actions.
+- App pages: `/`, `/capture`, `/archive`, `/foundation`, `/ask`, `/family/*`, `/login`, `/setup`
+- API routes: auth (`/api/send-magic-link`, `/auth/callback`), capture (`/api/generate-prompt`, `/api/save-entry`, `/api/upload-voice`, `/api/entries`), family (`/api/foundation`, `/api/family-agent`, invite routes)
+- iOS: WebView shell under `ios/`
 
-| Layer       | Owner      | User Touchpoint         |
-|-------------|------------|-------------------------|
-| Capture     | Parent     | High — single focused prompt per session |
-| Intelligence| AI Engine  | None — fully invisible  |
-| Delivery    | Platform   | Phase 2 — not in MVP    |
+## Data and Ownership Rules
 
-**MVP scope is parent-only.** Child interface is feature-flagged for Phase 2.
+- Canonical authored content lives in `breadcrumbs`.
+- Legacy compatibility bridge to `entries` still exists and must stay non-breaking.
+- Family-scoped access resolves through `resolveFamilyAccess`.
+- Write operations must enforce `canWriteFamilyContent`.
+- Invitation tokens are stored as hashes, not raw tokens.
 
----
+## Engineering Guardrails
 
-## 3. File Structure
+- Do not regress invite/auth callback behavior (`/auth/callback` code exchange flow).
+- Do not bypass family scoping in API routes.
+- Keep capture classification (`message|memory|lesson`) and recipient semantics consistent between UI and API payloads.
+- Keep docs aligned with code reality whenever routes/models/flows change.
 
-```
-src/
-├── app/
-│   ├── page.tsx               ← Home / entry point
-│   ├── capture/page.tsx       ← Core parent flow (prompt → write → save)
-│   ├── archive/page.tsx       ← Read-only entry view
-│   └── api/
-│       ├── generate-prompt/   ← POST: AI daily prompt
-│       ├── save-entry/        ← POST: save + AI tag entry
-│       └── entries/           ← GET: fetch archive
-├── lib/
-│   ├── ai.ts                  ← All Anthropic API calls
-│   └── supabase.ts            ← Supabase client + service client
-└── types/
-    └── index.ts               ← Shared TypeScript types
-```
+## Build/Test Gate
 
----
+- `npm run test` must pass before shipping.
+- `npm run build` must pass in deploy-like env.
+- `npm run lint` should pass (eslint + next core web vitals).
 
-## 4. AI Behavior Rules
+## Known Follow-Ups
 
-- **generateDailyPrompt** — one prompt per call, no lists, no jargon, emotionally direct
-- **tagEntry** — returns JSON only: domain, relevantAge, deliveryType, summary
-- **generateFollowUp** — one sentence, listener tone, never interviewer tone
-- Model: `Codex-opus-4-5-20251101` for all calls
-- Never expose AI internals to the parent UI — all tagging is invisible
-
----
-
-## 5. Code Conventions
-
-- Next.js 14 App Router — server components by default, `'use client'` only when needed
-- Tailwind only — no inline styles, no CSS modules
-- Brand tokens: `navy (#0D1B2A)`, `gold (#C8963E)`, `warm (#F9F6F1)`, `muted (#8A8A8A)`
-- All Supabase writes use `getServiceClient()` (service role) — never the anon client server-side
-- Errors are caught and surfaced via UI state — no unhandled promise rejections
-
----
-
-## 6. What Is Explicitly Out of Scope (MVP)
-
-- Child-facing interface or delivery UI
-- Extended family / grandparent contributor flow
-- Voice input
-- Social / public sharing
-- Manual domain tagging by the parent
-- Any authentication beyond demo mode (add Supabase Auth in Phase 2)
-
----
-
-## 7. Content & Tone
-
-- Warm, grave, and clear. No corporate language.
-- Prompts feel like a trusted listener, not a chatbot.
-- UI copy is minimal. Let the writing breathe.
-- Never use: "journey", "legacy" (in UI copy), "wisdom" (in prompts), exclamation points.
+- Migrate `src/middleware.ts` to Next 16 `proxy` convention.
+- Continue decomposing `src/app/capture/page.tsx` into smaller flow components.
+- Move root SQL scripts into ordered migrations directory after reconciliation.
