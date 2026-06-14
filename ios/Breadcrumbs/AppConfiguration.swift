@@ -18,7 +18,7 @@ enum AppConfiguration {
         // Simulator: `npm run dev` on the same Mac. Device: use your machine's LAN IP + port, or production URL.
         URL(string: "http://127.0.0.1:3000")!
         #else
-        URL(string: "https://eclectic-cobbler-b4ea7b.netlify.app")!
+        URL(string: "https://breadcrumbs-v2.vercel.app")!
         #endif
     }
 }
