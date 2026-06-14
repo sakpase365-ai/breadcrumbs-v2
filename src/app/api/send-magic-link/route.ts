@@ -116,15 +116,19 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      const status = typeof error.status === 'number' ? error.status : 400;
+      const status = Number(error.status ?? 400);
       const code = typeof (error as { code?: unknown }).code === 'string'
         ? (error as { code?: string }).code
         : undefined;
+      const isRateLimit =
+        status === 429
+        || code === 'over_email_send_rate_limit'
+        || (error.message ?? '').toLowerCase().includes('security purposes');
 
       // Supabase can throttle repeated sends for the same email. If that happens,
       // treat it as success so users aren't told "failed" when a prior link
       // was already sent seconds earlier.
-      if (status === 429 || code === 'over_email_send_rate_limit') {
+      if (isRateLimit) {
         logger.info('send-magic-link: Supabase OTP throttled; treating as success', { status, code });
         return NextResponse.json({ ok: true, throttled: true });
       }
