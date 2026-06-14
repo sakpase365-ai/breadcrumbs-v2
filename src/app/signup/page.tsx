@@ -13,6 +13,7 @@ import {
   SECONDARY_MEMBER_ROLES,
 } from '@/lib/roles';
 import { normalizePhone } from '@/lib/phone';
+import { buildAuthCallbackUrl } from '@/lib/auth-callback-url';
 
 // ─── Shared style tokens ──────────────────────────────────────
 const INPUT =
@@ -256,7 +257,7 @@ export default function SignupPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: email.trim(),
-          redirectTo: `${window.location.origin}/auth/callback?next=/capture`,
+          redirectTo: buildAuthCallbackUrl('/capture'),
           data: {
             phone:             normalizePhone(phone) ?? phone.trim(),
             owner_name:        ownerName.trim(),

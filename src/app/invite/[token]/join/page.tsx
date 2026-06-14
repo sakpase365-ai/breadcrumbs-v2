@@ -2,6 +2,7 @@
 
 import { useState, use } from 'react';
 import AnimatedWordmark from '@/components/AnimatedWordmark';
+import { buildAuthCallbackUrl } from '@/lib/auth-callback-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,8 +29,7 @@ export default function InviteJoinPage({
     setBusy(true);
     setError('');
 
-    const redirectTo =
-      `${window.location.origin}/auth/callback?next=/invite/${token}/finalize`;
+    const redirectTo = buildAuthCallbackUrl(`/invite/${token}/finalize`);
 
     try {
       const res = await fetch('/api/send-magic-link', {

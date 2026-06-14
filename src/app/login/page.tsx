@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import AnimatedWordmark from '@/components/AnimatedWordmark';
+import { buildAuthCallbackUrl } from '@/lib/auth-callback-url';
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -61,7 +62,7 @@ function LoginForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: email.trim(),
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+          redirectTo: buildAuthCallbackUrl(next),
         }),
       });
       let json: { error?: string } = {};
