@@ -7,7 +7,12 @@ import { getBrowserSupabase } from '@/lib/supabase-browser';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { DESCENDENT_ROLES } from '@/lib/roles';
 import { firstName } from '@/lib/nameUtils';
-import { VALUE_TAGS } from '@/lib/breadcrumbs';
+import {
+  CAPTURE_INTENT_OPTIONS,
+  normalizePrefillBreadcrumbType,
+  type CaptureIntentValue,
+  VALUE_TAGS,
+} from '@/lib/breadcrumbs';
 import { formatTagForDisplay } from '@/lib/breadcrumb-tags';
 
 const DRAFT_KEY     = 'breadcrumbs_draft';
@@ -15,9 +20,9 @@ const PREFILL_KEY   = 'breadcrumbs_prefill';
 const HESITATION_MS = 10_000;
 
 type Stage        = 'loading' | 'capture' | 'follow-up' | 'done' | 'error';
-type CaptureStage = 'spark' | 'write' | 'voice';
+type CaptureStage = 'write' | 'voice';
 
-const STAGE_ORDER: CaptureStage[] = ['spark', 'write', 'voice'];
+const STAGE_ORDER: CaptureStage[] = ['write', 'voice'];
 
 interface Profile {
   id:                string;
@@ -82,6 +87,8 @@ function CaptureFlow() {
   const [profile,            setProfile]           = useState<Profile | null>(null);
   const [familyMembers,      setFamilyMembers]     = useState<FamilyMember[]>([]);
   const [selectedRecipient,  setSelectedRecipient] = useState<FamilyMember | null>(null);
+  const [recipientScope,     setRecipientScope]    = useState<'unset' | 'everyone' | 'single'>('unset');
+  const [selectedIntent,     setSelectedIntent]    = useState<CaptureIntentValue | null>(null);
   const [selectedTags,       setSelectedTags]      = useState<string[]>([]);
   const [showTags,           setShowTags]          = useState(false);
   const [stage,              setStage]             = useState<Stage>('loading');
@@ -276,6 +283,9 @@ function CaptureFlow() {
           setPrefillRestored(true);
           setCaptureStage('write');
         }
+        if (typeof prefill.breadcrumbType === 'string') {
+          setSelectedIntent(normalizePrefillBreadcrumbType(prefill.breadcrumbType));
+        }
         localStorage.removeItem(PREFILL_KEY);
         localStorage.removeItem(DRAFT_KEY);
         return;
@@ -319,7 +329,7 @@ function CaptureFlow() {
     }
   }
 
-  // Load profile + initial spark
+  // Load profile + initial prompt suggestion
   useEffect(() => {
     (async () => {
       try {
@@ -333,7 +343,7 @@ function CaptureFlow() {
         setStage('capture');
         setPromptLoading(true);
         try {
-          const prompt = await fetchPromptText(selectedRecipient?.id ?? null);
+          const prompt = await fetchPromptText(null);
           setAiPrompt(prompt);
           recentPromptsRef.current = [prompt];
         } catch { /* non-fatal */ } finally {
@@ -377,12 +387,20 @@ function CaptureFlow() {
     const textOk  = entry.trim().length > 0;
     const audioOk = !!audioBlob;
     if ((!textOk && !audioOk) || saving) return;
+    if (!selectedIntent) {
+      setSaveError('Choose Message, Memory, or Lesson before saving.');
+      return;
+    }
+    if (recipientSelectionRequired && !hasRecipientSelection) {
+      setSaveError('Choose who you are speaking to before saving.');
+      return;
+    }
     setSaving(true);
     setSaveError('');
     try {
       let payload: Record<string, unknown> = {
         recipientId:     selectedRecipient?.id ?? null,
-        breadcrumb_type: 'message',
+        breadcrumb_type: selectedIntent,
         tags:            selectedTags,
       };
 
@@ -461,11 +479,15 @@ function CaptureFlow() {
   }
 
   const hasContent = entry.trim().length > 0 || !!audioBlob;
+  const recipientSelectionRequired = familyMembers.length > 0;
+  const hasRecipientSelection = !recipientSelectionRequired || recipientScope !== 'unset';
 
   const collective = collectiveLabel(familyMembers);
   const doneLine   = selectedRecipient
     ? `${firstName(selectedRecipient.name)} will have this when the time is right.`
-    : `${collective === 'your family' ? 'Your family' : 'Your children'} will have this when the time is right.`;
+    : recipientScope === 'everyone'
+      ? `${collective === 'your family' ? 'Your family' : 'Your children'} will have this when the time is right.`
+      : 'This will be there when the time is right.';
 
   function renderTagEditor(inputId: string) {
     if (savedTags.length === 0) return null;
@@ -572,13 +594,21 @@ function CaptureFlow() {
             {/* Recipient — always visible, not gated by content */}
             {familyMembers.length > 0 && (
               <div className="space-y-2">
-                <p className="type-label text-foreground/35">Who are you writing to?</p>
+                <p className="type-label text-foreground/35">Who are you speaking to today?</p>
                 <div className="flex gap-2 flex-wrap">
                   {familyMembers.map((m) => (
                     <button
                       type="button"
                       key={m.id}
-                      onClick={() => setSelectedRecipient(selectedRecipient?.id === m.id ? null : m)}
+                      onClick={() => {
+                        if (selectedRecipient?.id === m.id) {
+                          setSelectedRecipient(null);
+                          setRecipientScope('unset');
+                          return;
+                        }
+                        setSelectedRecipient(m);
+                        setRecipientScope('single');
+                      }}
                       className={`px-3 py-1 text-sm rounded-full border transition ${
                         selectedRecipient?.id === m.id
                           ? 'border-foreground text-foreground'
@@ -590,9 +620,16 @@ function CaptureFlow() {
                   ))}
                   <button
                     type="button"
-                    onClick={() => setSelectedRecipient(null)}
+                    onClick={() => {
+                      if (recipientScope === 'everyone') {
+                        setRecipientScope('unset');
+                        return;
+                      }
+                      setSelectedRecipient(null);
+                      setRecipientScope('everyone');
+                    }}
                     className={`px-3 py-1 text-sm rounded-full border transition ${
-                      !selectedRecipient
+                      recipientScope === 'everyone'
                         ? 'border-foreground text-foreground'
                         : 'border-foreground/20 text-foreground/50 hover:border-foreground/45 hover:text-foreground/75'
                     }`}
@@ -600,6 +637,9 @@ function CaptureFlow() {
                     Everyone
                   </button>
                 </div>
+                {recipientScope === 'unset' && (
+                  <p className="text-xs text-foreground/28">Choose one recipient or Everyone before saving.</p>
+                )}
               </div>
             )}
 
@@ -624,57 +664,6 @@ function CaptureFlow() {
             {/* Stage content */}
             <div>
               <AnimatePresence mode="wait" initial={false}>
-
-                {/* ── SPARK ── */}
-                {captureStage === 'spark' && (
-                  <motion.div
-                    key="spark"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="min-h-[44vh] sm:min-h-[48vh] flex flex-col justify-center space-y-6 py-4"
-                  >
-                    <p className="type-label text-foreground/30 text-center">Today&apos;s Spark</p>
-                    {promptLoading ? (
-                      <p className="text-xs text-foreground/20 text-center">···</p>
-                    ) : aiPrompt ? (
-                      <motion.p
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.45 }}
-                        className="text-[17px] leading-[1.55] tracking-[-0.005em] font-[400] text-foreground/68 text-center px-4"
-                      >
-                        {aiPrompt}
-                      </motion.p>
-                    ) : (
-                      <p className="text-xs text-foreground/22 text-center">Need a moment to think.</p>
-                    )}
-                    <div className="flex items-center justify-center gap-5">
-                      {!promptLoading && (
-                        <button
-                          type="button"
-                          onClick={() => void handleNewPrompt()}
-                          className="text-xs text-foreground/22 hover:text-foreground/55 transition"
-                        >
-                          ↻ Different spark
-                        </button>
-                      )}
-                      {!promptLoading && aiPrompt && (
-                        <>
-                          <span className="text-foreground/12 text-xs select-none">·</span>
-                          <button
-                            type="button"
-                            onClick={() => handleStageChange('write')}
-                            className="text-xs text-foreground/38 hover:text-foreground/65 transition"
-                          >
-                            Start writing →
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
 
                 {/* ── WRITE ── */}
                 {captureStage === 'write' && (
@@ -706,10 +695,10 @@ function CaptureFlow() {
                       >
                         <button
                           type="button"
-                          onClick={() => handleStageChange('spark')}
+                          onClick={() => void handleNewPrompt()}
                           className="text-xs text-foreground/28 hover:text-foreground/55 transition"
                         >
-                          Need inspiration?
+                          Need inspiration? Refresh prompt below.
                         </button>
                       </motion.div>
                     )}
@@ -779,6 +768,28 @@ function CaptureFlow() {
               </AnimatePresence>
             </div>
 
+            {/* Prompt suggestion sits below active capture mode */}
+            <div className="space-y-3 border border-foreground/[0.08] rounded-sm px-4 py-3 bg-card/20">
+              <div className="flex items-center justify-between gap-3">
+                <p className="type-label text-foreground/35">Prompt suggestion</p>
+                <button
+                  type="button"
+                  onClick={() => void handleNewPrompt()}
+                  disabled={promptLoading}
+                  className="text-xs text-foreground/28 hover:text-foreground/55 transition disabled:opacity-40"
+                >
+                  {promptLoading ? 'Refreshing…' : 'Different prompt'}
+                </button>
+              </div>
+              {aiPrompt ? (
+                <p className="text-[15px] leading-[1.55] tracking-[-0.005em] text-foreground/70">
+                  {aiPrompt}
+                </p>
+              ) : (
+                <p className="text-xs text-foreground/30">Need a moment to think.</p>
+              )}
+            </div>
+
             {/* Draft / prefill notices */}
             {(draftRestored || prefillRestored) && (
               <div className="text-xs text-foreground/28">
@@ -790,6 +801,29 @@ function CaptureFlow() {
             {/* Pre-save — appears when content exists */}
             {hasContent && (
               <div className="space-y-4 border-t border-foreground/[0.07] pt-5">
+                <div className="space-y-2">
+                  <p className="text-xs text-foreground/35 uppercase tracking-widest">Save as</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {CAPTURE_INTENT_OPTIONS.map((option) => {
+                      const active = selectedIntent === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setSelectedIntent(option.value)}
+                          className={`text-left px-3 py-2 border rounded-sm transition ${
+                            active
+                              ? 'border-foreground text-foreground bg-foreground/5'
+                              : 'border-foreground/15 text-foreground/40 hover:border-foreground/40 hover:text-foreground/75'
+                          }`}
+                        >
+                          <p className="text-sm">{option.label}</p>
+                          <p className="text-[11px] leading-4 mt-1 text-foreground/55">{option.description}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 {hasContent && (
                   <p className="text-xs text-foreground/28">
@@ -836,10 +870,10 @@ function CaptureFlow() {
           <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-foreground/[0.07] px-5 py-3 flex items-center justify-between">
             <button
               type="button"
-              onClick={() => handleStageChange('spark')}
+              onClick={() => void handleNewPrompt()}
               className="text-sm text-foreground/40 hover:text-foreground/70 transition"
             >
-              Prompts
+              {promptLoading ? 'Loading…' : 'Prompt'}
             </button>
             <a
               href="/ask"
@@ -850,7 +884,7 @@ function CaptureFlow() {
             <button
               type="button"
               onClick={() => void handleSave()}
-              disabled={!hasContent || saving}
+              disabled={!hasContent || !selectedIntent || !hasRecipientSelection || saving}
               className="px-5 py-1.5 text-sm border border-foreground/50 text-foreground/75 rounded-sm disabled:opacity-25 hover:border-foreground hover:text-foreground transition"
             >
               {saving ? 'Saving…' : 'Save'}
@@ -889,15 +923,25 @@ function CaptureFlow() {
                 onClick={async () => {
                   if (!followUpAddition.trim() || !savedBreadcrumbId) { setStage('done'); return; }
                   setSaving(true);
+                  setSaveError('');
                   try {
-                    await fetch('/api/save-entry', {
+                    const res = await fetch('/api/save-entry', {
                       method:  'PATCH',
                       headers: { 'Content-Type': 'application/json' },
                       body:    JSON.stringify({ breadcrumbId: savedBreadcrumbId, appendContent: followUpAddition }),
                     });
+                    if (!res.ok) {
+                      const data = await res.json().catch(() => ({})) as { error?: string };
+                      setSaveError(data.error ?? `Could not append follow-up (${res.status}).`);
+                      setStage('error');
+                      return;
+                    }
+                    setStage('done');
+                  } catch {
+                    setSaveError('Network error while saving follow-up. Try again.');
+                    setStage('error');
                   } finally {
                     setSaving(false);
-                    setStage('done');
                   }
                 }}
                 disabled={saving}
