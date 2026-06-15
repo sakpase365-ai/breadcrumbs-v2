@@ -13,6 +13,7 @@ import {
   type UserSettings,
 } from '@/lib/user-settings';
 import { readPasscodeData } from '@/lib/passcode';
+import { getBrowserSupabase } from '@/lib/supabase-browser';
 
 // ── Primitives ────────────────────────────────────────────────
 
@@ -116,58 +117,36 @@ function OptionButton<T extends string>({
 interface LinkRowProps {
   title: string;
   href: string;
-  external?: boolean;
   description?: string;
+  badge?: string;
 }
 
-function LinkRow({ title, href, external = false, description }: LinkRowProps) {
-  const cls =
-    'w-full border border-border/70 rounded-sm px-4 py-4 text-left hover:border-foreground/30 transition flex items-center justify-between gap-3 min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40';
-  const content = (
-    <>
+function LinkRow({ title, href, description, badge }: LinkRowProps) {
+  return (
+    <Link
+      href={href}
+      className="w-full border border-border/70 rounded-sm px-4 py-4 text-left hover:border-foreground/30 transition flex items-center justify-between gap-3 min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
+    >
       <div className="space-y-0.5 flex-1">
         <p className="text-[0.9375rem] text-foreground">{title}</p>
         {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
       </div>
-      <span className="text-muted-foreground/60 text-base shrink-0">
-        {external ? '↗' : '→'}
-      </span>
-    </>
-  );
-
-  if (external) {
-    return (
-      <a href={href} target="_blank" rel="noreferrer" className={cls}>
-        {content}
-      </a>
-    );
-  }
-  return (
-    <Link href={href} className={cls}>
-      {content}
+      <div className="flex items-center gap-2 shrink-0">
+        {badge && <span className="text-xs text-emerald-500/80 uppercase tracking-widest">{badge}</span>}
+        <span className="text-muted-foreground/60 text-base">→</span>
+      </div>
     </Link>
   );
 }
 
-function InfoRow({ title, value }: { title: string; value: string }) {
+function InfoRow({ title, description, tag }: { title: string; description: string; tag: string }) {
   return (
-    <div className="w-full border border-border/70 rounded-sm px-4 py-4 flex items-center justify-between gap-3 min-h-[52px]">
-      <p className="text-[0.9375rem] text-foreground">{title}</p>
-      <p className="text-sm text-muted-foreground">{value}</p>
-    </div>
-  );
-}
-
-function ComingSoonRow({ title, description }: { title: string; description?: string }) {
-  return (
-    <div className="w-full border border-border/70 rounded-sm px-4 py-4 flex items-start justify-between gap-3 min-h-[52px] opacity-60">
+    <div className="w-full border border-border/70 rounded-sm px-4 py-4 flex items-start justify-between gap-3 min-h-[52px] opacity-55">
       <div className="space-y-0.5 flex-1">
         <p className="text-[0.9375rem] text-foreground">{title}</p>
-        {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+        <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
       </div>
-      <span className="text-[0.625rem] uppercase tracking-widest text-muted-foreground shrink-0 pt-1">
-        Coming Soon
-      </span>
+      <span className="text-[0.625rem] uppercase tracking-widest text-muted-foreground shrink-0 pt-1">{tag}</span>
     </div>
   );
 }
@@ -179,6 +158,8 @@ export default function SettingsPage() {
   const [settings,        setSettings]        = useState<UserSettings>(DEFAULT_USER_SETTINGS);
   const [loading,         setLoading]         = useState(true);
   const [passcodeEnabled, setPasscodeEnabled] = useState(false);
+  const [confirmSignOut,  setConfirmSignOut]  = useState(false);
+  const [signingOut,      setSigningOut]      = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -203,6 +184,18 @@ export default function SettingsPage() {
       applyDisplaySettings(next);
       return next;
     });
+  }
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    try {
+      const supabase = getBrowserSupabase();
+      if (supabase) await supabase.auth.signOut();
+      try { sessionStorage.removeItem('breadcrumbs_unlocked'); } catch { /* ignore */ }
+      router.push('/login');
+    } finally {
+      setSigningOut(false);
+    }
   }
 
   if (loading) {
@@ -237,7 +230,7 @@ export default function SettingsPage() {
             <span id="section-experience">Experience</span>
           </SectionLabel>
           <SectionDescription>
-            Adjust how the app looks and feels across all screens.
+            Adjust how the app looks and feels.
           </SectionDescription>
 
           {/* Appearance */}
@@ -299,94 +292,51 @@ export default function SettingsPage() {
                 value="xl"
                 current={settings.textSize}
                 label="XL"
-                description="Extra large text for easier reading"
                 onClick={(textSize) => updateSettings({ textSize })}
               />
             </div>
             <p className="text-xs text-muted-foreground/50">
-              Changes apply immediately across all screens.
+              Applies immediately across all screens.
             </p>
           </div>
 
           {/* Reduce Motion */}
           <ToggleRow
             title="Reduce Motion"
-            description="Minimize animations and transitions throughout the app."
+            description="Minimize animations throughout the app."
             checked={settings.reduceMotion}
             onChange={(reduceMotion) => updateSettings({ reduceMotion })}
           />
         </section>
 
-        {/* ── 2. Capture ── */}
-        <section className="space-y-3" aria-labelledby="section-capture">
+        {/* ── 2. Security ── */}
+        <section className="space-y-3" aria-labelledby="section-security">
           <SectionLabel>
-            <span id="section-capture">Capture</span>
-          </SectionLabel>
-          <SectionDescription>
-            Protect your memories and avoid accidental loss.
-          </SectionDescription>
-
-          <ToggleRow
-            title="Auto-Save Drafts"
-            description="Keep your writing safe if you leave the capture screen before saving."
-            checked={settings.autoSaveDrafts}
-            onChange={(autoSaveDrafts) => updateSettings({ autoSaveDrafts })}
-          />
-          <ToggleRow
-            title="Confirm Before Saving"
-            description="Show a confirmation step before a breadcrumb is saved to your library."
-            checked={settings.confirmBeforePublishing}
-            onChange={(confirmBeforePublishing) => updateSettings({ confirmBeforePublishing })}
-          />
-          <ToggleRow
-            title="Audio Transcription"
-            description="Automatically generate a text transcript of voice recordings to improve search and Family Agent answers."
-            checked={settings.automaticAudioTranscription}
-            onChange={(automaticAudioTranscription) => updateSettings({ automaticAudioTranscription })}
-          />
-        </section>
-
-        {/* ── 3. Privacy & Security ── */}
-        <section className="space-y-3" aria-labelledby="section-privacy">
-          <SectionLabel>
-            <span id="section-privacy">Privacy &amp; Security</span>
+            <span id="section-security">Security</span>
           </SectionLabel>
           <SectionDescription>
             Protect your family&apos;s most personal memories.
           </SectionDescription>
 
-          <button
-            type="button"
-            onClick={() => router.push('/settings/passcode')}
-            className="w-full border border-border/70 rounded-sm px-4 py-4 text-left hover:border-foreground/30 transition min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
-          >
-            <div className="flex items-center justify-between gap-4">
-              <div className="space-y-0.5 flex-1">
-                <p className="text-[0.9375rem] text-foreground">Passcode Lock</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {passcodeEnabled ? 'PIN required to open your library.' : 'Add a PIN to protect your library.'}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {passcodeEnabled && <span className="text-xs text-emerald-500/80 uppercase tracking-widest">On</span>}
-                <span className="text-muted-foreground/60 text-base">→</span>
-              </div>
-            </div>
-          </button>
+          <InfoRow
+            title="Face ID / Touch ID"
+            description="Available in the Breadcrumbs app."
+            tag="App Only"
+          />
 
-          <div className="w-full border border-border/70 rounded-sm px-4 py-4 flex items-start justify-between gap-3 min-h-[52px] opacity-60">
-            <div className="space-y-0.5 flex-1">
-              <p className="text-[0.9375rem] text-foreground">Face ID / Touch ID</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">Available in the Breadcrumbs native app.</p>
-            </div>
-            <span className="text-[0.625rem] uppercase tracking-widest text-muted-foreground shrink-0 pt-1">App Only</span>
-          </div>
+          <LinkRow
+            title="Passcode Lock"
+            description={passcodeEnabled ? 'PIN required to open your library.' : 'Add a PIN to protect your library.'}
+            href="/settings/passcode"
+            badge={passcodeEnabled ? 'On' : undefined}
+          />
 
           <LinkRow
             title="Two-Factor Authentication"
             description="Add a second layer of security with an authenticator app."
             href="/settings/two-factor-auth"
           />
+
           <LinkRow
             title="Manage Devices"
             description="See where you're signed in and remove old sessions."
@@ -394,44 +344,41 @@ export default function SettingsPage() {
           />
         </section>
 
-        {/* ── 4. Support ── */}
-        <section className="space-y-3" aria-labelledby="section-support">
-          <SectionLabel>
-            <span id="section-support">Support</span>
-          </SectionLabel>
-
-          <LinkRow
-            title="Help Center"
-            description="Learn how to use Breadcrumbs."
-            href="/help-center"
-          />
-          <LinkRow
-            title="Contact Support"
-            description="Reach our team directly."
-            href="mailto:support@breadcrumbs.app"
-            external
-          />
-          <LinkRow
-            title="Report an Issue"
-            description="Something not working? Let us know."
-            href="mailto:support@breadcrumbs.app?subject=Issue%20Report"
-            external
-          />
-        </section>
-
-        {/* ── 5. About ── */}
-        <section className="space-y-3" aria-labelledby="section-about">
-          <SectionLabel>
-            <span id="section-about">About</span>
-          </SectionLabel>
-
-          <InfoRow
-            title="App Version"
-            value={process.env.NEXT_PUBLIC_APP_VERSION ?? '2.0.0'}
-          />
-          <LinkRow title="Privacy Policy" href="/privacy-policy" />
-          <LinkRow title="Terms of Service" href="/terms-of-service" />
-        </section>
+        {/* ── Sign Out ── */}
+        <div className="pt-2 border-t border-border/30">
+          {!confirmSignOut ? (
+            <button
+              type="button"
+              onClick={() => setConfirmSignOut(true)}
+              className="w-full py-4 text-[0.9375rem] text-muted-foreground hover:text-foreground transition text-left px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 rounded-sm"
+            >
+              Sign Out
+            </button>
+          ) : (
+            <div className="border border-border/70 rounded-sm px-4 py-4 space-y-4">
+              <p className="text-[0.9375rem] text-foreground">
+                Are you sure you want to sign out?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setConfirmSignOut(false)}
+                  className="flex-1 py-2.5 text-sm border border-border rounded-sm text-muted-foreground hover:border-foreground/40 hover:text-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleSignOut()}
+                  disabled={signingOut}
+                  className="flex-1 py-2.5 text-sm border border-foreground/40 rounded-sm text-foreground hover:bg-foreground/5 transition disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
+                >
+                  {signingOut ? 'Signing out…' : 'Sign Out'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
       </div>
     </main>
