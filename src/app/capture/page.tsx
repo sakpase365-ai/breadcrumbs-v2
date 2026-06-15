@@ -17,6 +17,7 @@ import {
   readUserSettings,
   type UserSettings,
 } from '@/lib/user-settings';
+import VoiceWaveform from '@/components/VoiceWaveform';
 
 const DRAFT_KEY     = 'breadcrumbs_draft';
 const PREFILL_KEY   = 'breadcrumbs_prefill';
@@ -125,6 +126,8 @@ function CaptureFlow() {
   const mediaRecorderRef   = useRef<MediaRecorder | null>(null);
   const audioChunksRef     = useRef<BlobPart[]>([]);
   const audioObjectUrlRef  = useRef<string | null>(null);
+  const analyserRef        = useRef<AnalyserNode | null>(null);
+  const audioContextRef    = useRef<AudioContext | null>(null);
   const writeAreaRef       = useRef<HTMLTextAreaElement | null>(null);
   const recentPromptsRef   = useRef<string[]>([]);
   const swipeContainerRef  = useRef<HTMLDivElement>(null);
@@ -220,6 +223,9 @@ function CaptureFlow() {
 
 
   function cleanupAudio() {
+    analyserRef.current = null;
+    try { void audioContextRef.current?.close(); } catch { /* noop */ }
+    audioContextRef.current = null;
     if (audioObjectUrlRef.current) {
       URL.revokeObjectURL(audioObjectUrlRef.current);
       audioObjectUrlRef.current = null;
@@ -244,6 +250,24 @@ function CaptureFlow() {
     cleanupAudio();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // Wire up AudioContext + AnalyserNode for live waveform (non-fatal if unavailable)
+      try {
+        const AudioCtx =
+          window.AudioContext ??
+          (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (AudioCtx) {
+          const audioCtx = new AudioCtx();
+          const source   = audioCtx.createMediaStreamSource(stream);
+          const analyser = audioCtx.createAnalyser();
+          analyser.fftSize              = 128;
+          analyser.smoothingTimeConstant = 0.78;
+          source.connect(analyser);
+          audioContextRef.current = audioCtx;
+          analyserRef.current     = analyser;
+        }
+      } catch { /* waveform visualization unavailable — falls back to placeholder */ }
+
       const mime   = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
         : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
@@ -720,43 +744,85 @@ function CaptureFlow() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="min-h-[44vh] sm:min-h-[48vh] flex flex-col items-center justify-center space-y-6 py-4"
+                    className="min-h-[44vh] sm:min-h-[48vh] flex flex-col items-center justify-center py-8 gap-7"
                   >
-                    {!audioBlob && (
-                      <p className="text-xs text-foreground/32 text-center">Say it in your own voice.</p>
-                    )}
                     {recordError && (
                       <p className="text-xs text-red-400/75 text-center">{recordError}</p>
                     )}
-                    {!audioBlob && !recording && (
-                      <motion.button
-                        type="button"
-                        onClick={() => void startRecording()}
-                        aria-label="Start recording"
-                        animate={{ opacity: [0.5, 0.85, 0.5] }}
-                        transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
-                        className="flex items-center gap-2.5 text-sm text-foreground/60 hover:text-foreground/90 transition"
+
+                    {/* Waveform zone — reserved height prevents layout jump */}
+                    {!audioBlob && (
+                      <div
+                        className={`transition-opacity duration-500 ${recording ? 'opacity-100' : 'opacity-0'}`}
+                        aria-hidden="true"
                       >
-                        <span className="w-2 h-2 rounded-full bg-[#c45c5c] shadow-[0_0_8px_rgba(196,92,92,0.45)]" aria-hidden />
-                        Record
-                      </motion.button>
-                    )}
-                    {recording && (
-                      <div className="flex items-center gap-5">
-                        <span className="text-xs text-foreground/38 tabular-nums" aria-live="polite">
-                          {`${Math.floor(recordSec / 60)}:${String(recordSec % 60).padStart(2, '0')}`}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={stopRecording}
-                          className="text-xs text-foreground/55 hover:text-foreground transition"
-                        >
-                          Stop
-                        </button>
+                        <VoiceWaveform
+                          analyser={analyserRef.current}
+                          active={recording}
+                          reducedMotion={userSettings.reduceMotion}
+                        />
                       </div>
                     )}
+
+                    {/* Timer */}
+                    {recording && (
+                      <span
+                        className="text-sm text-foreground/40 tabular-nums tracking-widest"
+                        aria-live="polite"
+                        aria-atomic="true"
+                      >
+                        {`${Math.floor(recordSec / 60)}:${String(recordSec % 60).padStart(2, '0')}`}
+                      </span>
+                    )}
+
+                    {/* Idle helper text */}
+                    {!audioBlob && !recording && (
+                      <p className="text-xs text-foreground/30 text-center tracking-wide">
+                        Say it in your own voice.
+                      </p>
+                    )}
+
+                    {/* Record / Stop — large pill */}
+                    {!audioBlob && (
+                      <motion.button
+                        type="button"
+                        onClick={recording ? stopRecording : () => void startRecording()}
+                        aria-label={recording ? 'Stop recording' : 'Start recording'}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ type: 'spring', stiffness: 420, damping: 26 }}
+                        className={`flex items-center justify-center gap-3 px-10 rounded-full border transition-colors min-h-[64px] min-w-[176px] text-[15px] select-none ${
+                          recording
+                            ? 'border-[#c45c5c]/55 text-foreground/85 bg-[#c45c5c]/[0.07]'
+                            : 'border-foreground/28 text-foreground/60 hover:border-foreground/50 hover:text-foreground/85'
+                        }`}
+                      >
+                        {recording ? (
+                          <>
+                            <motion.span
+                              className="w-3.5 h-3.5 rounded-full bg-[#c45c5c] shrink-0"
+                              animate={{ opacity: [1, 0.3, 1] }}
+                              transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut' }}
+                              aria-hidden="true"
+                            />
+                            Stop
+                          </>
+                        ) : (
+                          <>
+                            <motion.span
+                              className="w-3.5 h-3.5 rounded-full bg-[#c45c5c] shrink-0"
+                              animate={{ opacity: [0.5, 1, 0.5], scale: [0.88, 1.12, 0.88] }}
+                              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                              aria-hidden="true"
+                            />
+                            Record
+                          </>
+                        )}
+                      </motion.button>
+                    )}
+
+                    {/* Playback preview after recording */}
                     {audioPreviewUrl && !recording && (
-                      <div className="w-full space-y-4">
+                      <div className="w-full space-y-5">
                         <audio src={audioPreviewUrl} controls className="w-full" />
                         <div className="flex justify-center">
                           <button

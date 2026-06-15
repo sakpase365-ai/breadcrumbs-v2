@@ -4,6 +4,30 @@ import { useRef, useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { verifyPasscode, markUnlocked, readPasscodeData, disablePasscode } from '@/lib/passcode';
 import { getBrowserSupabase } from '@/lib/supabase-browser';
+import AnimatedWordmark from '@/components/AnimatedWordmark';
+
+function BiometricIcon() {
+  return (
+    <svg
+      width="58"
+      height="58"
+      viewBox="0 0 58 58"
+      fill="none"
+      aria-hidden="true"
+      className="text-foreground/60"
+    >
+      {/* Corner brackets */}
+      <path d="M8 22V8H22"  stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M36 8H50V22" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M8 36V50H22" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M36 50H50V36" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+      {/* Face */}
+      <circle cx="29" cy="25" r="6.5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+      {/* Body suggestion */}
+      <path d="M16 44c0-6.627 5.82-8 13-8s13 1.373 13 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+    </svg>
+  );
+}
 
 function UnlockForm() {
   const router       = useRouter();
@@ -34,7 +58,7 @@ function UnlockForm() {
         markUnlocked();
         router.replace(safeNext);
       } else {
-        setError('Incorrect PIN. Please try again.');
+        setError('Incorrect PIN. Try again.');
         setPin('');
         setTimeout(() => inputRef.current?.focus(), 50);
       }
@@ -53,31 +77,41 @@ function UnlockForm() {
   const dots = Array.from({ length: 6 }, (_, i) => i < pin.length);
 
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center justify-center px-5">
-      <div className="w-full max-w-xs space-y-10 text-center">
+    <main
+      className="min-h-screen bg-background flex flex-col items-center justify-center px-5 select-none"
+      onClick={() => inputRef.current?.focus()}
+    >
+      <div className="flex flex-col items-center gap-14 text-center">
 
-        <div>
-          <h1 className="font-display text-2xl text-foreground">Your library is locked.</h1>
-          <p className="text-sm text-muted-foreground mt-2">Enter your PIN to continue.</p>
+        {/* Wordmark */}
+        <AnimatedWordmark className="text-5xl sm:text-6xl font-serif font-light tracking-tight text-foreground" />
+
+        {/* Biometric icon + prompt */}
+        <div className="flex flex-col items-center gap-4">
+          <BiometricIcon />
+          <p className="text-sm text-muted-foreground/70 tracking-wide">
+            {checking ? 'Checking…' : 'Touch to unlock'}
+          </p>
         </div>
 
-        {/* Dot indicator */}
+        {/* PIN dot indicator */}
         <div
-          className="flex gap-4 justify-center py-2 cursor-text"
-          onClick={() => inputRef.current?.focus()}
+          className="flex gap-4 justify-center py-1"
           aria-hidden="true"
         >
           {dots.map((filled, i) => (
             <div
               key={i}
-              className={`w-3 h-3 rounded-full border-2 transition-colors ${
-                filled ? 'bg-foreground border-foreground' : 'bg-transparent border-border'
+              className={`w-2.5 h-2.5 rounded-full border transition-all duration-150 ${
+                filled
+                  ? 'bg-foreground border-foreground scale-110'
+                  : 'bg-transparent border-border/50'
               }`}
             />
           ))}
         </div>
 
-        {/* PIN input — sr-only but focusable; dots above are the visual */}
+        {/* Hidden PIN input */}
         <input
           ref={inputRef}
           type="tel"
@@ -99,27 +133,19 @@ function UnlockForm() {
         />
 
         {error && (
-          <p className="text-sm text-red-400/80 -mt-6" role="alert">{error}</p>
+          <p className="text-xs text-red-400/70 -mt-10" role="alert">{error}</p>
         )}
 
-        <button
-          type="button"
-          onClick={() => void handleUnlock()}
-          disabled={pin.length < 4 || checking}
-          className="w-full py-3.5 border border-foreground/50 text-foreground/75 rounded-sm disabled:opacity-30 hover:border-foreground hover:text-foreground transition text-sm min-h-[52px]"
-        >
-          {checking ? 'Checking…' : 'Unlock'}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => void handleForgotPin()}
-          className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition"
-        >
-          Forgot PIN? Sign out and reset
-        </button>
-
       </div>
+
+      {/* Forgot PIN — anchored to bottom */}
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); void handleForgotPin(); }}
+        className="absolute bottom-10 text-xs text-muted-foreground/30 hover:text-muted-foreground/60 transition"
+      >
+        Forgot PIN? Sign out and reset
+      </button>
     </main>
   );
 }
