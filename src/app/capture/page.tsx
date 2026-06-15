@@ -18,6 +18,7 @@ import {
   type UserSettings,
 } from '@/lib/user-settings';
 import VoiceWaveform from '@/components/VoiceWaveform';
+import AudioPlayer   from '@/components/AudioPlayer';
 
 const DRAFT_KEY     = 'breadcrumbs_draft';
 const PREFILL_KEY   = 'breadcrumbs_prefill';
@@ -823,7 +824,7 @@ function CaptureFlow() {
                     {/* Playback preview after recording */}
                     {audioPreviewUrl && !recording && (
                       <div className="w-full space-y-5">
-                        <audio src={audioPreviewUrl} controls className="w-full" />
+                        <AudioPlayer src={audioPreviewUrl} />
                         <div className="flex justify-center">
                           <button
                             type="button"
