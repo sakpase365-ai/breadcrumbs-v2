@@ -2,88 +2,35 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { FamilyAgentContext } from '@/lib/family-agent-context';
 import { formatContextBlock } from '@/lib/family-agent-context';
 import { AI_TAG_LIBRARY_LINES, dedupeTags } from '@/lib/breadcrumb-tags';
+import { SPARK_LIBRARY, pickSpark } from '@/lib/spark-library';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const VALID_DOMAINS = ['relationships', 'finances', 'resilience', 'career', 'identity', 'faith', 'health'] as const;
 const VALID_DELIVERY_TYPES = ['age-locked', 'milestone', 'evergreen'] as const;
 
-export const FALLBACK_PROMPTS = [
-  'What is something you learned the hard way that you want your child to know before they have to learn it themselves?',
-  'Describe a moment when you were genuinely afraid, and what got you through it.',
-  'What do you wish your own parents had told you before you turned 18?',
-  'Tell your child about someone who shaped who you are — and what they gave you.',
-  'What does money mean to you, and what do you want your child to understand about it?',
-  'Describe a time you made a decision you are still proud of, even if it was hard.',
-  'What does a good friendship look like to you? What took you longest to learn about it?',
-  'Write about a place that made you feel like yourself. What was it about that place?',
-  'When has someone close to you surprised you in a way that changed how you see them?',
-  'What is something small from your everyday life that you never want them to forget?',
-  'Describe a fight you had with someone you love, and what it taught you about saying sorry.',
-  'What is one rule in your house you care about — and the story of why it exists?',
-  'Tell them about a time you failed publicly or dramatically, and what you did next.',
-  'What is a question you still do not have an answer to, but want them to keep asking?',
-  'Describe a teacher, coach, or boss who changed how you see yourself.',
-  'What do you want them to know about loving a partner — the unglamorous parts included?',
-  'Write about a habit you are glad you built, and how you actually stuck with it.',
-  'What should they know about taking care of their body without turning it into shame?',
-  'Describe a holiday or yearly tradition and what you hope it feels like to them.',
-  'What is something you used to believe that you no longer believe — and how that shift happened?',
-  'Tell a story about your siblings or cousins that explains how you fit in the family.',
-  'What is a risk you took that did not pay off, and whether you would take it again?',
-  'Describe a time you felt lonely, and what actually helped — not what you expected would help.',
-  'What is a song, movie, or book that hit you at the right time — what were you going through?',
-  'What do you want them to remember about how you show up when someone is sick or scared?',
-  'Write about money stress: what did you do, what did you refuse to do, and what you would repeat?',
-  'What is something you are still working on in yourself that you want them to see clearly?',
-  'Describe a moment you realized you were wrong — and how you fixed it with the other person.',
-  'What skill or craft do you hope they invest in, even if it never pays the bills?',
-  'Tell them about your first real job: what shocked you, and what stuck?',
-  'What boundary did you learn to hold that improved your life?',
-  'Describe a place you never want to return to, and what you took away from it.',
-  'What do you hope they understand about anger — yours or someone else\'s?',
-  'Write about faith, doubt, or meaning in your life without telling them what to believe.',
-  'What is a family story about immigration, moving, or starting over that shaped you?',
-  'What do you want them to know about asking for help — including who is safe to ask?',
-  'Describe a small kindness someone did for you that you still think about.',
-  'What is something you do when you are overwhelmed that you want them to feel permission to do too?',
-  'Tell them about a time you had to stand alone and how you steadied yourself.',
-  'What is a purchase or financial habit you regret, and what you changed afterward?',
-  'Describe a moment when you were proud of them (or a kid like them) — be specific.',
-  'What do you want them to know about technology, phones, and staying human in a noisy world?',
-  'Write about grief or loss: not platitudes — what was hard, and what helped months later?',
-  'What is a fear you carry about their future, said honestly, without trying to fix it for them?',
-  'Tell a funny story about yourself at their age — what would you want them to notice?',
-];
+/** Flat string array derived from the Spark library — exported for backward compat. */
+export const FALLBACK_PROMPTS: string[] = SPARK_LIBRARY.map((p) => p.question);
 
-const VARIETY_DIRECTIVES = [
-  'Angle: ask for one concrete scene with sensory detail (sound, smell, touch, temperature).',
-  'Angle: focus on repair or apology — something you wish you had said or done differently.',
-  'Angle: focus on humor or lightness — a funny family story or a moment of joy.',
-  'Angle: focus on a belief or habit you hold now that you did not always hold.',
-  'Angle: focus on a skill, craft, or kind of work you want them to understand.',
-  'Angle: focus on fear, doubt, or anxiety — and what practically helped, not slogans.',
-  'Angle: focus on a tradition, routine, or ritual your family keeps.',
-  'Angle: focus on money, work, or a financial choice in plain language.',
-  'Angle: focus on friendship, neighbors, or community outside the household.',
-  'Angle: focus on a relationship that clarified what you want (or do not want) in love.',
-];
-
-function pickVarietyDirective(): string {
-  return VARIETY_DIRECTIVES[Math.floor(Math.random() * VARIETY_DIRECTIVES.length)];
+/** Fallback when Claude is unavailable — draws from the curated Spark library. */
+export function pickFallbackPrompt(excludeTexts: string[]): string {
+  return pickSpark({ excludeTexts }).question;
 }
 
-/** Random fallback when the model is unavailable; avoids exact repeats from this session. */
-export function pickFallbackPrompt(excludeTexts: string[]): string {
-  const keys = new Set(
-    excludeTexts
-      .map((t) => t.trim().toLowerCase())
-      .filter(Boolean)
-      .map((t) => t.slice(0, 240)),
-  );
-  let pool = FALLBACK_PROMPTS.filter((p) => !keys.has(p.trim().toLowerCase().slice(0, 240)));
-  if (!pool.length) pool = [...FALLBACK_PROMPTS];
-  return pool[Math.floor(Math.random() * pool.length)];
+function pickVarietyDirective(): string {
+  const directives = [
+    'Angle: ask for one concrete scene with sensory detail (sound, smell, touch, temperature).',
+    'Angle: focus on repair or apology — something you wish you had said or done differently.',
+    'Angle: focus on humor or lightness — a funny family story or a moment of joy.',
+    'Angle: focus on a belief or habit you hold now that you did not always hold.',
+    'Angle: focus on a skill, craft, or kind of work you want them to understand.',
+    'Angle: focus on fear, doubt, or anxiety — and what practically helped, not slogans.',
+    'Angle: focus on a tradition, routine, or ritual your family keeps.',
+    'Angle: focus on money, work, or a financial choice in plain language.',
+    'Angle: focus on friendship, neighbors, or community outside the household.',
+    'Angle: focus on a relationship that clarified what you want (or do not want) in love.',
+  ];
+  return directives[Math.floor(Math.random() * directives.length)];
 }
 
 export type DailyPromptContext = {

@@ -17,6 +17,12 @@ import {
   readUserSettings,
   type UserSettings,
 } from '@/lib/user-settings';
+import {
+  SPARK_LIBRARY,
+  getSparkHistoryTexts,
+  saveSparkToHistory,
+  saveSelectionState,
+} from '@/lib/spark-library';
 import VoiceWaveform from '@/components/VoiceWaveform';
 import AudioPlayer   from '@/components/AudioPlayer';
 
@@ -330,14 +336,23 @@ function CaptureFlow() {
   function excludePriorPromptsForFetch(currentPrompt: string): string[] | undefined {
     const seen = new Set<string>();
     const out: string[] = [];
-    for (const t of recentPromptsRef.current) {
+    // Merge 60-day localStorage history with session memory
+    for (const t of [...getSparkHistoryTexts(), ...recentPromptsRef.current]) {
       const s = t.trim();
       if (s && !seen.has(s)) { seen.add(s); out.push(s); }
     }
     const cur = currentPrompt.trim();
     if (cur && !seen.has(cur)) out.push(cur);
-    const slice = out.slice(-5);
+    const slice = out.slice(-20);
     return slice.length ? slice : undefined;
+  }
+
+  function recordShownPrompt(text: string): void {
+    saveSparkToHistory(text);
+    recentPromptsRef.current = [...recentPromptsRef.current, text].slice(-8);
+    // If this prompt came from the library, persist its category/weight for balancing
+    const found = SPARK_LIBRARY.find((p) => p.question === text);
+    if (found) saveSelectionState(found);
   }
 
   async function handleNewPrompt() {
@@ -350,7 +365,7 @@ function CaptureFlow() {
         excludePriorPromptsForFetch(cur),
       );
       setAiPrompt(next);
-      recentPromptsRef.current = [...recentPromptsRef.current, next].slice(-8);
+      recordShownPrompt(next);
     } catch { /* keep existing prompt */ } finally {
       setPromptLoading(false);
     }
@@ -370,9 +385,10 @@ function CaptureFlow() {
         setStage('capture');
         setPromptLoading(true);
         try {
-          const prompt = await fetchPromptText(null);
+          const excludes = excludePriorPromptsForFetch('');
+          const prompt = await fetchPromptText(null, excludes);
           setAiPrompt(prompt);
-          recentPromptsRef.current = [prompt];
+          recordShownPrompt(prompt);
         } catch { /* non-fatal */ } finally {
           setPromptLoading(false);
         }
