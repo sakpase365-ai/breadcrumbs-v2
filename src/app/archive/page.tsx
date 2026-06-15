@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getBrowserSupabase } from '@/lib/supabase-browser';
 import { BREADCRUMB_TYPE_LABEL } from '@/lib/breadcrumbs';
+import SettingsSheet from '@/components/SettingsSheet';
 import { formatTagForDisplay } from '@/lib/breadcrumb-tags';
 
 const DOMAIN_ACCENT: Record<string, string> = {
@@ -63,6 +63,7 @@ export default function ArchivePage() {
   const [expandedId,    setExpandedId]    = useState<string | null>(null);
   const [activeFilter,  setActiveFilter]  = useState<string>('all');
   const [recipients,    setRecipients]    = useState<string[]>([]);
+  const [settingsOpen,  setSettingsOpen]  = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -132,20 +133,11 @@ export default function ArchivePage() {
               + New
             </button>
             <button
-              onClick={() => router.push('/settings')}
-              className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition"
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+              className="text-sm text-muted-foreground/60 hover:text-foreground transition min-h-[44px] px-1 flex items-center"
             >
               Settings
-            </button>
-            <button
-              onClick={async () => {
-                const supabase = getBrowserSupabase();
-                if (supabase) await supabase.auth.signOut();
-                router.push('/login');
-              }}
-              className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition"
-            >
-              Out
             </button>
           </div>
         </div>
@@ -340,6 +332,8 @@ export default function ArchivePage() {
         ))}
 
       </div>
+
+      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </main>
   );
 }

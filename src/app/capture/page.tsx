@@ -23,8 +23,9 @@ import {
   saveSparkToHistory,
   saveSelectionState,
 } from '@/lib/spark-library';
-import VoiceWaveform from '@/components/VoiceWaveform';
-import AudioPlayer   from '@/components/AudioPlayer';
+import VoiceWaveform   from '@/components/VoiceWaveform';
+import AudioPlayer    from '@/components/AudioPlayer';
+import SettingsSheet  from '@/components/SettingsSheet';
 
 const DRAFT_KEY     = 'breadcrumbs_draft';
 const PREFILL_KEY   = 'breadcrumbs_prefill';
@@ -127,6 +128,7 @@ function CaptureFlow() {
   const [breadcrumbType,     setBreadcrumbType]    = useState<string | null>(null);
   const [userSettings,       setUserSettings]      = useState<UserSettings>(DEFAULT_USER_SETTINGS);
   const [confirmingSave,     setConfirmingSave]    = useState(false);
+  const [settingsOpen,       setSettingsOpen]      = useState(false);
 
   const autosaveTimer      = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hesitationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -598,25 +600,13 @@ function CaptureFlow() {
           <span className="text-xs text-muted-foreground/50 uppercase tracking-widest">
             {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
           </span>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => router.push('/settings')}
-              className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition"
-            >
-              Settings
-            </button>
-            <button
-              onClick={async () => {
-                const supabase = getBrowserSupabase();
-                if (supabase) await supabase.auth.signOut();
-                router.push('/login');
-              }}
-              className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition"
-            >
-              Sign out
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            className="text-sm text-muted-foreground/60 hover:text-foreground transition min-h-[44px] px-1 flex items-center"
+          >
+            Settings
+          </button>
         </div>
 
         {/* Loading */}
@@ -1117,6 +1107,8 @@ function CaptureFlow() {
         )}
 
       </div>
+
+      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </main>
   );
 }

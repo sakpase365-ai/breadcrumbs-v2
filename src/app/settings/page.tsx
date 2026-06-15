@@ -262,42 +262,33 @@ export default function SettingsPage() {
           </div>
 
           {/* Text Size */}
-          <div className="border border-border/70 rounded-sm px-4 py-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-[0.9375rem] text-foreground">Text Size</p>
-              <p className="text-xs text-muted-foreground capitalize">
-                {settings.textSize === 'medium' ? 'Standard' : settings.textSize === 'xl' ? 'Extra Large' : settings.textSize}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <OptionButton<TextSizeSetting>
-                value="small"
-                current={settings.textSize}
-                label="Small"
-                onClick={(textSize) => updateSettings({ textSize })}
-              />
-              <OptionButton<TextSizeSetting>
-                value="medium"
-                current={settings.textSize}
-                label="Standard"
-                onClick={(textSize) => updateSettings({ textSize })}
-              />
-              <OptionButton<TextSizeSetting>
-                value="large"
-                current={settings.textSize}
-                label="Large"
-                onClick={(textSize) => updateSettings({ textSize })}
-              />
-              <OptionButton<TextSizeSetting>
-                value="xl"
-                current={settings.textSize}
-                label="XL"
-                onClick={(textSize) => updateSettings({ textSize })}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground/50">
-              Applies immediately across all screens.
-            </p>
+          <div className="border border-border/70 rounded-sm overflow-hidden">
+            {(
+              [
+                { value: 'small',  label: 'Small',       sub: 'Compact text' },
+                { value: 'medium', label: 'Standard',    sub: 'Default reading size' },
+                { value: 'large',  label: 'Large',       sub: 'Easier on the eyes' },
+                { value: 'xl',     label: 'Extra Large', sub: 'Comfortable reading at any age' },
+              ] as { value: TextSizeSetting; label: string; sub: string }[]
+            ).map((opt, i) => (
+              <div key={opt.value}>
+                {i > 0 && <div className="h-px bg-border/40 mx-4" />}
+                <button
+                  type="button"
+                  onClick={() => updateSettings({ textSize: opt.value })}
+                  aria-pressed={settings.textSize === opt.value}
+                  className="w-full flex items-center justify-between gap-4 px-4 py-3.5 min-h-[52px] text-left hover:bg-foreground/5 transition"
+                >
+                  <div>
+                    <p className="text-[0.9375rem] text-foreground leading-snug">{opt.label}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{opt.sub}</p>
+                  </div>
+                  {settings.textSize === opt.value && (
+                    <span className="text-foreground text-base shrink-0">✓</span>
+                  )}
+                </button>
+              </div>
+            ))}
           </div>
 
           {/* Reduce Motion */}
