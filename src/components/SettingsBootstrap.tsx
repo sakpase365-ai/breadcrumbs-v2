@@ -16,6 +16,7 @@ const PASSCODE_EXEMPT_PREFIXES = [
 ];
 
 function isExempt(path: string): boolean {
+  if (path === '/') return true; // home/landing page is always public
   return PASSCODE_EXEMPT_PREFIXES.some((prefix) => path.startsWith(prefix));
 }
 
