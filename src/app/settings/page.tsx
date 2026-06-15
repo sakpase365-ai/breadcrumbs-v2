@@ -12,6 +12,7 @@ import {
   type TextSizeSetting,
   type UserSettings,
 } from '@/lib/user-settings';
+import { readPasscodeData } from '@/lib/passcode';
 
 // ── Primitives ────────────────────────────────────────────────
 
@@ -175,8 +176,9 @@ function ComingSoonRow({ title, description }: { title: string; description?: st
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [settings, setSettings] = useState<UserSettings>(DEFAULT_USER_SETTINGS);
-  const [loading, setLoading]   = useState(true);
+  const [settings,        setSettings]        = useState<UserSettings>(DEFAULT_USER_SETTINGS);
+  const [loading,         setLoading]         = useState(true);
+  const [passcodeEnabled, setPasscodeEnabled] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -188,6 +190,7 @@ export default function SettingsPage() {
         const restored = readUserSettings();
         setSettings(restored);
         applyDisplaySettings(restored);
+        setPasscodeEnabled(readPasscodeData().enabled);
         setLoading(false);
       }
     })();
@@ -352,21 +355,42 @@ export default function SettingsPage() {
             Protect your family&apos;s most personal memories.
           </SectionDescription>
 
-          <ComingSoonRow
-            title="Passcode Lock"
-            description="Require a PIN to open the app."
-          />
-          <ComingSoonRow
-            title="Face ID / Touch ID"
-            description="Use biometrics instead of typing your PIN."
-          />
-          <ComingSoonRow
+          <button
+            type="button"
+            onClick={() => router.push('/settings/passcode')}
+            className="w-full border border-border/70 rounded-sm px-4 py-4 text-left hover:border-foreground/30 transition min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-0.5 flex-1">
+                <p className="text-[15px] text-foreground">Passcode Lock</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {passcodeEnabled ? 'PIN required to open your library.' : 'Add a PIN to protect your library.'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {passcodeEnabled && <span className="text-xs text-emerald-500/80 uppercase tracking-widest">On</span>}
+                <span className="text-muted-foreground/60 text-base">→</span>
+              </div>
+            </div>
+          </button>
+
+          <div className="w-full border border-border/70 rounded-sm px-4 py-4 flex items-start justify-between gap-3 min-h-[52px] opacity-60">
+            <div className="space-y-0.5 flex-1">
+              <p className="text-[15px] text-foreground">Face ID / Touch ID</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">Available in the Breadcrumbs native app.</p>
+            </div>
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground shrink-0 pt-1">App Only</span>
+          </div>
+
+          <LinkRow
             title="Two-Factor Authentication"
-            description="Add a second layer of security to your account."
+            description="Add a second layer of security with an authenticator app."
+            href="/settings/two-factor-auth"
           />
-          <ComingSoonRow
+          <LinkRow
             title="Manage Devices"
             description="See where you're signed in and remove old sessions."
+            href="/settings/devices"
           />
         </section>
 
