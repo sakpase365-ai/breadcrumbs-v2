@@ -131,7 +131,7 @@ function LoginForm() {
           </form>
         )}
 
-        <p className="text-center text-[11px] text-muted-foreground sm:text-xs">
+        <p className="text-center text-[0.6875rem] text-muted-foreground sm:text-xs">
           First time?{' '}
           <a href="/signup" className="underline hover:text-foreground transition">
             Create an account

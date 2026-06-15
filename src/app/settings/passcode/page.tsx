@@ -86,7 +86,7 @@ export default function PasscodePage() {
         {flow === 'disabled' && (
           <div className="space-y-6 pt-4">
             <div className="border border-border/70 rounded-sm px-5 py-5 space-y-2">
-              <p className="text-[15px] text-foreground">Passcode Lock is off</p>
+              <p className="text-[0.9375rem] text-foreground">Passcode Lock is off</p>
               <p className="text-sm text-muted-foreground leading-relaxed">Set a 4–6 digit PIN to protect your Breadcrumbs from others who may pick up your device.</p>
             </div>
             <button type="button" onClick={() => setFlow('setup-pin')} className="w-full py-4 border border-foreground text-foreground text-sm rounded-sm hover:bg-foreground hover:text-background transition min-h-[52px]">
@@ -97,7 +97,7 @@ export default function PasscodePage() {
 
         {(isEnterFlow || isConfirmFlow) && (
           <div className="space-y-6 pt-4 text-center">
-            <p className="text-[15px] text-foreground">
+            <p className="text-[0.9375rem] text-foreground">
               {isConfirmFlow ? 'Confirm your PIN' : flow === 'change-pin' ? 'Enter your new PIN' : 'Choose a PIN'}
             </p>
             <p className="text-sm text-muted-foreground">{isConfirmFlow ? 'Enter the same digits again.' : 'Use 4 to 6 digits.'}</p>
@@ -138,16 +138,16 @@ export default function PasscodePage() {
           <div className="space-y-4 pt-4">
             <div className="border border-border/70 rounded-sm px-5 py-4 flex items-center justify-between">
               <div>
-                <p className="text-[15px] text-foreground">Passcode Lock is on</p>
+                <p className="text-[0.9375rem] text-foreground">Passcode Lock is on</p>
                 <p className="text-xs text-muted-foreground mt-0.5">Your Breadcrumbs are protected.</p>
               </div>
               <span className="text-xs text-emerald-500/80 uppercase tracking-widest">Active</span>
             </div>
-            <button type="button" onClick={() => { setPin(''); setFlow('change-pin'); }} className="w-full border border-border/70 rounded-sm px-5 py-4 text-left text-[15px] text-foreground hover:border-foreground/30 transition min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40">
+            <button type="button" onClick={() => { setPin(''); setFlow('change-pin'); }} className="w-full border border-border/70 rounded-sm px-5 py-4 text-left text-[0.9375rem] text-foreground hover:border-foreground/30 transition min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40">
               Change PIN →
             </button>
             {!showDisable ? (
-              <button type="button" onClick={() => setShowDisable(true)} className="w-full border border-border/70 rounded-sm px-5 py-4 text-left text-[15px] text-muted-foreground hover:border-foreground/30 hover:text-foreground transition min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40">
+              <button type="button" onClick={() => setShowDisable(true)} className="w-full border border-border/70 rounded-sm px-5 py-4 text-left text-[0.9375rem] text-muted-foreground hover:border-foreground/30 hover:text-foreground transition min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40">
                 Turn Off Passcode
               </button>
             ) : (

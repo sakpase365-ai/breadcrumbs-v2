@@ -63,7 +63,7 @@ export default function DevicesPage() {
               <p className="type-label text-muted-foreground px-1 pt-2 pb-2">This device</p>
               <div className="border border-border/70 rounded-sm px-5 py-4 space-y-1">
                 <div className="flex items-center justify-between">
-                  <p className="text-[15px] text-foreground">Current session</p>
+                  <p className="text-[0.9375rem] text-foreground">Current session</p>
                   <span className="text-xs text-emerald-500/80 uppercase tracking-widest">Active</span>
                 </div>
                 <p className="text-xs text-muted-foreground">{device.email}</p>
@@ -75,14 +75,14 @@ export default function DevicesPage() {
               <p className="type-label text-muted-foreground px-1 pt-2 pb-2">Other devices</p>
               {signedOut ? (
                 <div className="border border-border/70 rounded-sm px-5 py-4">
-                  <p className="text-[15px] text-foreground">All other devices signed out.</p>
+                  <p className="text-[0.9375rem] text-foreground">All other devices signed out.</p>
                   <p className="text-xs text-muted-foreground mt-1">Only this device has access to your Breadcrumbs now.</p>
                 </div>
               ) : !showConfirm ? (
                 <button type="button" onClick={() => setShowConfirm(true)} className="w-full border border-border/70 rounded-sm px-5 py-4 text-left hover:border-foreground/30 transition min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-[15px] text-foreground">Sign out all other devices</p>
+                      <p className="text-[0.9375rem] text-foreground">Sign out all other devices</p>
                       <p className="text-xs text-muted-foreground mt-0.5">Removes access from any other browsers or devices.</p>
                     </div>
                     <span className="text-muted-foreground/60 shrink-0">→</span>

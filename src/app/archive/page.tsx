@@ -266,7 +266,7 @@ export default function ArchivePage() {
                       </div>
 
                       {/* Summary */}
-                      <p className="font-display text-foreground/85 text-[15px] leading-[1.6] tracking-[-0.005em]">
+                      <p className="font-display text-foreground/85 text-[0.9375rem] leading-[1.6] tracking-[-0.005em]">
                         {e.summary}
                       </p>
 
@@ -300,7 +300,7 @@ export default function ArchivePage() {
                           {e.tags.map((tag) => (
                             <span
                               key={tag}
-                              className="text-[10px] px-1.5 py-0.5 border border-border/40 text-muted-foreground/40 rounded-sm"
+                              className="text-[0.625rem] px-1.5 py-0.5 border border-border/40 text-muted-foreground/40 rounded-sm"
                             >
                               {formatTagForDisplay(tag)}
                             </span>
@@ -312,7 +312,7 @@ export default function ArchivePage() {
                       <div className="flex items-center justify-between pt-0.5">
                         <div>
                           {e.delivered_at && (
-                            <span className="text-[10px] px-1.5 py-0.5 border border-emerald-800/60 text-emerald-500/70 rounded-sm">
+                            <span className="text-[0.625rem] px-1.5 py-0.5 border border-emerald-800/60 text-emerald-500/70 rounded-sm">
                               Delivered
                             </span>
                           )}

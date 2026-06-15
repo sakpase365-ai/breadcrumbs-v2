@@ -96,7 +96,7 @@ export default function TwoFactorAuthPage() {
         {state === 'not-enrolled' && (
           <div className="space-y-6 pt-4">
             <div className="border border-border/70 rounded-sm px-5 py-5 space-y-3">
-              <p className="text-[15px] text-foreground">Two-Factor Authentication is off</p>
+              <p className="text-[0.9375rem] text-foreground">Two-Factor Authentication is off</p>
               <p className="text-sm text-muted-foreground leading-relaxed">Add a second layer of security. After signing in with your email, you&apos;ll also need a 6-digit code from an authenticator app.</p>
               <p className="text-xs text-muted-foreground/60 leading-relaxed">Works with Google Authenticator, Authy, 1Password, and any standard TOTP app.</p>
             </div>
@@ -110,7 +110,7 @@ export default function TwoFactorAuthPage() {
         {state === 'enrolling-scan' && enrollData && (
           <div className="space-y-6 pt-4">
             <div className="space-y-2">
-              <p className="text-[15px] text-foreground">Scan this QR code</p>
+              <p className="text-[0.9375rem] text-foreground">Scan this QR code</p>
               <p className="text-sm text-muted-foreground leading-relaxed">Open your authenticator app and scan the code below to add your Breadcrumbs account.</p>
             </div>
             <div className="flex justify-center">
@@ -132,7 +132,7 @@ export default function TwoFactorAuthPage() {
         {state === 'enrolling-verify' && (
           <div className="space-y-6 pt-4">
             <div className="space-y-2">
-              <p className="text-[15px] text-foreground">Enter the 6-digit code</p>
+              <p className="text-[0.9375rem] text-foreground">Enter the 6-digit code</p>
               <p className="text-sm text-muted-foreground leading-relaxed">Open your authenticator app and enter the current code for Breadcrumbs.</p>
             </div>
             <input ref={codeRef} type="tel" inputMode="numeric" maxLength={6} value={totpCode} onChange={(e) => { setTotpCode(e.target.value.replace(/\D/g, '')); setError(''); }} onKeyDown={(e) => { if (e.key === 'Enter') void handleVerifyEnroll(); }} placeholder="000000" className="w-full text-center text-3xl tracking-[0.5em] bg-transparent border-b-2 border-border focus:border-foreground outline-none py-4 text-foreground placeholder:text-muted-foreground/30 min-h-[60px]" aria-label="6-digit authentication code" autoComplete="one-time-code" />
@@ -147,7 +147,7 @@ export default function TwoFactorAuthPage() {
           <div className="space-y-4 pt-4">
             <div className="border border-border/70 rounded-sm px-5 py-4 flex items-center justify-between">
               <div>
-                <p className="text-[15px] text-foreground">Two-Factor Authentication is on</p>
+                <p className="text-[0.9375rem] text-foreground">Two-Factor Authentication is on</p>
                 <p className="text-xs text-muted-foreground mt-0.5">Your account requires a code from your authenticator app to sign in.</p>
               </div>
               <span className="text-xs text-emerald-500/80 uppercase tracking-widest shrink-0 ml-3">Active</span>
@@ -157,7 +157,7 @@ export default function TwoFactorAuthPage() {
               <p className="text-xs text-muted-foreground leading-relaxed">If you lose access to your authenticator app, email <a href="mailto:support@breadcrumbs.app" className="text-foreground/70 hover:text-foreground transition">support@breadcrumbs.app</a> with your account email to recover your account.</p>
             </div>
             {!showUnenroll ? (
-              <button type="button" onClick={() => setShowUnenroll(true)} className="w-full border border-border/70 rounded-sm px-5 py-4 text-left text-[15px] text-muted-foreground hover:border-foreground/30 hover:text-foreground transition min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40">
+              <button type="button" onClick={() => setShowUnenroll(true)} className="w-full border border-border/70 rounded-sm px-5 py-4 text-left text-[0.9375rem] text-muted-foreground hover:border-foreground/30 hover:text-foreground transition min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40">
                 Turn Off Two-Factor Authentication
               </button>
             ) : (

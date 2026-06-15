@@ -695,7 +695,7 @@ function CaptureFlow() {
                   >
                     <textarea
                       ref={writeAreaRef}
-                      className="w-full min-h-[38vh] sm:min-h-[42vh] bg-transparent border-0 px-0 py-2 text-foreground text-[17px] leading-[1.55] tracking-[-0.01em] placeholder:text-foreground/18 focus:outline-none resize-none"
+                      className="w-full min-h-[38vh] sm:min-h-[42vh] bg-transparent border-0 px-0 py-2 text-foreground text-[1.0625rem] leading-[1.55] tracking-[-0.01em] placeholder:text-foreground/18 focus:outline-none resize-none"
                       placeholder="What do you want them to remember?"
                       value={entry}
                       onChange={onWriteAreaChange}
@@ -794,7 +794,7 @@ function CaptureFlow() {
                         aria-label={recording ? 'Stop recording' : 'Start recording'}
                         whileTap={{ scale: 0.95 }}
                         transition={{ type: 'spring', stiffness: 420, damping: 26 }}
-                        className={`flex items-center justify-center gap-3 px-10 rounded-full border transition-colors min-h-[64px] min-w-[176px] text-[15px] select-none ${
+                        className={`flex items-center justify-center gap-3 px-10 rounded-full border transition-colors min-h-[64px] min-w-[176px] text-[0.9375rem] select-none ${
                           recording
                             ? 'border-[#c45c5c]/55 text-foreground/85 bg-[#c45c5c]/[0.07]'
                             : 'border-foreground/28 text-foreground/60 hover:border-foreground/50 hover:text-foreground/85'
@@ -985,7 +985,7 @@ function CaptureFlow() {
 
             <div className="glass-card px-6 py-5">
               <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3">One more thought</p>
-              <p className="text-[16px] leading-[1.6] tracking-[-0.005em] text-foreground/88 font-normal">{followUp}</p>
+              <p className="text-base leading-[1.6] tracking-[-0.005em] text-foreground/88 font-normal">{followUp}</p>
             </div>
 
             <textarea
@@ -1043,7 +1043,7 @@ function CaptureFlow() {
         {stage === 'done' && profile && (
           <div className="py-20 text-center space-y-6">
             <div className="w-12 h-px bg-foreground/25 mx-auto" />
-            <p className="font-display text-foreground text-[22px] font-[400] tracking-[-0.01em] leading-[1.35]">{doneLine}</p>
+            <p className="font-display text-foreground text-[1.375rem] font-[400] tracking-[-0.01em] leading-[1.35]">{doneLine}</p>
             <div className="max-w-md mx-auto text-left">
               {renderTagEditor('tag-draft-done')}
             </div>

@@ -69,7 +69,7 @@ function ToggleRow({ title, description, checked, onChange }: ToggleRowProps) {
     >
       <div className="flex items-center justify-between gap-4">
         <div className="space-y-0.5 flex-1">
-          <p className="text-[15px] text-foreground leading-snug">{title}</p>
+          <p className="text-[0.9375rem] text-foreground leading-snug">{title}</p>
           {description ? (
             <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
           ) : null}
@@ -126,7 +126,7 @@ function LinkRow({ title, href, external = false, description }: LinkRowProps) {
   const content = (
     <>
       <div className="space-y-0.5 flex-1">
-        <p className="text-[15px] text-foreground">{title}</p>
+        <p className="text-[0.9375rem] text-foreground">{title}</p>
         {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
       </div>
       <span className="text-muted-foreground/60 text-base shrink-0">
@@ -152,7 +152,7 @@ function LinkRow({ title, href, external = false, description }: LinkRowProps) {
 function InfoRow({ title, value }: { title: string; value: string }) {
   return (
     <div className="w-full border border-border/70 rounded-sm px-4 py-4 flex items-center justify-between gap-3 min-h-[52px]">
-      <p className="text-[15px] text-foreground">{title}</p>
+      <p className="text-[0.9375rem] text-foreground">{title}</p>
       <p className="text-sm text-muted-foreground">{value}</p>
     </div>
   );
@@ -162,10 +162,10 @@ function ComingSoonRow({ title, description }: { title: string; description?: st
   return (
     <div className="w-full border border-border/70 rounded-sm px-4 py-4 flex items-start justify-between gap-3 min-h-[52px] opacity-60">
       <div className="space-y-0.5 flex-1">
-        <p className="text-[15px] text-foreground">{title}</p>
+        <p className="text-[0.9375rem] text-foreground">{title}</p>
         {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
       </div>
-      <span className="text-[10px] uppercase tracking-widest text-muted-foreground shrink-0 pt-1">
+      <span className="text-[0.625rem] uppercase tracking-widest text-muted-foreground shrink-0 pt-1">
         Coming Soon
       </span>
     </div>
@@ -242,7 +242,7 @@ export default function SettingsPage() {
 
           {/* Appearance */}
           <div className="border border-border/70 rounded-sm px-4 py-4 space-y-3">
-            <p className="text-[15px] text-foreground">Appearance</p>
+            <p className="text-[0.9375rem] text-foreground">Appearance</p>
             <div className="flex gap-2">
               <OptionButton<AppearanceSetting>
                 value="system"
@@ -271,7 +271,7 @@ export default function SettingsPage() {
           {/* Text Size */}
           <div className="border border-border/70 rounded-sm px-4 py-4 space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-[15px] text-foreground">Text Size</p>
+              <p className="text-[0.9375rem] text-foreground">Text Size</p>
               <p className="text-xs text-muted-foreground capitalize">
                 {settings.textSize === 'medium' ? 'Standard' : settings.textSize === 'xl' ? 'Extra Large' : settings.textSize}
               </p>
@@ -362,7 +362,7 @@ export default function SettingsPage() {
           >
             <div className="flex items-center justify-between gap-4">
               <div className="space-y-0.5 flex-1">
-                <p className="text-[15px] text-foreground">Passcode Lock</p>
+                <p className="text-[0.9375rem] text-foreground">Passcode Lock</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   {passcodeEnabled ? 'PIN required to open your library.' : 'Add a PIN to protect your library.'}
                 </p>
@@ -376,10 +376,10 @@ export default function SettingsPage() {
 
           <div className="w-full border border-border/70 rounded-sm px-4 py-4 flex items-start justify-between gap-3 min-h-[52px] opacity-60">
             <div className="space-y-0.5 flex-1">
-              <p className="text-[15px] text-foreground">Face ID / Touch ID</p>
+              <p className="text-[0.9375rem] text-foreground">Face ID / Touch ID</p>
               <p className="text-xs text-muted-foreground leading-relaxed">Available in the Breadcrumbs native app.</p>
             </div>
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground shrink-0 pt-1">App Only</span>
+            <span className="text-[0.625rem] uppercase tracking-widest text-muted-foreground shrink-0 pt-1">App Only</span>
           </div>
 
           <LinkRow

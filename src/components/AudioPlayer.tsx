@@ -120,8 +120,8 @@ export default function AudioPlayer({ src }: Props) {
 
           {/* Times */}
           <div className="flex justify-between">
-            <span className="text-[11px] text-foreground/30 tabular-nums">{fmt(current)}</span>
-            <span className="text-[11px] text-foreground/30 tabular-nums">{fmt(duration)}</span>
+            <span className="text-[0.6875rem] text-foreground/30 tabular-nums">{fmt(current)}</span>
+            <span className="text-[0.6875rem] text-foreground/30 tabular-nums">{fmt(duration)}</span>
           </div>
         </div>
 

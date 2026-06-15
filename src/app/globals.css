@@ -75,7 +75,7 @@
   }
   /* Uppercase micro-label — e.g. "TODAY'S SPARK", section headers */
   .type-label {
-    font-size: 11px;
+    font-size: 0.6875rem;
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -83,7 +83,7 @@
   /* Letter / entry body — Playfair Display at reading size */
   .type-body-serif {
     font-family: var(--font-display);
-    font-size: 19px;
+    font-size: 1.1875rem;
     font-weight: 400;
     letter-spacing: -0.003em;
     line-height: 1.72;
