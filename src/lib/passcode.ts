@@ -18,7 +18,7 @@ export async function deriveKeyBase64(pin: string, saltBytes: Uint8Array): Promi
     ['deriveBits'],
   );
   const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', hash: 'SHA-256', salt: saltBytes, iterations: 100_000 },
+    { name: 'PBKDF2', hash: 'SHA-256', salt: saltBytes.buffer as ArrayBuffer, iterations: 100_000 },
     keyMaterial,
     256,
   );
