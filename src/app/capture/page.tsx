@@ -565,7 +565,10 @@ function CaptureFlow() {
   }
 
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center justify-start px-5 sm:px-6 pt-4 sm:pt-5 pb-24">
+    <main
+      className="min-h-screen bg-background flex flex-col items-center justify-start px-5 sm:px-6 pb-28"
+      style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1rem)' }}
+    >
       <div className="max-w-lg w-full space-y-5">
 
         {/* Header */}
@@ -627,8 +630,8 @@ function CaptureFlow() {
             {/* Recipient — always visible, not gated by content */}
             {familyMembers.length > 0 && (
               <div className="space-y-2">
-                <p className="type-label text-foreground/35">Who are you writing to?</p>
-                <div className="flex gap-2 flex-wrap">
+                <p className="type-label text-foreground/35 text-center">Who are you writing to?</p>
+                <div className="flex gap-2 flex-wrap justify-center">
                   {familyMembers.map((m) => (
                     <button
                       type="button"
@@ -665,10 +668,10 @@ function CaptureFlow() {
                   key={s}
                   type="button"
                   onClick={() => handleStageChange(s)}
-                  className={`text-xs tracking-wide capitalize transition ${
+                  className={`text-xs tracking-wide capitalize transition border-b pb-px ${
                     captureStage === s
-                      ? 'text-foreground/75'
-                      : 'text-foreground/22 hover:text-foreground/50'
+                      ? 'text-foreground border-foreground/55'
+                      : 'text-foreground/28 border-transparent hover:text-foreground/55'
                   }`}
                 >
                   {s}
@@ -717,7 +720,7 @@ function CaptureFlow() {
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -4 }}
                               transition={{ duration: 0.3 }}
-                              className="text-sm leading-relaxed text-foreground/38 font-display italic"
+                              className="text-sm leading-[1.65] text-foreground/50"
                             >
                               {aiPrompt}
                             </motion.p>
@@ -856,8 +859,8 @@ function CaptureFlow() {
 
                 {/* Type picker — required before save */}
                 <div className="space-y-2.5">
-                  <p className="type-label text-foreground/30">What kind of breadcrumb is this?</p>
-                  <div className="flex gap-2 flex-wrap">
+                  <p className="type-label text-foreground/30 text-center">What kind of breadcrumb is this?</p>
+                  <div className="flex gap-2 flex-wrap justify-center">
                     {CAPTURE_INTENT_OPTIONS.map((opt) => (
                       <button
                         key={opt.value}
@@ -926,7 +929,10 @@ function CaptureFlow() {
 
         {/* Fixed bottom bar */}
         {stage === 'capture' && (
-          <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-foreground/[0.07] px-5 py-3 flex items-center justify-between">
+          <div
+            className="fixed bottom-0 left-0 right-0 bg-background border-t border-foreground/[0.07] px-5 pt-3 flex items-center justify-between"
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
+          >
             <button
               type="button"
               onClick={() => void handleNewPrompt()}
