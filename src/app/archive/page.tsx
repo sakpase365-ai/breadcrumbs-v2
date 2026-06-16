@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BREADCRUMB_TYPE_LABEL } from '@/lib/breadcrumbs';
 import SettingsSheet from '@/components/SettingsSheet';
+import BottomNav     from '@/components/BottomNav';
 import { formatTagForDisplay } from '@/lib/breadcrumb-tags';
 
 const DOMAIN_ACCENT: Record<string, string> = {
@@ -166,7 +167,7 @@ export default function ArchivePage() {
         )}
       </div>
 
-      <div className="max-w-xl mx-auto px-5 py-8 pb-20 space-y-10">
+      <div className="max-w-xl mx-auto px-5 py-8 pb-28 space-y-10">
 
         {loading && (
           <div className="py-24 text-center">
@@ -334,6 +335,7 @@ export default function ArchivePage() {
       </div>
 
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <BottomNav />
     </main>
   );
 }

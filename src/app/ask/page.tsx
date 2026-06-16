@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getBrowserSupabase } from '@/lib/supabase-browser';
+import BottomNav from '@/components/BottomNav';
 
 interface FamilyMember {
   id:   string;
@@ -97,7 +98,7 @@ export default function AskPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground px-4 py-10 sm:py-16">
+    <main className="min-h-screen bg-background text-foreground px-4 py-10 sm:py-16 pb-28">
       <div className="max-w-2xl mx-auto space-y-8">
 
         {/* Header */}
@@ -193,6 +194,7 @@ export default function AskPage() {
         )}
 
       </div>
+      <BottomNav />
     </main>
   );
 }

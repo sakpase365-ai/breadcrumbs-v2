@@ -26,6 +26,7 @@ import {
 import VoiceWaveform   from '@/components/VoiceWaveform';
 import AudioPlayer    from '@/components/AudioPlayer';
 import SettingsSheet  from '@/components/SettingsSheet';
+import BottomNav      from '@/components/BottomNav';
 
 const DRAFT_KEY     = 'breadcrumbs_draft';
 const PREFILL_KEY   = 'breadcrumbs_prefill';
@@ -1109,6 +1110,7 @@ function CaptureFlow() {
       </div>
 
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <BottomNav />
     </main>
   );
 }

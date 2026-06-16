@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { FOUNDATION_QUESTIONS } from '@/lib/breadcrumbs';
+import BottomNav from '@/components/BottomNav';
 
 
 interface Profile { name: string; family_name: string | null; }
@@ -113,10 +114,8 @@ export default function FoundationPage() {
       <main className="min-h-screen bg-background flex items-center justify-center px-6">
         <div className="text-center space-y-4">
           <p className="font-serif text-foreground text-xl">Something went wrong.</p>
-          <button onClick={() => router.push('/')} className="text-sm text-muted-foreground hover:text-foreground transition">
-            ← Back home
-          </button>
         </div>
+        <BottomNav />
       </main>
     );
   }
@@ -126,10 +125,7 @@ export default function FoundationPage() {
       <div className="max-w-xl mx-auto space-y-10">
 
         {/* Header */}
-        <div className="flex items-start justify-between">
-          <button onClick={() => router.push('/')} className="text-sm text-muted-foreground hover:text-foreground transition">
-            ← Back
-          </button>
+        <div className="flex items-end justify-end">
           <div className="text-right">
             <h1 className="font-serif text-2xl text-foreground">Family Foundation</h1>
             {profile?.family_name && (
@@ -200,7 +196,7 @@ export default function FoundationPage() {
           })}
         </div>
 
-        <div className="pt-4 pb-10 flex gap-4">
+        <div className="pt-4 pb-24 flex gap-4">
           <button
             onClick={() => router.push('/capture')}
             className="flex-1 py-3 border border-foreground text-foreground text-sm tracking-wide hover:bg-foreground hover:text-background transition"
@@ -210,6 +206,7 @@ export default function FoundationPage() {
         </div>
 
       </div>
+      <BottomNav />
     </main>
   );
 }
