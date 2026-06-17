@@ -7,6 +7,7 @@ import { BREADCRUMB_TYPE_LABEL } from '@/lib/breadcrumbs';
 import SettingsSheet from '@/components/SettingsSheet';
 import BottomNav     from '@/components/BottomNav';
 import { formatTagForDisplay } from '@/lib/breadcrumb-tags';
+import { firstName } from '@/lib/nameUtils';
 
 const DOMAIN_ACCENT: Record<string, string> = {
   relationships: 'bg-rose-700/60',
@@ -55,6 +56,28 @@ function formatDate(iso: string): string {
     month: 'short', day: 'numeric',
   });
 }
+
+function deliveryRevealLabel(
+  deliveryType: string,
+  relevantAge: number,
+  recipientName: string | null,
+  deliveredAt: string | undefined,
+): string | null {
+  if (deliveredAt) return null;
+  if (deliveryType === 'age-locked') {
+    const name = firstName(recipientName, 'them');
+    return `Opens when ${name} turns ${relevantAge}`;
+  }
+  if (deliveryType === 'milestone') return 'For a future milestone';
+  return null;
+}
+
+const LockIcon = (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
 
 export default function ArchivePage() {
   const router = useRouter();
@@ -301,14 +324,22 @@ export default function ArchivePage() {
                         </div>
                       )}
 
-                      {/* Footer: delivered badge + expand */}
+                      {/* Footer: delivery reveal / delivered badge + expand */}
                       <div className="flex items-center justify-between pt-0.5">
                         <div>
-                          {e.delivered_at && (
+                          {e.delivered_at ? (
                             <span className="text-[0.625rem] px-1.5 py-0.5 border border-emerald-800/60 text-emerald-500/70 rounded-sm">
                               Delivered
                             </span>
-                          )}
+                          ) : (() => {
+                            const label = deliveryRevealLabel(e.delivery_type, e.relevant_age, e.recipient_name, e.delivered_at);
+                            return label ? (
+                              <span className="inline-flex items-center gap-1 text-[0.625rem] text-muted-foreground/40">
+                                {LockIcon}
+                                {label}
+                              </span>
+                            ) : null;
+                          })()}
                         </div>
                         {hasBody && (
                           <button
