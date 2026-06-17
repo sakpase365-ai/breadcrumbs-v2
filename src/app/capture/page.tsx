@@ -924,62 +924,49 @@ function CaptureFlow() {
                   )}
                 </div>
 
+                {/* Save action — inline, full-width, above BottomNav */}
+                <div className="pt-2 space-y-2">
+                  {confirmingSave ? (
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingSave(false)}
+                        className="flex-1 py-3.5 text-sm border border-border text-muted-foreground rounded-sm hover:border-foreground/40 hover:text-foreground transition"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleSave()}
+                        disabled={saving}
+                        className="flex-1 py-3.5 text-sm border border-foreground text-foreground rounded-sm hover:bg-foreground hover:text-background transition disabled:opacity-30"
+                      >
+                        {saving ? 'Saving…' : 'Yes, save it'}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => void handleSave()}
+                      disabled={!breadcrumbType || saving}
+                      className="w-full py-4 text-sm border border-foreground text-foreground rounded-sm hover:bg-foreground hover:text-background transition disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      {saving ? 'Saving…' : 'Save'}
+                    </button>
+                  )}
+                  {!breadcrumbType && (
+                    <p className="text-xs text-center text-foreground/30">
+                      Choose a breadcrumb type above to save
+                    </p>
+                  )}
+                </div>
+
               </div>
             )}
 
           </div>
         )}
 
-        {/* Fixed bottom bar */}
-        {stage === 'capture' && (
-          <div
-            className="fixed bottom-0 left-0 right-0 bg-background border-t border-foreground/[0.07] px-5 pt-3 flex items-center justify-between"
-            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
-          >
-            <button
-              type="button"
-              onClick={() => void handleNewPrompt()}
-              disabled={promptLoading}
-              className="text-sm text-foreground/35 hover:text-foreground/65 transition disabled:opacity-30"
-            >
-              ↻ Spark
-            </button>
-            <a
-              href="/ask"
-              className="text-xs text-foreground/22 hover:text-foreground/50 transition"
-            >
-              Family Agent
-            </a>
-            {confirmingSave ? (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setConfirmingSave(false)}
-                  className="px-3 py-1.5 text-xs border border-border text-muted-foreground rounded-sm hover:border-foreground/40 hover:text-foreground transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleSave()}
-                  disabled={saving}
-                  className="px-4 py-1.5 text-xs border border-foreground text-foreground rounded-sm hover:bg-foreground hover:text-background transition disabled:opacity-30"
-                >
-                  {saving ? 'Saving…' : 'Yes, save it'}
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => void handleSave()}
-                disabled={!hasContent || !breadcrumbType || saving}
-                className="px-5 py-1.5 text-sm border border-foreground/50 text-foreground/75 rounded-sm disabled:opacity-25 hover:border-foreground hover:text-foreground transition"
-              >
-                {saving ? 'Saving…' : 'Save'}
-              </button>
-            )}
-          </div>
-        )}
 
         {/* Follow-up */}
         {stage === 'follow-up' && (
