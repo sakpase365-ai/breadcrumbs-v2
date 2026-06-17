@@ -19,6 +19,7 @@ export default function FoundationPage() {
   const [crumbing,        setCrumbing]        = useState<Set<string>>(new Set());
   const [crumbSaved,      setCrumbSaved]      = useState<Set<string>>(new Set());
   const [crumbErrors,     setCrumbErrors]     = useState<Record<string, string>>({});
+  const [recentlySaved,   setRecentlySaved]   = useState<Set<string>>(new Set());
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   useEffect(() => {
@@ -75,6 +76,17 @@ export default function FoundationPage() {
     }
   }
 
+  function markRecentlySaved(key: string) {
+    setRecentlySaved((prev) => new Set(prev).add(key));
+    setTimeout(() => {
+      setRecentlySaved((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }, 2500);
+  }
+
   async function turnIntoBreadcrumb(key: string, question: string) {
     const content = savedAnswers[key];
     if (!content || crumbing.has(key)) return;
@@ -92,6 +104,7 @@ export default function FoundationPage() {
       });
       if (!res.ok) throw new Error();
       setCrumbSaved((prev) => new Set(prev).add(key));
+      markRecentlySaved(key);
     } catch {
       setCrumbErrors((prev) => ({ ...prev, [key]: 'Could not save — try again' }));
     } finally {
@@ -131,6 +144,7 @@ export default function FoundationPage() {
             {profile?.family_name && (
               <p className="text-xs text-muted-foreground mt-0.5">{profile.family_name}</p>
             )}
+            <p className="text-xs text-muted-foreground/40 mt-1">Come back to this — it grows with you.</p>
           </div>
         </div>
 
@@ -179,7 +193,9 @@ export default function FoundationPage() {
 
                   {isSaved && !isDirty && (
                     crumbSaved.has(key) ? (
-                      <span className="text-xs text-muted-foreground/60">Saved as breadcrumb</span>
+                      <span className={`text-xs transition-opacity duration-700 ${recentlySaved.has(key) ? 'text-foreground/40 opacity-100' : 'text-muted-foreground/20 opacity-30'}`}>
+                        {recentlySaved.has(key) ? '✓ Saved as breadcrumb' : 'Saved as breadcrumb'}
+                      </span>
                     ) : (
                       <button
                         onClick={() => turnIntoBreadcrumb(key, question)}

@@ -77,8 +77,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       answer,
-      contextSources: context.contextSources,
-      warnings:       context.warnings,
+      contextSources:     context.contextSources,
+      warnings:           context.warnings,
+      breadcrumbExcerpts: context.relevantBreadcrumbs.slice(0, 2).map((bc) => ({
+        excerpt:        bc.content.slice(0, 220).trimEnd(),
+        recipientLabel: bc.recipientLabel,
+        truncated:      bc.content.length > 220,
+      })),
     });
   } catch (err) {
     logger.error('family agent failed', {

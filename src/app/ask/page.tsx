@@ -24,6 +24,9 @@ export default function AskPage() {
   const [error,              setError]              = useState<string | null>(null);
   const [loading,            setLoading]            = useState(false);
   const [profileLoading,     setProfileLoading]     = useState(true);
+  const [breadcrumbExcerpts, setBreadcrumbExcerpts] = useState<
+    { excerpt: string; recipientLabel: string; truncated: boolean }[]
+  >([]);
 
   useEffect(() => {
     (async () => {
@@ -57,6 +60,7 @@ export default function AskPage() {
     setWarnings([]);
     setContextSources([]);
     setError(null);
+    setBreadcrumbExcerpts([]);
 
     try {
       const res = await fetch('/api/family-agent', {
@@ -82,6 +86,9 @@ export default function AskPage() {
       setAnswer(data.answer as string);
       setWarnings((data.warnings ?? []) as string[]);
       setContextSources((data.contextSources ?? []) as { source: string; id: string }[]);
+      setBreadcrumbExcerpts(
+        (data.breadcrumbExcerpts ?? []) as { excerpt: string; recipientLabel: string; truncated: boolean }[]
+      );
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {
@@ -164,6 +171,22 @@ export default function AskPage() {
             <div className="border border-border px-6 py-5">
               <p className="text-sm font-light leading-relaxed whitespace-pre-wrap">{answer}</p>
             </div>
+
+            {breadcrumbExcerpts.length > 0 && (
+              <div className="space-y-3 pt-1">
+                <p className="text-xs text-muted-foreground/40 uppercase tracking-widest">
+                  In their own words
+                </p>
+                {breadcrumbExcerpts.map((bc, i) => (
+                  <blockquote key={i} className="border-l-2 border-foreground/10 pl-4 space-y-1">
+                    <p className="text-sm font-display text-foreground/70 leading-relaxed italic">
+                      &ldquo;{bc.excerpt}{bc.truncated ? '…' : '"'}
+                    </p>
+                    <p className="text-[0.625rem] text-muted-foreground/40">{bc.recipientLabel}</p>
+                  </blockquote>
+                ))}
+              </div>
+            )}
 
             {warnings.length > 0 && (
               <div className="space-y-1">
