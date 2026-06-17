@@ -104,10 +104,10 @@ export default function AskPage() {
         {/* Header */}
         <div className="space-y-1">
           <h1 className="text-2xl font-serif font-light tracking-tight">
-            Ask the Family Agent
+            Hear from them
           </h1>
           <p className="text-sm text-muted-foreground">
-            Answers draw from your saved Family Foundation and Breadcrumbs.
+            Draws from everything they&apos;ve shared — their Foundation and their Breadcrumbs.
           </p>
         </div>
 

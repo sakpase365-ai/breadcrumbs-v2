@@ -594,12 +594,6 @@ function CaptureFlow() {
 
         {/* Header */}
         <div className="flex items-center justify-between">
-          <button
-            onClick={() => router.push('/')}
-            className="text-sm text-muted-foreground hover:text-foreground transition"
-          >
-            ← Back
-          </button>
           <span className="text-xs text-muted-foreground/50 uppercase tracking-widest">
             {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
           </span>
@@ -715,8 +709,8 @@ function CaptureFlow() {
                       onBlur={clearHesitationTimer}
                     />
 
-                    {/* Inline prompt card — always visible in write stage */}
-                    {(aiPrompt || promptLoading) && (
+                    {/* Inline prompt card — shown after 10s hesitation, hidden once writing starts */}
+                    {showHesitationHint && entry.trim().length < 20 && (aiPrompt || promptLoading) && (
                       <div className="border-t border-foreground/[0.06] pt-3 space-y-2">
                         <p className="type-label text-foreground/22">Today&apos;s Spark</p>
                         {promptLoading ? (

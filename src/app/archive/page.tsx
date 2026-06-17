@@ -57,6 +57,12 @@ function formatDate(iso: string): string {
   });
 }
 
+function pullQuote(content: string, max = 140): string {
+  const trimmed = content.trim();
+  if (trimmed.length <= max) return trimmed;
+  return trimmed.slice(0, max).trimEnd() + '…';
+}
+
 function deliveryRevealLabel(
   deliveryType: string,
   relevantAge: number,
@@ -281,10 +287,19 @@ export default function ArchivePage() {
                         </div>
                       </div>
 
-                      {/* Summary */}
-                      <p className="font-display text-foreground/85 text-[0.9375rem] leading-[1.6] tracking-[-0.005em]">
-                        {e.summary}
-                      </p>
+                      {/* Creator's words — primary */}
+                      {!isAudio && e.content?.trim() && (
+                        <p className="font-display text-foreground/80 text-[0.9375rem] leading-[1.6] tracking-[-0.005em]">
+                          {pullQuote(e.content)}
+                        </p>
+                      )}
+
+                      {/* AI summary — secondary context */}
+                      {e.summary && (
+                        <p className="font-display text-muted-foreground/50 text-xs leading-[1.55]">
+                          {e.summary}
+                        </p>
+                      )}
 
                       {/* Expanded body */}
                       <AnimatePresence>

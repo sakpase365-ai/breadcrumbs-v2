@@ -127,7 +127,7 @@ export default function FoundationPage() {
         {/* Header */}
         <div className="flex items-end justify-end">
           <div className="text-right">
-            <h1 className="font-serif text-2xl text-foreground">Family Foundation</h1>
+            <h1 className="font-serif text-2xl text-foreground">Your Story</h1>
             {profile?.family_name && (
               <p className="text-xs text-muted-foreground mt-0.5">{profile.family_name}</p>
             )}
