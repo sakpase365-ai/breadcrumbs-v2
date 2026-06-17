@@ -42,7 +42,7 @@ describe('GET /api/entries', () => {
   it('returns 401 for unauthenticated requests', async () => {
     vi.mocked(getSessionClient).mockResolvedValue(makeSession(null) as never);
 
-    const res = await GET();
+    const res = await GET(new Request('http://localhost/api/entries') as never);
     expect(res.status).toBe(401);
   });
 
@@ -72,7 +72,7 @@ describe('GET /api/entries', () => {
       }),
     } as never);
 
-    const res = await GET();
+    const res = await GET(new Request('http://localhost/api/entries') as never);
     expect(res.status).toBe(200);
 
     const body = await res.json();
@@ -98,7 +98,7 @@ describe('GET /api/entries', () => {
       })),
     } as never);
 
-    const res = await GET();
+    const res = await GET(new Request('http://localhost/api/entries') as never);
     expect(res.status).toBe(404);
   });
 
@@ -128,7 +128,7 @@ describe('GET /api/entries', () => {
       }),
     } as never);
 
-    const res = await GET();
+    const res = await GET(new Request('http://localhost/api/entries') as never);
     const body = await res.json();
     expect(body.entries).toEqual([]);
   });

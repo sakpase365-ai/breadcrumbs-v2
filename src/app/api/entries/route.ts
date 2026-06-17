@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getSessionClient, getServiceClient } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 import { assertEnv } from '@/lib/env';
@@ -56,7 +56,7 @@ async function resolveMediaUrl(
   return data.signedUrl;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   assertEnv();
 
   const supabase = await getSessionClient();
@@ -75,13 +75,21 @@ export async function GET() {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
   }
 
-  const { data, error } = await db
+  const q = new URL(req.url).searchParams.get('q')?.trim() ?? '';
+
+  let query = db
     .from('breadcrumbs')
     .select(
       'id, title, summary, domain, relevant_age, delivery_type, breadcrumb_type, tags, content, content_type, media_url, created_at, delivered_at, author_family_member_id, recipient:family_members!family_member_id(name), author:family_members!author_family_member_id(name)'
     )
     .eq('parent_id', access.familyId)
     .order('created_at', { ascending: false });
+
+  if (q) {
+    query = query.textSearch('fts', q, { type: 'websearch', config: 'english' });
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     logger.error('failed to fetch breadcrumbs', { route: 'entries GET', parentId: access.familyId, code: error.code });
