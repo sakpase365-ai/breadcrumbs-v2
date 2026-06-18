@@ -8,6 +8,7 @@ import SettingsSheet from '@/components/SettingsSheet';
 import BottomNav     from '@/components/BottomNav';
 import { formatTagForDisplay } from '@/lib/breadcrumb-tags';
 import { firstName } from '@/lib/nameUtils';
+import { InlineAction, ScreenHeader } from '@/components/ui/design-primitives';
 
 const DOMAIN_ACCENT: Record<string, string> = {
   relationships: 'bg-rose-700/60',
@@ -63,27 +64,18 @@ function pullQuote(content: string, max = 140): string {
   return trimmed.slice(0, max).trimEnd() + '…';
 }
 
-function deliveryRevealLabel(
+function intentLabel(
   deliveryType: string,
   relevantAge: number,
   recipientName: string | null,
-  deliveredAt: string | undefined,
 ): string | null {
-  if (deliveredAt) return null;
   if (deliveryType === 'age-locked') {
     const name = firstName(recipientName, 'them');
-    return `Opens when ${name} turns ${relevantAge}`;
+    return `Written for ${name} at ${relevantAge}`;
   }
-  if (deliveryType === 'milestone') return 'For a future milestone';
+  if (deliveryType === 'milestone') return 'Written for a milestone';
   return null;
 }
-
-const LockIcon = (
-  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-  </svg>
-);
 
 export default function ArchivePage() {
   const router = useRouter();
@@ -247,10 +239,9 @@ export default function ArchivePage() {
                   Delivered
                 </span>
               ) : (() => {
-                const label = deliveryRevealLabel(e.delivery_type, e.relevant_age, e.recipient_name, e.delivered_at);
+                const label = intentLabel(e.delivery_type, e.relevant_age, e.recipient_name);
                 return label ? (
-                  <span className="inline-flex items-center gap-1 text-[0.625rem] text-muted-foreground/40">
-                    {LockIcon}
+                  <span className="text-[0.625rem] text-muted-foreground/35 italic">
                     {label}
                   </span>
                 ) : null;
@@ -258,8 +249,9 @@ export default function ArchivePage() {
             </div>
             {hasBody && (
               <button
+                type="button"
                 onClick={() => toggleExpand(e.id)}
-                className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition"
+                className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition min-h-[32px] px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 rounded-sm"
               >
                 {isExpanded ? 'Close ↑' : isAudio ? 'Listen →' : 'Read →'}
               </button>
@@ -275,29 +267,25 @@ export default function ArchivePage() {
 
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border/40">
-        <div className="max-w-xl mx-auto px-5 py-4 flex items-center justify-between">
-          <button
-            onClick={() => router.push('/')}
-            className="text-sm text-muted-foreground hover:text-foreground transition"
-          >
-            ←
-          </button>
-          <h1 className="font-display text-base tracking-tight text-foreground">Family Library</h1>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push('/capture')}
-              className="text-sm text-muted-foreground hover:text-foreground transition"
-            >
-              + New
-            </button>
-            <button
-              type="button"
-              onClick={() => setSettingsOpen(true)}
-              className="text-sm text-muted-foreground/60 hover:text-foreground transition min-h-[44px] px-1 flex items-center"
-            >
-              Settings
-            </button>
-          </div>
+        <div className="max-w-xl mx-auto px-5 py-3">
+          <ScreenHeader
+            title="Family Library"
+            leftAction={(
+              <InlineAction onClick={() => router.push('/')} ariaLabel="Back to home">
+                <span aria-hidden>←</span>
+              </InlineAction>
+            )}
+            rightAction={(
+              <div className="flex items-center gap-1">
+                <InlineAction onClick={() => router.push('/capture')} ariaLabel="Create new breadcrumb">
+                  <span className="text-sm">+ New</span>
+                </InlineAction>
+                <InlineAction onClick={() => setSettingsOpen(true)} ariaLabel="Open settings">
+                  <span className="text-sm">Settings</span>
+                </InlineAction>
+              </div>
+            )}
+          />
         </div>
 
         {/* Search */}
@@ -313,20 +301,21 @@ export default function ArchivePage() {
               if (!e.target.value.trim()) clearSearch();
             }}
             placeholder="Search breadcrumbs…"
-            className="flex-1 bg-transparent border-b border-border text-sm text-foreground placeholder:text-muted-foreground/30 py-1.5 focus:outline-none focus:border-foreground/40 transition"
+            className="flex-1 bg-transparent border-b border-border text-sm text-foreground placeholder:text-muted-foreground/30 py-1.5 focus:outline-none focus:border-foreground/40 transition min-h-[44px]"
+            aria-label="Search breadcrumbs"
           />
           {searchInput ? (
             <button
               type="button"
               onClick={clearSearch}
-              className="text-xs text-muted-foreground/40 hover:text-foreground transition shrink-0"
+              className="text-xs text-muted-foreground/40 hover:text-foreground transition shrink-0 min-h-[44px] px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 rounded-sm"
             >
               Clear
             </button>
           ) : (
             <button
               type="submit"
-              className="text-xs text-muted-foreground/40 hover:text-foreground transition shrink-0"
+              className="text-xs text-muted-foreground/40 hover:text-foreground transition shrink-0 min-h-[44px] px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 rounded-sm"
             >
               Search
             </button>
@@ -344,7 +333,7 @@ export default function ArchivePage() {
               <button
                 key={key}
                 onClick={() => setActiveFilter(key)}
-                className={`shrink-0 px-3 py-1 text-xs rounded-full border transition ${
+                className={`shrink-0 px-3 py-1 text-xs rounded-full border transition min-h-[36px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 ${
                   activeFilter === key
                     ? 'border-foreground text-foreground'
                     : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground/70'
@@ -382,7 +371,7 @@ export default function ArchivePage() {
             <p className="text-muted-foreground text-sm">Your first entry is one prompt away.</p>
             <button
               onClick={() => router.push('/capture')}
-              className="mt-2 inline-block py-3 px-8 border border-foreground text-foreground text-sm tracking-wide hover:bg-foreground hover:text-background transition"
+              className="mt-2 inline-block py-3 px-8 border border-foreground text-foreground text-sm tracking-wide hover:bg-foreground hover:text-background transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
             >
               Leave A Breadcrumb
             </button>

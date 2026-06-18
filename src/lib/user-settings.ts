@@ -78,6 +78,7 @@ export function readUserSettings(): UserSettings {
 export function saveUserSettings(settings: UserSettings): void {
   if (typeof window === 'undefined') return;
   window.localStorage.setItem(USER_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  window.dispatchEvent(new Event('breadcrumbs:settings-updated'));
 }
 
 export function applyDisplaySettings(settings: UserSettings): void {

@@ -66,6 +66,15 @@
     font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--foreground) / 0.45);
+    outline-offset: 2px;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
 }
 
 @layer components {
@@ -95,6 +104,36 @@
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
     border-radius: var(--radius);
+  }
+
+  .screen-main {
+    min-height: 100vh;
+    background: hsl(var(--background));
+    padding-inline: 1.25rem;
+    padding-block: 1.5rem;
+  }
+
+  .screen-content {
+    width: 100%;
+    max-width: 36rem;
+    margin-inline: auto;
+    padding-bottom: 5rem;
+  }
+
+  .section-stack {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .meta-copy {
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .tap-target {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
 

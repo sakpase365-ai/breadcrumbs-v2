@@ -10,3 +10,4 @@ tsconfig.tsbuildinfo
 ios/**/xcuserdata/
 .vercel
 .superpowers/
+.cursor/

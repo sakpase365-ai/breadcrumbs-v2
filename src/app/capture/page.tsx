@@ -27,6 +27,7 @@ import VoiceWaveform   from '@/components/VoiceWaveform';
 import AudioPlayer    from '@/components/AudioPlayer';
 import SettingsSheet  from '@/components/SettingsSheet';
 import BottomNav      from '@/components/BottomNav';
+import { InlineAction } from '@/components/ui/design-primitives';
 
 const DRAFT_KEY     = 'breadcrumbs_draft';
 const PREFILL_KEY   = 'breadcrumbs_prefill';
@@ -590,20 +591,19 @@ function CaptureFlow() {
       className="min-h-screen bg-background flex flex-col items-center justify-start px-5 sm:px-6 pb-28"
       style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1rem)' }}
     >
-      <div className="max-w-lg w-full space-y-5">
+      <div className="max-w-xl w-full space-y-5">
 
         {/* Header */}
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground/50 uppercase tracking-widest">
+          <InlineAction onClick={() => router.push('/')} ariaLabel="Back to home">
+            <span aria-hidden>←</span>
+          </InlineAction>
+          <span className="text-xs text-muted-foreground/50 uppercase tracking-widest text-center">
             {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
           </span>
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(true)}
-            className="text-sm text-muted-foreground/60 hover:text-foreground transition min-h-[44px] px-1 flex items-center"
-          >
-            Settings
-          </button>
+          <InlineAction onClick={() => setSettingsOpen(true)} ariaLabel="Open settings">
+            <span className="text-sm">Settings</span>
+          </InlineAction>
         </div>
 
         {/* Loading */}
@@ -892,40 +892,8 @@ function CaptureFlow() {
                   )}
                 </div>
 
-                <p className="text-xs text-foreground/22">
-                  {audioBlob ? 'Voice note ready' : `${charCount} characters`}
-                </p>
-
+                {/* Save action — inline, right after type picker */}
                 <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowTags(!showTags)}
-                    className="text-xs text-foreground/22 hover:text-foreground/50 transition"
-                  >
-                    {showTags ? '− Hide tag hints' : '+ Tag hints'}
-                  </button>
-                  {showTags && (
-                    <div className="flex flex-wrap gap-2">
-                      {VALUE_TAGS.map((tag) => (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() => toggleTag(tag)}
-                          className={`px-3 py-1 text-xs border rounded-sm transition ${
-                            selectedTags.includes(tag)
-                              ? 'border-foreground/60 text-foreground/80 bg-foreground/5'
-                              : 'border-foreground/15 text-foreground/30 hover:border-foreground/35 hover:text-foreground/60'
-                          }`}
-                        >
-                          {tag}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Save action — inline, full-width, above BottomNav */}
-                <div className="pt-2 space-y-2">
                   {confirmingSave ? (
                     <div className="flex gap-3">
                       <button
@@ -951,13 +919,47 @@ function CaptureFlow() {
                       disabled={!breadcrumbType || saving}
                       className="w-full py-4 text-sm border border-foreground text-foreground rounded-sm hover:bg-foreground hover:text-background transition disabled:opacity-30 disabled:cursor-not-allowed"
                     >
-                      {saving ? 'Saving…' : 'Save'}
+                      {saving ? 'Saving…' : 'Save Breadcrumb'}
                     </button>
                   )}
                   {!breadcrumbType && (
                     <p className="text-xs text-center text-foreground/30">
                       Choose a breadcrumb type above to save
                     </p>
+                  )}
+                </div>
+
+                {/* Tag hints — optional, below save */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-foreground/22">
+                      {audioBlob ? 'Voice note ready' : `${charCount} characters`}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowTags(!showTags)}
+                      className="text-xs text-foreground/22 hover:text-foreground/50 transition"
+                    >
+                      {showTags ? '− Hide tag hints' : '+ Tag hints'}
+                    </button>
+                  </div>
+                  {showTags && (
+                    <div className="flex flex-wrap gap-2">
+                      {VALUE_TAGS.map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => toggleTag(tag)}
+                          className={`px-3 py-1 text-xs border rounded-sm transition ${
+                            selectedTags.includes(tag)
+                              ? 'border-foreground/60 text-foreground/80 bg-foreground/5'
+                              : 'border-foreground/15 text-foreground/30 hover:border-foreground/35 hover:text-foreground/60'
+                          }`}
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
 

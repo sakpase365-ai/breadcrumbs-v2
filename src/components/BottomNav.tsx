@@ -61,7 +61,7 @@ export default function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] transition-colors ${
+              className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] tap-target transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 ${
                 active
                   ? 'text-foreground'
                   : 'text-muted-foreground/40 hover:text-muted-foreground'

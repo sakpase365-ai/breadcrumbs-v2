@@ -14,83 +14,13 @@ import {
 } from '@/lib/user-settings';
 import { readPasscodeData } from '@/lib/passcode';
 import { getBrowserSupabase } from '@/lib/supabase-browser';
+import { Row, RowDivider, SectionHeading, ToggleVisual } from '@/components/ui/design-primitives';
 
 type SheetView = 'main' | 'appearance' | 'text-size';
 
 export interface SettingsSheetProps {
   open: boolean;
   onClose: () => void;
-}
-
-// ── Display-only toggle (row handles the click) ────────────────
-function ToggleDisplay({ checked }: { checked: boolean }) {
-  return (
-    <div
-      aria-hidden="true"
-      className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border-2 transition-colors ${
-        checked ? 'bg-foreground border-foreground' : 'bg-transparent border-border'
-      }`}
-    >
-      <span
-        className={`inline-block h-4 w-4 rounded-full transition-transform ${
-          checked ? 'translate-x-5 bg-background' : 'translate-x-1 bg-muted-foreground/50'
-        }`}
-      />
-    </div>
-  );
-}
-
-// ── Row primitives ─────────────────────────────────────────────
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[0.6875rem] font-medium uppercase tracking-widest text-muted-foreground/50 px-5 pt-6 pb-2">
-      {children}
-    </p>
-  );
-}
-
-function RowDivider() {
-  return <div className="h-px bg-border/30 mx-5" />;
-}
-
-interface RowProps {
-  title: string;
-  subtitle?: string;
-  right?: React.ReactNode;
-  onClick?: () => void;
-  disabled?: boolean;
-}
-
-function Row({ title, subtitle, right, onClick, disabled }: RowProps) {
-  const inner = (
-    <div className="flex items-center justify-between gap-4 px-5 min-h-[56px] w-full">
-      <div className="flex-1 min-w-0 py-3.5">
-        <p className="text-[0.9375rem] text-foreground leading-snug">{title}</p>
-        {subtitle && (
-          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{subtitle}</p>
-        )}
-      </div>
-      {right && <div className="shrink-0 flex items-center">{right}</div>}
-    </div>
-  );
-
-  if (!onClick || disabled) {
-    return (
-      <div className={disabled ? 'opacity-50' : ''}>
-        {inner}
-      </div>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full text-left active:bg-foreground/5 transition-colors"
-    >
-      {inner}
-    </button>
-  );
 }
 
 function Chevron() {
@@ -137,7 +67,7 @@ function AppearanceView({
       <SubHeader title="Appearance" onBack={onBack} />
       {options.map((opt, i) => (
         <div key={opt.value}>
-          {i > 0 && <RowDivider />}
+          {i > 0 && <RowDivider className="mx-5 bg-border/30" />}
           <Row
             title={opt.label}
             subtitle={opt.description}
@@ -171,7 +101,7 @@ function TextSizeView({
       <SubHeader title="Text Size" onBack={onBack} />
       {options.map((opt, i) => (
         <div key={opt.value}>
-          {i > 0 && <RowDivider />}
+          {i > 0 && <RowDivider className="mx-5 bg-border/30" />}
           <Row
             title={opt.label}
             subtitle={opt.description}
@@ -222,7 +152,11 @@ function MainView({
   return (
     <div>
       {/* ── Experience ── */}
-      <SectionLabel>Experience</SectionLabel>
+      <SectionHeading
+        title="Experience"
+        className="px-5 pt-6 pb-2"
+        titleClassName="text-[0.6875rem] font-medium uppercase tracking-widest text-muted-foreground/50"
+      />
 
       <Row
         title="Appearance"
@@ -234,7 +168,7 @@ function MainView({
         }
         onClick={() => onNavigate('appearance')}
       />
-      <RowDivider />
+      <RowDivider className="mx-5 bg-border/30" />
       <Row
         title="Text Size"
         right={
@@ -245,16 +179,20 @@ function MainView({
         }
         onClick={() => onNavigate('text-size')}
       />
-      <RowDivider />
+      <RowDivider className="mx-5 bg-border/30" />
       <Row
         title="Reduce Motion"
         subtitle="Minimize animations throughout the app"
-        right={<ToggleDisplay checked={settings.reduceMotion} />}
+        right={<ToggleVisual checked={settings.reduceMotion} label="Reduce Motion" />}
         onClick={() => onUpdate({ reduceMotion: !settings.reduceMotion })}
       />
 
       {/* ── Security ── */}
-      <SectionLabel>Security</SectionLabel>
+      <SectionHeading
+        title="Security"
+        className="px-5 pt-6 pb-2"
+        titleClassName="text-[0.6875rem] font-medium uppercase tracking-widest text-muted-foreground/50"
+      />
 
       <Row
         title="Face ID / Touch ID"
@@ -266,7 +204,7 @@ function MainView({
         }
         disabled
       />
-      <RowDivider />
+      <RowDivider className="mx-5 bg-border/30" />
       <Row
         title="Passcode Lock"
         subtitle={passcodeEnabled ? 'PIN required to open your library' : 'Add a PIN to protect your library'}
@@ -280,14 +218,14 @@ function MainView({
         }
         onClick={() => navigatePage('/settings/passcode')}
       />
-      <RowDivider />
+      <RowDivider className="mx-5 bg-border/30" />
       <Row
         title="Two-Factor Authentication"
         subtitle="Add a second layer of security"
         right={<Chevron />}
         onClick={() => navigatePage('/settings/two-factor-auth')}
       />
-      <RowDivider />
+      <RowDivider className="mx-5 bg-border/30" />
       <Row
         title="Manage Devices"
         subtitle="See where you're signed in"
