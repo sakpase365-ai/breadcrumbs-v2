@@ -5,6 +5,15 @@ import { logger } from '@/lib/logger';
 import { assertEnv } from '@/lib/env';
 import { buildFamilyAgentContext } from '@/lib/family-agent-context';
 import { answerFamilyQuestion } from '@/lib/ai';
+import { firstName } from '@/lib/nameUtils';
+
+function contributorLabel(ownerName: string, createdAt: string): string {
+  const monthYear = new Date(createdAt).toLocaleDateString('en-US', {
+    month: 'long',
+    year:  'numeric',
+  });
+  return `From ${firstName(ownerName)} — ${monthYear}`;
+}
 
 const RATE_LIMIT     = 20;
 const RATE_WINDOW_MS = 60 * 60 * 1000;
@@ -80,9 +89,10 @@ export async function POST(req: NextRequest) {
       contextSources:     context.contextSources,
       warnings:           context.warnings,
       breadcrumbExcerpts: context.relevantBreadcrumbs.slice(0, 2).map((bc) => ({
-        excerpt:        bc.content.slice(0, 220).trimEnd(),
-        recipientLabel: bc.recipientLabel,
-        truncated:      bc.content.length > 220,
+        excerpt:          bc.content.slice(0, 220).trimEnd(),
+        contributorLabel: contributorLabel(context.ownerName, bc.created_at),
+        recipientLabel:   bc.recipientLabel,
+        truncated:        bc.content.length > 220,
       })),
     });
   } catch (err) {

@@ -116,7 +116,7 @@ describe('POST /api/family-agent', () => {
     expect(res.status).toBe(404);
   });
 
-  it('returns 200 with answer, contextSources, and warnings on success', async () => {
+  it('returns 200 with answer, contextSources, warnings, and contributorLabel on success', async () => {
     vi.mocked(getSessionClient).mockResolvedValue(makeSession(MOCK_SESSION) as never);
     vi.mocked(buildFamilyAgentContext).mockResolvedValue(MOCK_CONTEXT);
     vi.mocked(answerFamilyQuestion).mockResolvedValue('Our family values faith above all.');
@@ -127,6 +127,8 @@ describe('POST /api/family-agent', () => {
     expect(body.answer).toBe('Our family values faith above all.');
     expect(Array.isArray(body.contextSources)).toBe(true);
     expect(Array.isArray(body.warnings)).toBe(true);
+    expect(body.breadcrumbExcerpts[0].contributorLabel).toMatch(/^From Marcus — /);
+    expect(body.breadcrumbExcerpts[0].recipientLabel).toBe('For Cairo');
   });
 
   it('passes recipientId to buildFamilyAgentContext', async () => {

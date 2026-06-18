@@ -14,7 +14,9 @@ export async function GET() {
   const access = await resolveFamilyAccess(db, session.user.id);
   if (!access) return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
 
-  const [{ data: recent }, { data: domainRows }] = await Promise.all([
+  const profile = access.familyProfile;
+
+  const [{ data: recent }, { data: domainRows }, { count: breadcrumbCount }] = await Promise.all([
     db.from('breadcrumbs')
       .select('content, created_at')
       .eq('parent_id', access.familyId)
@@ -27,6 +29,9 @@ export async function GET() {
       .select('domain')
       .eq('parent_id', access.familyId)
       .not('domain', 'is', null),
+    db.from('breadcrumbs')
+      .select('*', { count: 'exact', head: true })
+      .eq('parent_id', access.familyId),
   ]);
 
   const availableDomains = [
@@ -34,6 +39,10 @@ export async function GET() {
   ];
 
   return NextResponse.json({
+    contributorName:   profile.name,
+    contributorRole:   profile.role,
+    breadcrumbCount:   breadcrumbCount ?? 0,
+    lastWrittenAt:     recent?.created_at ?? null,
     featuredExcerpt: recent?.content
       ? { content: (recent.content as string).slice(0, 180).trimEnd(), created_at: recent.created_at }
       : null,

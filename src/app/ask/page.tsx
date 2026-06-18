@@ -1,40 +1,50 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getBrowserSupabase } from '@/lib/supabase-browser';
+import { firstName } from '@/lib/nameUtils';
 import BottomNav from '@/components/BottomNav';
 
 interface FamilyMember { id: string; name: string; role: string; }
 
 type AgentResult = {
   answer: string;
-  warnings: string[];
-  contextSources: { source: string; id: string }[];
-  breadcrumbExcerpts: { excerpt: string; recipientLabel: string; truncated: boolean }[];
+  breadcrumbExcerpts: { excerpt: string; contributorLabel: string; truncated: boolean }[];
 };
 
 type Discovery = {
-  featuredExcerpt: { content: string; created_at: string } | null;
-  availableDomains: string[];
+  contributorName:   string;
+  contributorRole:   string | null;
+  breadcrumbCount:   number;
+  lastWrittenAt:     string | null;
+  featuredExcerpt:   { content: string; created_at: string } | null;
+  availableDomains:  string[];
 };
 
-const DOMAIN_PROMPTS: Record<string, string> = {
-  relationships: 'What did they believe about relationships?',
-  finances:      'What did they say about money?',
-  resilience:    'How did they handle hard times?',
-  career:        'What did they believe about work?',
-  identity:      'How did they see themselves?',
-  faith:         'What did they believe about faith?',
-  health:        'What did they say about health?',
-};
+function formatMonthYear(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+function domainPrompt(domain: string, contributorName: string): string {
+  const name = firstName(contributorName);
+  const prompts: Record<string, string> = {
+    relationships: `What ${name} believed about relationships`,
+    finances:      `What ${name} said about money`,
+    resilience:    `How ${name} handled hard times`,
+    career:        `What ${name} believed about work`,
+    identity:      `How ${name} saw themselves`,
+    faith:         `What ${name} believed about faith`,
+    health:        `What ${name} said about health`,
+  };
+  return prompts[domain] ?? '';
+}
 
 export default function HearPage() {
   const router = useRouter();
 
   const [familyMembers,     setFamilyMembers]     = useState<FamilyMember[]>([]);
-  const [selectedRecipient, setSelectedRecipient] = useState('');
+  const [selectedRecipient, setSelectedRecipient] = useState<string | null>(null);
   const [question,          setQuestion]          = useState('');
   const [result,            setResult]            = useState<AgentResult | null>(null);
   const [discovery,         setDiscovery]         = useState<Discovery | null>(null);
@@ -81,7 +91,7 @@ export default function HearPage() {
       const res = await fetch('/api/family-agent', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ question: question.trim(), recipientId: selectedRecipient || null }),
+        body:    JSON.stringify({ question: question.trim(), recipientId: selectedRecipient }),
       });
 
       if (res.status === 401) { router.push('/login?next=/ask'); return; }
@@ -94,8 +104,6 @@ export default function HearPage() {
       const data = await res.json();
       setResult({
         answer:             data.answer as string,
-        warnings:           (data.warnings          ?? []) as string[],
-        contextSources:     (data.contextSources     ?? []) as { source: string; id: string }[],
         breadcrumbExcerpts: (data.breadcrumbExcerpts ?? []) as AgentResult['breadcrumbExcerpts'],
       });
     } catch {
@@ -113,32 +121,48 @@ export default function HearPage() {
     );
   }
 
-  const discoveryDomains = (discovery?.availableDomains ?? []).filter((d) => DOMAIN_PROMPTS[d]);
-  const breadcrumbCount  = result?.contextSources.filter((s) => s.source === 'breadcrumbs').length ?? 0;
+  const contributorFirst = firstName(discovery?.contributorName);
+  const groundingLine = discovery?.lastWrittenAt
+    ? `Last wrote ${formatMonthYear(discovery.lastWrittenAt)}`
+    : discovery && discovery.breadcrumbCount > 0
+      ? `${discovery.breadcrumbCount} breadcrumbs`
+      : null;
+
+  const discoveryDomains = (discovery?.availableDomains ?? [])
+    .filter((d) => domainPrompt(d, discovery?.contributorName ?? ''));
 
   return (
     <main className="min-h-screen bg-background text-foreground px-4 py-10 sm:py-16 pb-28">
       <div className="max-w-2xl mx-auto space-y-8">
 
-        {/* Header */}
-        <div className="space-y-1">
-          <h1 className="text-2xl font-serif font-light tracking-tight">Hear from them</h1>
-          <p className="text-sm text-muted-foreground">
-            Draws from everything they&apos;ve shared — their Foundation and their Breadcrumbs.
-          </p>
-        </div>
+        {/* Contributor presence header */}
+        {discovery?.contributorName && (
+          <div className="space-y-1">
+            <h1 className="text-2xl font-serif font-light tracking-tight">{contributorFirst}</h1>
+            {groundingLine && (
+              <p className="text-sm text-muted-foreground">{groundingLine}</p>
+            )}
+          </div>
+        )}
+
+        {!discovery?.contributorName && (
+          <div className="space-y-1">
+            <h1 className="text-2xl font-serif font-light tracking-tight">Hear from them</h1>
+            <p className="text-sm text-muted-foreground">
+              Draws from everything they&apos;ve shared — their Foundation and their Breadcrumbs.
+            </p>
+          </div>
+        )}
 
         {/* Discovery — featured excerpt */}
         {discovery?.featuredExcerpt && !result && (
-          <div className="border-l-2 border-foreground/10 pl-4">
+          <div className="border-l-2 border-foreground/10 pl-4 space-y-1">
+            <p className="text-[0.625rem] text-muted-foreground/60 uppercase tracking-widest">
+              From {contributorFirst} — {formatMonthYear(discovery.featuredExcerpt.created_at)}
+            </p>
             <p className="text-sm font-display text-foreground/60 leading-relaxed italic">
               &ldquo;{discovery.featuredExcerpt.content.trimEnd()}
               {discovery.featuredExcerpt.content.length >= 180 ? '…' : '”'}
-            </p>
-            <p className="text-[0.625rem] text-muted-foreground/40 mt-1">
-              {new Date(discovery.featuredExcerpt.created_at).toLocaleDateString('en-US', {
-                month: 'long', year: 'numeric',
-              })}
             </p>
           </div>
         )}
@@ -147,25 +171,21 @@ export default function HearPage() {
         {discoveryDomains.length > 0 && !result && (
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground/40 uppercase tracking-widest">
-              Explore what they shared
+              Explore what {contributorFirst} shared
             </p>
             <div className="flex flex-wrap gap-2">
               {discoveryDomains.map((domain) => (
                 <button
                   key={domain}
                   type="button"
-                  onClick={() => setQuestion(DOMAIN_PROMPTS[domain])}
+                  onClick={() => setQuestion(domainPrompt(domain, discovery!.contributorName))}
                   className="text-xs px-3 py-1.5 border border-border text-muted-foreground hover:border-foreground hover:text-foreground transition rounded-sm"
                 >
-                  {DOMAIN_PROMPTS[domain]}
+                  {domainPrompt(domain, discovery!.contributorName)}
                 </button>
               ))}
             </div>
           </div>
-        )}
-
-        {(discovery?.featuredExcerpt || discoveryDomains.length > 0) && !result && (
-          <p className="text-xs text-muted-foreground/30">Or ask something specific:</p>
         )}
 
         {/* Form */}
@@ -173,7 +193,7 @@ export default function HearPage() {
           <textarea
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder="What do you believe about handling failure?"
+            placeholder="Ask about faith, work, how they handled hard times…"
             rows={4}
             maxLength={1000}
             disabled={loading}
@@ -181,19 +201,34 @@ export default function HearPage() {
           />
 
           {familyMembers.length > 0 && (
-            <div className="space-y-1">
-              <label className="block text-xs text-muted-foreground">About (optional)</label>
-              <select
-                value={selectedRecipient}
-                onChange={(e) => setSelectedRecipient(e.target.value)}
-                disabled={loading}
-                className="bg-background border border-border text-sm text-foreground px-3 py-2 focus:outline-none focus:border-foreground/40 transition"
-              >
-                <option value="">The whole family</option>
+            <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedRecipient(null)}
+                  disabled={loading}
+                  className={`text-xs px-3 py-1.5 border rounded-sm transition ${
+                    selectedRecipient === null
+                      ? 'border-foreground text-foreground'
+                      : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+                  }`}
+                >
+                  Everyone
+                </button>
                 {familyMembers.map((m) => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setSelectedRecipient(m.id)}
+                    disabled={loading}
+                    className={`text-xs px-3 py-1.5 border rounded-sm transition ${
+                      selectedRecipient === m.id
+                        ? 'border-foreground text-foreground'
+                        : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {firstName(m.name)}
+                  </button>
                 ))}
-              </select>
             </div>
           )}
 
@@ -218,48 +253,25 @@ export default function HearPage() {
             {result.breadcrumbExcerpts.length > 0 && (
               <div className="space-y-3 pt-1">
                 <p className="text-xs text-muted-foreground/40 uppercase tracking-widest">
-                  In their own words
+                  In {contributorFirst}&apos;s own words
                 </p>
                 {result.breadcrumbExcerpts.map((bc, i) => (
                   <blockquote key={i} className="border-l-2 border-foreground/10 pl-4 space-y-1">
                     <p className="text-sm font-display text-foreground/70 leading-relaxed italic">
                       &ldquo;{bc.excerpt}{bc.truncated ? '…' : '”'}
                     </p>
-                    <p className="text-[0.625rem] text-muted-foreground/40">{bc.recipientLabel}</p>
+                    <p className="text-[0.625rem] text-muted-foreground/40">{bc.contributorLabel}</p>
                   </blockquote>
                 ))}
               </div>
             )}
-
-            {result.warnings.length > 0 && (
-              <div className="space-y-1">
-                {result.warnings.map((w, i) => (
-                  <p key={i} className="text-xs text-muted-foreground/70">{w}</p>
-                ))}
-              </div>
-            )}
-
-            <p className="text-xs text-muted-foreground/50">
-              {breadcrumbCount > 0 ? (
-                <>
-                  Answered using {breadcrumbCount} saved{' '}
-                  {breadcrumbCount === 1 ? 'breadcrumb' : 'breadcrumbs'} from your{' '}
-                  <Link href="/archive" className="underline underline-offset-2 hover:text-muted-foreground transition">
-                    Family Library
-                  </Link>
-                  .
-                </>
-              ) : (
-                'Answers are based on your saved Family Foundation and Breadcrumbs.'
-              )}
-            </p>
 
             <button
               type="button"
               onClick={() => { setResult(null); setQuestion(''); }}
               className="text-xs text-muted-foreground/40 hover:text-foreground transition"
             >
-              ← Ask another
+              ← Ask something else
             </button>
           </div>
         )}
