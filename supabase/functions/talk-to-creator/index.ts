@@ -200,7 +200,42 @@ serve(async (req) => {
 
     console.log(`Found ${accessibleBreadcrumbs.length} accessible breadcrumbs from creator`);
 
-    if (accessibleBreadcrumbs.length === 0) {
+    // Fetch shared journal entries from this creator
+    let accessibleJournals: any[] = [];
+    const { data: allJournals } = await supabase
+      .from("journal_entries")
+      .select("id, title, content, mood, tags, entry_date, creator_id")
+      .eq("creator_id", creatorId)
+      .eq("is_shared", true)
+      .order("entry_date", { ascending: false })
+      .limit(50);
+
+    if (verifiedRole === "recipient") {
+      // Only include journals shared with this specific recipient
+      const { data: recipientData } = await supabase
+        .from("recipients")
+        .select("id")
+        .eq("creator_id", creatorId)
+        .eq("user_id", verifiedUserId)
+        .single();
+
+      if (recipientData) {
+        const { data: journalAccess } = await supabase
+          .from("journal_entry_recipients")
+          .select("journal_entry_id")
+          .eq("recipient_id", recipientData.id);
+
+        const allowedIds = new Set((journalAccess || []).map((j: any) => j.journal_entry_id));
+        accessibleJournals = (allJournals || []).filter((j: any) => allowedIds.has(j.id));
+      }
+    } else {
+      // Creator sees all their own journals
+      accessibleJournals = allJournals || [];
+    }
+
+    console.log(`Found ${accessibleJournals.length} accessible journal entries from creator`);
+
+    if (accessibleBreadcrumbs.length === 0 && accessibleJournals.length === 0) {
       return new Response(JSON.stringify({
         response: `I don't have any wisdom or messages from ${verifiedCreatorName} yet. Once they leave some breadcrumbs, we can have a conversation based on their thoughts and teachings.`,
         sources_used: [],
@@ -233,6 +268,16 @@ serve(async (req) => {
       return text;
     }).join("\n\n");
 
+    // Format journal entries for context
+    const journalContextText = accessibleJournals.map((j: any, i: number) => {
+      let text = `[Journal Entry ${i + 1}]\nTitle: "${j.title}"`;
+      if (j.mood) text += `\nMood: ${j.mood}`;
+      if (j.tags && j.tags.length > 0) text += `\nTags: ${j.tags.join(", ")}`;
+      text += `\nContent: ${j.content}`;
+      text += `\nDate: ${new Date(j.entry_date).toLocaleDateString()}`;
+      return text;
+    }).join("\n\n");
+
     const systemPrompt = `You are having a conversation AS ${verifiedCreatorName}. You are embodying this person's voice, wisdom, and perspective based on the messages (Breadcrumbs) they have left behind.
 
 CRITICAL PERSONA RULES:
@@ -250,6 +295,10 @@ VOICE ANALYSIS:
 
 ${verifiedCreatorName.toUpperCase()}'S MESSAGES AND WISDOM:
 ${contextText}
+
+${accessibleJournals.length > 0 ? `${verifiedCreatorName.toUpperCase()}'S PERSONAL JOURNAL ENTRIES:
+These are private journal entries ${verifiedCreatorName} has chosen to share. They reveal deeper personal thoughts, feelings, and day-to-day experiences. Use them to enrich your responses with authenticity and personal detail.
+${journalContextText}` : ""}
 
 Remember: You ARE ${verifiedCreatorName} in this conversation. Respond with their warmth, wisdom, and personality.`;
 

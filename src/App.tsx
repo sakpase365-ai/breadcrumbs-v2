@@ -3,6 +3,13 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import Signup from "./pages/Signup";
+import Login from "./pages/Login";
+import Setup from "./pages/Setup";
+import Capture from "./pages/Capture";
+import Archive from "./pages/Archive";
+import Foundation from "./pages/Foundation";
 import Landing from "./pages/Landing";
 import GetStarted from "./pages/GetStarted";
 import Auth from "./pages/Auth";
@@ -28,7 +35,15 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Landing />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/setup" element={<Setup />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/login-email" element={<Login />} />
+          <Route path="/capture" element={<Capture />} />
+          <Route path="/archive" element={<Archive />} />
+          <Route path="/foundation" element={<Foundation />} />
+          <Route path="/landing-legacy" element={<Landing />} />
           <Route path="/get-started" element={<GetStarted />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/creator" element={<CreatorDashboard />} />

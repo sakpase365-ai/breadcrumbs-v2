@@ -15,13 +15,12 @@ export default {
   	extend: {
 		fontFamily: {
 			serif: [
-				'Outfit',
-				'ui-sans-serif',
-				'system-ui',
-				'sans-serif'
+				'Playfair Display',
+				'Georgia',
+				'serif'
 			],
 			sans: [
-				'Outfit',
+				'Inter',
 				'ui-sans-serif',
 				'system-ui',
 				'sans-serif'

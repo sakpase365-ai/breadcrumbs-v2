@@ -6,6 +6,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface JournalContext {
+  id: string;
+  title: string;
+  content: string;
+  mood: string | null;
+  tags: string[] | null;
+  entry_date: string;
+  creator_name: string | null;
+  creator_id: string | null;
+  relevance_score?: number;
+}
+
 interface BreadcrumbContext {
   id: string;
   title: string;
@@ -202,6 +214,39 @@ function calculateRelevance(
   return score;
 }
 
+// Helper: Calculate relevance score for a journal entry
+function calculateJournalRelevance(
+  entry: JournalContext,
+  keywords: string[]
+): number {
+  let score = 0;
+  const textToSearch = [
+    entry.title,
+    entry.content,
+    entry.mood,
+    ...(entry.tags || [])
+  ].filter(Boolean).join(" ").toLowerCase();
+
+  for (const keyword of keywords) {
+    if (textToSearch.includes(keyword)) score += 2;
+  }
+
+  if (entry.tags) {
+    for (const tag of entry.tags) {
+      const tagLower = tag.toLowerCase();
+      for (const keyword of keywords) {
+        if (tagLower.includes(keyword) || keyword.includes(tagLower)) score += 4;
+      }
+    }
+  }
+
+  const ageInDays = (Date.now() - new Date(entry.entry_date).getTime()) / (1000 * 60 * 60 * 24);
+  if (ageInDays < 30) score += 1;
+  if (ageInDays < 7) score += 1;
+
+  return score;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -268,6 +313,7 @@ serve(async (req) => {
     const verifiedProfileId = profile.id;
 
     let breadcrumbsData: any[] = [];
+    let journalsData: JournalContext[] = [];
 
     // Family-scoped access: verify user is a member of the family first
     if (familyId) {
@@ -337,7 +383,33 @@ serve(async (req) => {
         if (b.visibility === "recipient_only" && verifiedRecipientId && b.recipient_id === verifiedRecipientId) return true;
         return false;
       });
-    } 
+
+      // Fetch shared journal entries from creators in this family
+      const familyCreatorIds = [...new Set(breadcrumbsData.map((b: any) => b.creator_id).filter(Boolean))];
+      if (familyCreatorIds.length > 0) {
+        const { data: familyJournals } = await supabase
+          .from("journal_entries")
+          .select(`
+            id, title, content, mood, tags, entry_date, creator_id,
+            creator:profiles!journal_entries_creator_id_fkey(id, name)
+          `)
+          .in("creator_id", familyCreatorIds)
+          .eq("is_shared", true)
+          .order("entry_date", { ascending: false })
+          .limit(50);
+
+        journalsData = (familyJournals || []).map((j: any) => ({
+          id: j.id,
+          title: j.title,
+          content: j.content,
+          mood: j.mood,
+          tags: j.tags || [],
+          entry_date: j.entry_date,
+          creator_name: j.creator?.name || null,
+          creator_id: j.creator?.id || j.creator_id || null,
+        }));
+      }
+    }
     // Recipient: fetch breadcrumbs the recipient has access to
     else if (verifiedRole === "recipient") {
       console.log("Fetching breadcrumbs for verified recipient");
@@ -403,6 +475,40 @@ serve(async (req) => {
       });
 
       console.log(`Found ${breadcrumbsData.length} accessible breadcrumbs for recipient`);
+
+      // Fetch shared journal entries this recipient has access to
+      const { data: journalAccess } = await supabase
+        .from("journal_entry_recipients")
+        .select("journal_entry_id")
+        .in("recipient_id", recipientIds);
+
+      const journalEntryIds = (journalAccess || []).map((j: any) => j.journal_entry_id);
+
+      if (journalEntryIds.length > 0) {
+        const { data: journalData } = await supabase
+          .from("journal_entries")
+          .select(`
+            id, title, content, mood, tags, entry_date, creator_id,
+            creator:profiles!journal_entries_creator_id_fkey(id, name)
+          `)
+          .in("id", journalEntryIds)
+          .eq("is_shared", true)
+          .order("entry_date", { ascending: false })
+          .limit(50);
+
+        journalsData = (journalData || []).map((j: any) => ({
+          id: j.id,
+          title: j.title,
+          content: j.content,
+          mood: j.mood,
+          tags: j.tags || [],
+          entry_date: j.entry_date,
+          creator_name: j.creator?.name || null,
+          creator_id: j.creator?.id || j.creator_id || null,
+        }));
+      }
+
+      console.log(`Found ${journalsData.length} accessible journal entries for recipient`);
     } else if (verifiedRole === "creator") {
       // Creator can only access their own breadcrumbs
       const { data, error } = await supabase
@@ -428,6 +534,25 @@ serve(async (req) => {
 
       if (error) throw new Error("Failed to fetch breadcrumbs");
       breadcrumbsData = data || [];
+
+      // Fetch creator's own journal entries
+      const { data: creatorJournals } = await supabase
+        .from("journal_entries")
+        .select("id, title, content, mood, tags, entry_date, creator_id")
+        .eq("creator_id", verifiedProfileId)
+        .order("entry_date", { ascending: false })
+        .limit(50);
+
+      journalsData = (creatorJournals || []).map((j: any) => ({
+        id: j.id,
+        title: j.title,
+        content: j.content,
+        mood: j.mood,
+        tags: j.tags || [],
+        entry_date: j.entry_date,
+        creator_name: null,
+        creator_id: j.creator_id,
+      }));
     } else {
       return new Response(JSON.stringify({ error: "Invalid user role" }), {
         status: 400,
@@ -435,11 +560,11 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Found ${breadcrumbsData.length} breadcrumbs for context`);
+    console.log(`Found ${breadcrumbsData.length} breadcrumbs and ${journalsData.length} journal entries for context`);
 
-    if (breadcrumbsData.length === 0) {
+    if (breadcrumbsData.length === 0 && journalsData.length === 0) {
       return new Response(JSON.stringify({
-        answer: "I don't have any breadcrumbs to search through yet. Once your loved ones leave some wisdom, I'll be able to help answer your questions!",
+        answer: "I don't have any breadcrumbs or journal entries to search through yet. Once your loved ones leave some wisdom, I'll be able to help answer your questions!",
         sources_used: [],
         follow_up_questions: [],
       }), {
@@ -548,6 +673,29 @@ serve(async (req) => {
       return text;
     }).join("\n\n");
 
+    // Score and sort journal entries by relevance
+    const scoredJournals = journalsData.map(j => ({
+      ...j,
+      relevance_score: calculateJournalRelevance(j, keywords)
+    }));
+    scoredJournals.sort((a, b) => {
+      if (b.relevance_score !== a.relevance_score) {
+        return (b.relevance_score || 0) - (a.relevance_score || 0);
+      }
+      return new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime();
+    });
+    const topJournals = scoredJournals.slice(0, 20);
+
+    const journalContextText = topJournals.map((j, i) => {
+      let text = `[Journal Entry ${i + 1}]\nID: ${j.id}\nTitle: "${j.title}"`;
+      if (j.creator_name) text += `\nAuthor: ${j.creator_name}`;
+      if (j.mood) text += `\nMood: ${j.mood}`;
+      if (j.tags && j.tags.length > 0) text += `\nTags: ${j.tags.join(", ")}`;
+      text += `\nContent: ${j.content}`;
+      text += `\nDate: ${new Date(j.entry_date).toLocaleDateString()}`;
+      return text;
+    }).join("\n\n");
+
     // Include retrieval metadata in the prompt
     const retrievalContext = `
 RETRIEVAL METADATA:
@@ -604,7 +752,11 @@ ${familyMemberNames.join(", ") || "Not specified"}
 ${retrievalContext}
 
 AVAILABLE BREADCRUMBS CONTEXT:
-${contextText}`;
+${contextText}
+
+${topJournals.length > 0 ? `AVAILABLE JOURNAL ENTRIES CONTEXT:
+Journal entries are personal writings from the creator. They provide deeper insight into their daily thoughts, feelings, and experiences beyond what is captured in breadcrumbs. When citing a journal entry in your answer, note it as "(from Journal: [title])".
+${journalContextText}` : ""}`;
 
     // Call Lovable AI with tool calling for structured output
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
