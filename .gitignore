@@ -11,3 +11,4 @@ ios/**/xcuserdata/
 .vercel
 .superpowers/
 .cursor/
+.claude/launch.json
