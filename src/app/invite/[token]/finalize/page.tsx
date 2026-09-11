@@ -134,7 +134,7 @@ export default async function InviteFinalizePage({
     familyId: invite.family_id,
   });
 
-  redirect('/capture');
+  redirect('/onboard/invited');
 }
 
 // ── Shared error UI ───────────────────────────────────────────

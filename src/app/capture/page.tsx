@@ -27,7 +27,7 @@ import VoiceWaveform   from '@/components/VoiceWaveform';
 import AudioPlayer    from '@/components/AudioPlayer';
 import SettingsSheet  from '@/components/SettingsSheet';
 import BottomNav      from '@/components/BottomNav';
-import { InlineAction } from '@/components/ui/design-primitives';
+import { InlineAction, ScreenContainer, ScreenContent, ScreenHeader } from '@/components/ui/design-primitives';
 
 const DRAFT_KEY     = 'breadcrumbs_draft';
 const PREFILL_KEY   = 'breadcrumbs_prefill';
@@ -88,12 +88,23 @@ async function fetchPromptText(recipientId: string | null, excludePriorPrompts?:
 
 function chipCls(active: boolean, size: 'sm' | 'xs' = 'sm') {
   const text = size === 'xs' ? 'text-xs' : 'text-sm';
-  return `px-3 py-1.5 ${text} border rounded-sm transition ${
+  return `px-3 py-1.5 ${text} border rounded-sm transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 ${
     active
       ? 'border-foreground bg-foreground text-background'
       : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
   }`;
 }
+
+function recipientChipCls(active: boolean) {
+  return `px-3 py-2 text-sm rounded-full border transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 ${
+    active
+      ? 'border-foreground text-foreground'
+      : 'border-foreground/20 text-foreground/50 hover:border-foreground/45 hover:text-foreground/75'
+  }`;
+}
+
+const SAVE_BTN =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40';
 
 function CaptureFlow() {
   const router = useRouter();
@@ -587,24 +598,18 @@ function CaptureFlow() {
   }
 
   return (
-    <main
-      className="min-h-screen bg-background flex flex-col items-center justify-start px-5 sm:px-6 pb-28"
-      style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1rem)' }}
-    >
-      <div className="max-w-xl w-full space-y-5">
+    <ScreenContainer className="screen-main-safe !px-5 sm:!px-6 !py-0 flex flex-col items-center justify-start">
+      <ScreenContent className="space-y-5 !pb-28">
 
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <InlineAction onClick={() => router.push('/')} ariaLabel="Back to home">
-            <span aria-hidden>←</span>
-          </InlineAction>
-          <span className="text-xs text-muted-foreground/50 uppercase tracking-widest text-center">
-            {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-          </span>
-          <InlineAction onClick={() => setSettingsOpen(true)} ariaLabel="Open settings">
-            <span className="text-sm">Settings</span>
-          </InlineAction>
-        </div>
+        <ScreenHeader
+          title={new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+          titleClassName="text-xs font-sans font-normal text-muted-foreground/50 uppercase tracking-widest"
+          rightAction={(
+            <InlineAction onClick={() => setSettingsOpen(true)} ariaLabel="Open settings">
+              <span className="text-sm">Settings</span>
+            </InlineAction>
+          )}
+        />
 
         {/* Loading */}
         {stage === 'loading' && (
@@ -633,30 +638,24 @@ function CaptureFlow() {
             {/* Recipient — always visible, not gated by content */}
             {familyMembers.length > 0 && (
               <div className="space-y-2">
-                <p className="type-label text-foreground/35 text-center">Who are you writing to?</p>
+                <p className="type-label text-foreground/35 text-center">Who are you speaking to today?</p>
                 <div className="flex gap-2 flex-wrap justify-center">
                   {familyMembers.map((m) => (
                     <button
                       type="button"
                       key={m.id}
+                      aria-pressed={selectedRecipient?.id === m.id}
                       onClick={() => setSelectedRecipient(selectedRecipient?.id === m.id ? null : m)}
-                      className={`px-3 py-1 text-sm rounded-full border transition ${
-                        selectedRecipient?.id === m.id
-                          ? 'border-foreground text-foreground'
-                          : 'border-foreground/20 text-foreground/50 hover:border-foreground/45 hover:text-foreground/75'
-                      }`}
+                      className={recipientChipCls(selectedRecipient?.id === m.id)}
                     >
                       {firstName(m.name)}
                     </button>
                   ))}
                   <button
                     type="button"
+                    aria-pressed={!selectedRecipient}
                     onClick={() => setSelectedRecipient(null)}
-                    className={`px-3 py-1 text-sm rounded-full border transition ${
-                      !selectedRecipient
-                        ? 'border-foreground text-foreground'
-                        : 'border-foreground/20 text-foreground/50 hover:border-foreground/45 hover:text-foreground/75'
-                    }`}
+                    className={recipientChipCls(!selectedRecipient)}
                   >
                     Everyone
                   </button>
@@ -665,13 +664,15 @@ function CaptureFlow() {
             )}
 
             {/* Stage navigation — Write / Voice only */}
-            <div className="flex items-center justify-center gap-6">
+            <div className="flex items-center justify-center gap-6" role="tablist" aria-label="Capture mode">
               {STAGE_ORDER.map((s) => (
                 <button
                   key={s}
                   type="button"
+                  role="tab"
+                  aria-selected={captureStage === s}
                   onClick={() => handleStageChange(s)}
-                  className={`text-xs tracking-wide capitalize transition border-b pb-px ${
+                  className={`text-xs tracking-wide capitalize transition border-b pb-px min-h-[44px] px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 rounded-sm ${
                     captureStage === s
                       ? 'text-foreground border-foreground/55'
                       : 'text-foreground/28 border-transparent hover:text-foreground/55'
@@ -711,7 +712,7 @@ function CaptureFlow() {
 
                     {/* Inline prompt card — shown after 10s hesitation, hidden once writing starts */}
                     {showHesitationHint && entry.trim().length < 20 && (aiPrompt || promptLoading) && (
-                      <div className="border-t border-foreground/[0.06] pt-3 space-y-2">
+                      <div className="border-t border-foreground/[0.06] pt-3 space-y-2" aria-live="polite">
                         <p className="type-label text-foreground/22">Today&apos;s Spark</p>
                         {promptLoading ? (
                           <p className="text-xs text-foreground/18">···</p>
@@ -733,7 +734,7 @@ function CaptureFlow() {
                           <button
                             type="button"
                             onClick={() => void handleNewPrompt()}
-                            className="text-xs text-foreground/20 hover:text-foreground/50 transition"
+                            className={`text-xs text-foreground/20 hover:text-foreground/50 transition min-h-[44px] px-2 ${SAVE_BTN}`}
                           >
                             ↻ New spark
                           </button>
@@ -868,8 +869,9 @@ function CaptureFlow() {
                       <button
                         key={opt.value}
                         type="button"
+                        aria-pressed={breadcrumbType === opt.value}
                         onClick={() => setBreadcrumbType(opt.value)}
-                        className={`px-4 py-1.5 text-sm border rounded-sm transition ${
+                        className={`px-4 py-2 text-sm border rounded-sm transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 ${
                           breadcrumbType === opt.value
                             ? 'border-foreground text-foreground bg-foreground/5'
                             : 'border-foreground/18 text-foreground/40 hover:border-foreground/45 hover:text-foreground/70'
@@ -899,7 +901,7 @@ function CaptureFlow() {
                       <button
                         type="button"
                         onClick={() => setConfirmingSave(false)}
-                        className="flex-1 py-3.5 text-sm border border-border text-muted-foreground rounded-sm hover:border-foreground/40 hover:text-foreground transition"
+                        className={`flex-1 py-3.5 text-sm border border-border text-muted-foreground rounded-sm hover:border-foreground/40 hover:text-foreground transition min-h-[44px] ${SAVE_BTN}`}
                       >
                         Cancel
                       </button>
@@ -907,7 +909,7 @@ function CaptureFlow() {
                         type="button"
                         onClick={() => void handleSave()}
                         disabled={saving}
-                        className="flex-1 py-3.5 text-sm border border-foreground text-foreground rounded-sm hover:bg-foreground hover:text-background transition disabled:opacity-30"
+                        className={`flex-1 py-3.5 text-sm border border-foreground text-foreground rounded-sm hover:bg-foreground hover:text-background transition disabled:opacity-30 min-h-[44px] ${SAVE_BTN}`}
                       >
                         {saving ? 'Saving…' : 'Yes, save it'}
                       </button>
@@ -917,7 +919,7 @@ function CaptureFlow() {
                       type="button"
                       onClick={() => void handleSave()}
                       disabled={!breadcrumbType || saving}
-                      className="w-full py-4 text-sm border border-foreground text-foreground rounded-sm hover:bg-foreground hover:text-background transition disabled:opacity-30 disabled:cursor-not-allowed"
+                      className={`w-full py-4 text-sm border border-foreground text-foreground rounded-sm hover:bg-foreground hover:text-background transition disabled:opacity-30 disabled:cursor-not-allowed min-h-[44px] ${SAVE_BTN}`}
                     >
                       {saving ? 'Saving…' : 'Save Breadcrumb'}
                     </button>
@@ -1092,11 +1094,11 @@ function CaptureFlow() {
           </div>
         )}
 
-      </div>
+      </ScreenContent>
 
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <BottomNav />
-    </main>
+    </ScreenContainer>
   );
 }
 

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Breadcrumbs — Write</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600&family=Instrument+Serif:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    @view-transition { navigation: auto; }
+    
+    :root {
+      --color-obsidian: #0D0D0D;
+      --color-ember: #C4714A;
+      --color-charcoal: #fdfaf5;
+      --color-muted-charcoal: #525252;
+      --border-ember: rgba(196, 113, 74, 0.2);
+    }
+
+    body {
+      background-color: var(--color-obsidian);
+      color: var(--color-charcoal);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-serif {
+      font-family: 'Instrument Serif', serif;
+    }
+
+    .type-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--color-muted-charcoal);
+    }
+
+    .glass-nav {
+      background-color: var(--color-obsidian);
+      border-top: 1px solid var(--border-ember);
+    }
+
+    ::placeholder {
+      color: var(--color-muted-charcoal) !important;
+    }
+
+    .writing-surface {
+      caret-color: var(--color-charcoal);
+      selection-background-color: var(--color-ember);
+    }
+
+    .active-pill {
+      border: 1px solid var(--color-charcoal);
+      color: var(--color-ember);
+    }
+
+    .inactive-pill {
+      border: 1px solid var(--border-ember);
+      color: var(--color-muted-charcoal);
+    }
+  </style>
+</head>
+<body>
+  <div class="min-h-screen flex flex-col items-center">
+    <!-- Screen Shell -->
+    <div class="w-full max-w-xl px-6 pt-12 pb-32 flex flex-col gap-12">
+      
+      <!-- Header: Contemplative & Minimal -->
+      <header class="flex items-center justify-between">
+        <div class="flex flex-col">
+          <span class="type-label">Currently writing</span>
+          <span class="text-sm opacity-60 font-medium">Thursday, June 20, 2026</span>
+        </div>
+        <button id="settings-btn" class="text-neutral-400 hover:text-white transition-colors">
+          <iconify-icon icon="lucide:settings" class="text-xl"></iconify-icon>
+        </button>
+      </header>
+
+      <!-- Recipient: The Focus -->
+      <section class="space-y-4">
+        <h2 class="font-serif text-2xl text-ember text-center">To whom is this message for?</h2>
+        <div class="flex flex-wrap justify-center gap-2">
+          <button id="recipient-cairo" class="px-5 py-2.5 rounded-full text-sm font-medium transition active-pill">Cairo</button>
+          <button id="recipient-joni" class="px-5 py-2.5 rounded-full text-sm font-medium transition inactive-pill hover:border-ember hover:text-ember">Joni</button>
+          <button id="recipient-everyone" class="px-5 py-2.5 rounded-full text-sm font-medium transition inactive-pill hover:border-ember hover:text-ember">Everyone</button>
+        </div>
+      </section>
+
+      <!-- Mode Selection -->
+      <div class="flex justify-center border-b border-border-ember">
+        <div class="flex gap-8">
+          <button id="mode-write" class="pb-4 text-xs tracking-widest uppercase font-semibold border-b-2 border-ember text-ember transition-all">Write</button>
+          <button id="mode-voice" class="pb-4 text-xs tracking-widest uppercase font-semibold text-neutral-400 hover:text-ember hover:border-ember transition-all">Voice</button>
+        </div>
+      </div>
+
+      <!-- Main Editorial Writing Area -->
+      <main class="flex-1 flex flex-col gap-8">
+        <textarea 
+          class="writing-surface w-full bg-transparent border-none focus:ring-0 text-2xl md:text-3xl font-serif leading-relaxed h-[40vh] resize-none outline-none"
+          placeholder="What do you want them to remember?"
+        ></textarea>
+
+        <!-- Editorial Hint: The Spark -->
+        <div class="pt-8 border-t border-border-ember space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="type-label">A Spark of thought</span>
+            <button id="refresh-spark" class="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-neutral-400 hover:text-ember transition-all">
+              <iconify-icon icon="lucide:refresh-cw"></iconify-icon>
+              New Prompt
+            </button>
+          </div>
+          <p class="text-lg font-serif text-charcoal leading-snug">
+            "What's one hard-earned lesson you wish you'd learned ten years earlier?"
+          </p>
+        </div>
+      </main>
+
+      <!-- Action Area -->
+      <footer class="space-y-8">
+        <div class="flex flex-col items-center gap-4">
+          <span class="type-label">Classify this thought</span>
+          <div class="flex gap-2 w-full">
+            <button id="type-message" class="flex-1 py-4 text-xs font-semibold tracking-widest uppercase border border-ember bg-ember text-black rounded-sm">Message</button>
+            <button id="type-memory" class="flex-1 py-4 text-xs font-semibold tracking-widest uppercase border border-border-ember text-neutral-400 hover:text-ember hover:border-ember transition-all rounded-sm">Memory</button>
+            <button id="type-lesson" class="flex-1 py-4 text-xs font-semibold tracking-widest uppercase border border-border-ember text-neutral-400 hover:text-ember hover:border-ember transition-all rounded-sm">Lesson</button>
+          </div>
+        </div>
+
+        <button id="save-breadcrumb" class="w-full py-5 bg-ember text-black font-semibold tracking-wider uppercase text-xs hover:bg-opacity-90 transition-all rounded-sm shadow-2xl">
+          Seal the Breadcrumb
+        </button>
+      </footer>
+
+    </div>
+
+    <!-- Bottom Navigation: Solid & Stable -->
+    <nav class="fixed bottom-0 left-0 right-0 z-50 glass-nav" aria-label="Main navigation">
+      <div class="max-w-xl mx-auto flex items-center h-20 px-4">
+        <a id="nav-write" href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 text-ember">
+          <iconify-icon icon="lucide:pen-tool" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-bold tracking-widest uppercase">Write</span>
+        </a>
+        <a id="nav-library" href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 text-neutral-400 hover:text-ember transition-colors">
+          <iconify-icon icon="lucide:book-open" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-bold tracking-widest uppercase">Library</span>
+        </a>
+        <a id="nav-story" href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 text-neutral-400 hover:text-ember transition-colors">
+          <iconify-icon icon="lucide:milestone" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-bold tracking-widest uppercase">Your Story</span>
+        </a>
+        <a id="nav-hear" href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 text-neutral-400 hover:text-ember transition-colors">
+          <iconify-icon icon="lucide:mic" class="text-xl"></iconify-icon>
+          <span class="text-[10px] font-bold tracking-widest uppercase">Hear</span>
+        </a>
+      </div>
+      <!-- Safe Area Inset -->
+      <div class="h-[env(safe-area-inset-bottom,0px)]"></div>
+    </nav>
+  </div>
+</body>
+</html>

@@ -22,7 +22,7 @@ const STOP_WORDS = new Set([
 
 // Categories that are always included in Foundation context regardless of relevance score
 const ALWAYS_INCLUDE_CATEGORIES = new Set([
-  'core_values', 'life_lesson', 'faith_purpose', 'legacy_message',
+  'family_values', 'life_advice', 'faith_foundation', 'legacy_message',
 ]);
 
 // ── Public types ──────────────────────────────────────────────────
@@ -179,7 +179,7 @@ function deriveFamilyValues(
   }
 
   // Also check if any VALUE_TAGS appear verbatim in the core_values Foundation answer
-  const coreValues = foundations.find((f) => f.category === 'core_values');
+  const coreValues = foundations.find((f) => f.category === 'family_values');
   if (coreValues) {
     const text = coreValues.content;
     for (const tag of VALUE_TAGS) {

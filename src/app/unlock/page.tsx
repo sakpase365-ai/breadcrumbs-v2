@@ -142,7 +142,7 @@ function UnlockForm() {
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); void handleForgotPin(); }}
-        className="absolute bottom-10 text-xs text-muted-foreground/30 hover:text-muted-foreground/60 transition"
+        className="absolute bottom-10 text-xs text-muted-foreground/30 hover:text-muted-foreground/60 transition min-h-[44px] px-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 rounded-sm"
       >
         Forgot PIN? Sign out and reset
       </button>

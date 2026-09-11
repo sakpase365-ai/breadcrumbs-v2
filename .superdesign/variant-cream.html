@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Breadcrumbs — Journal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap');
+
+    :root {
+      --parchment: #F9F7F2;
+      --charcoal: #1C1C1C;
+      --muted-charcoal: #525252;
+      --border-warm: rgba(28, 28, 28, 0.08);
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--parchment);
+      color: var(--charcoal);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-serif {
+      font-family: 'Playfair Display', serif;
+    }
+
+    .writing-surface {
+      min-height: calc(100vh - 380px);
+    }
+
+    @view-transition {
+      navigation: auto;
+    }
+
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      animation-duration: 0.4s;
+      animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .active-indicator {
+      view-transition-name: active-tab;
+    }
+  </style>
+</head>
+<body>
+  <div class="min-h-screen bg-[#F9F7F2] flex flex-col items-center">
+    <div class="w-full max-w-md px-6 pt-12 pb-24 flex flex-col gap-10">
+      
+      <!-- Header -->
+      <header class="flex items-center justify-between">
+        <div class="flex flex-col">
+          <span class="text-[0.65rem] uppercase tracking-[0.2em] font-semibold text-neutral-400">Friday</span>
+          <h1 class="text-sm font-medium tracking-tight text-neutral-500">June 20, 2026</h1>
+        </div>
+        <button id="settings-btn" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors">
+          <iconify-icon icon="lucide:settings-2" class="text-lg text-neutral-400"></iconify-icon>
+        </button>
+      </header>
+
+      <!-- Intention / Recipient Section -->
+      <section class="space-y-4">
+        <div class="text-center space-y-1">
+          <h2 class="font-serif italic text-2xl tracking-tight">Who are you speaking to?</h2>
+          <p class="text-[0.7rem] uppercase tracking-widest text-neutral-400 font-semibold">Choose a recipient</p>
+        </div>
+        
+        <div class="flex flex-wrap justify-center gap-2">
+          <button class="px-5 py-2.5 rounded-full border border-neutral-900 text-neutral-900 text-sm font-medium transition-all">
+            Cairo
+          </button>
+          <button class="px-5 py-2.5 rounded-full border border-black/10 text-neutral-400 text-sm hover:border-black/30 transition-all">
+            Joni
+          </button>
+          <button class="px-5 py-2.5 rounded-full border border-black/10 text-neutral-400 text-sm hover:border-black/30 transition-all">
+            Englon
+          </button>
+          <button class="px-5 py-2.5 rounded-full border border-black/10 text-neutral-400 text-sm hover:border-black/30 transition-all">
+            Everyone
+          </button>
+        </div>
+      </section>
+
+      <!-- Input Area -->
+      <section class="flex flex-col gap-6">
+        <div class="flex justify-center border-b border-black/5">
+          <button class="px-4 py-2 text-xs uppercase tracking-widest font-bold border-b-2 border-neutral-900 -mb-[1px]">Write</button>
+          <button class="px-4 py-2 text-xs uppercase tracking-widest font-bold text-neutral-300 hover:text-neutral-500 transition-colors">Voice</button>
+        </div>
+
+        <textarea 
+          class="writing-surface w-full bg-transparent border-none focus:ring-0 text-lg leading-relaxed placeholder:text-neutral-400 font-serif italic selection:bg-neutral-900 selection:text-white"
+          placeholder="What do you want them to remember?"
+        ></textarea>
+      </section>
+
+      <!-- Prompt / Spark -->
+      <div class="py-8 border-t border-black/5 space-y-3">
+        <div class="flex items-center gap-2 text-neutral-400">
+          <iconify-icon icon="lucide:sparkles" class="text-sm"></iconify-icon>
+          <span class="text-[0.65rem] uppercase tracking-[0.2em] font-bold">Daily Reflection</span>
+        </div>
+        <p class="text-sm leading-relaxed text-neutral-500 font-serif">
+          What is one hard-earned lesson you wish you'd learned ten years earlier?
+        </p>
+        <button class="text-[0.65rem] uppercase tracking-widest font-bold text-neutral-300 hover:text-neutral-900 transition-colors pt-2">
+          Generate New Spark
+        </button>
+      </div>
+
+      <!-- Footer Actions -->
+      <footer class="space-y-8">
+        <div class="flex flex-col items-center gap-4">
+          <span class="text-[0.65rem] uppercase tracking-[0.2em] font-bold text-neutral-500">Categorize this entry</span>
+          <div class="flex gap-2">
+            <button class="px-4 py-2 text-xs border border-neutral-900 bg-neutral-900 text-white rounded-[2px]">Message</button>
+            <button class="px-4 py-2 text-xs border border-black/10 text-neutral-400 rounded-[2px] hover:border-black/30 transition-all">Memory</button>
+            <button class="px-4 py-2 text-xs border border-black/10 text-neutral-400 rounded-[2px] hover:border-black/30 transition-all">Lesson</button>
+          </div>
+        </div>
+        
+        <button class="w-full py-5 bg-neutral-900 text-white text-xs uppercase tracking-[0.25em] font-bold hover:bg-neutral-800 transition-all shadow-xl shadow-black/5">
+          Commit to Archive
+        </button>
+      </footer>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 z-40 bg-[#F9F7F2] border-t border-black/5 shadow-[0_-4px_24px_rgba(0,0,0,0.02)]">
+      <div class="max-w-md mx-auto flex items-center justify-around px-4">
+        <a id="nav-write-link" href="#" class="flex flex-col items-center py-4 px-2 text-neutral-900 group relative">
+          <iconify-icon icon="lucide:pen-tool" class="text-xl mb-1"></iconify-icon>
+          <span class="text-[0.55rem] uppercase tracking-widest font-bold">Write</span>
+          <div class="absolute -bottom-[1px] h-[2px] w-4 bg-neutral-900 active-indicator"></div>
+        </a>
+        <a id="nav-library-link" href="#" class="flex flex-col items-center py-4 px-2 text-neutral-300 hover:text-neutral-500 transition-colors">
+          <iconify-icon icon="lucide:book-open" class="text-xl mb-1"></iconify-icon>
+          <span class="text-[0.55rem] uppercase tracking-widest font-bold">Library</span>
+        </a>
+        <a id="nav-story-link" href="#" class="flex flex-col items-center py-4 px-2 text-neutral-300 hover:text-neutral-500 transition-colors">
+          <iconify-icon icon="lucide:feather" class="text-xl mb-1"></iconify-icon>
+          <span class="text-[0.55rem] uppercase tracking-widest font-bold">Story</span>
+        </a>
+        <a id="nav-hear-link" href="#" class="flex flex-col items-center py-4 px-2 text-neutral-300 hover:text-neutral-500 transition-colors">
+          <iconify-icon icon="lucide:message-circle" class="text-xl mb-1"></iconify-icon>
+          <span class="text-[0.55rem] uppercase tracking-widest font-bold">Hear</span>
+        </a>
+      </div>
+    </nav>
+  </div>
+</body>
+</html>

@@ -67,7 +67,8 @@ export default function InviteJoinPage({
             joining the family.
           </p>
           <p className="text-xs text-muted-foreground/60">
-            Use the same email address the invite was sent to.
+            Use the same email address the invite was sent to. You will join
+            the existing family foundation, not recreate it.
           </p>
         </div>
       </main>
@@ -80,13 +81,13 @@ export default function InviteJoinPage({
 
         <div className="text-center space-y-4">
           <AnimatedWordmark />
-          <p className="text-sm text-muted-foreground">Join your family</p>
+          <p className="text-sm text-muted-foreground">Join the family foundation</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <p className="text-xs text-muted-foreground leading-relaxed">
             Enter the email address this invite was sent to. We&apos;ll send
-            you a sign-in link — no password needed.
+            you a sign-in link and connect you to the family graph already in place.
           </p>
 
           <input

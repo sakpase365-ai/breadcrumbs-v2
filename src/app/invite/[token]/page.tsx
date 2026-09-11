@@ -73,7 +73,7 @@ async function loadInvite(token: string): Promise<
 
 function roleLabel(role: string): string {
   return role
-    .replace(/_/g, '-')
+    .replace(/_/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
@@ -144,10 +144,15 @@ export default async function InvitePage({
         </div>
 
         <div className="space-y-6 border border-border rounded-sm px-6 py-6">
-          <p className="text-sm text-foreground leading-relaxed">
-            You&apos;ve been invited to join{' '}
-            <span className="font-medium">{data.familyName}</span>.
-          </p>
+          <div className="space-y-2">
+            <p className="font-serif text-foreground text-2xl leading-tight">
+              Join {data.familyName}.
+            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              This invite connects you to an existing family foundation. You
+              will not need to rebuild the family context from scratch.
+            </p>
+          </div>
 
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
@@ -169,8 +174,9 @@ export default async function InvitePage({
           </div>
 
           <p className="text-xs text-muted-foreground/60 leading-relaxed">
-            Family role describes who you are in the family. Access level
-            controls what you can do in Breadcrumbs.
+            Family role describes where you fit in the family graph. Access
+            level controls what you can do in Breadcrumbs and can be expanded
+            later by a family admin.
           </p>
         </div>
 

@@ -5,7 +5,7 @@
 @layer base {
   /* ── Dark theme (default) ─────────────────────────── */
   :root {
-    --background: 30 13% 9%;       /* #1A1714 warm dark */
+    --background: 330 4.55% 8.63%; /* #171516 warm dark */
     --foreground: 37 39% 94%;      /* #F5F0E8 warm off-white */
     --card: 30 13% 12%;            /* #231F1B elevated surface */
     --card-foreground: 37 39% 94%;
@@ -135,6 +135,11 @@
     min-height: 44px;
     min-width: 44px;
   }
+
+  .screen-main-safe {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 1.5rem);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5rem);
+  }
 }
 
 textarea {
@@ -147,15 +152,31 @@ textarea {
   50% { opacity: 0; }
 }
 
-/* Wordmark on /, /login, /signup, invites — CSS animation (reliable vs JS motion in prod) */
+/* Brand wordmark — animated "..." after "Breadcrumbs" */
 @keyframes wordmark-dot-pulse {
-  0%, 100% { opacity: 0.38; }
+  0%, 100% { opacity: 0.35; }
   50% { opacity: 1; }
+}
+
+.wordmark-ellipsis {
+  letter-spacing: 0.02em;
 }
 
 .wordmark-dot {
   display: inline-block;
   animation: wordmark-dot-pulse 1.75s ease-in-out infinite;
+}
+
+html[data-motion='reduce'] .wordmark-dot {
+  animation: none;
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wordmark-dot {
+    animation: none;
+    opacity: 0.6;
+  }
 }
 
 html[data-motion='reduce'] *,
@@ -167,17 +188,69 @@ html[data-motion='reduce'] *::after {
   scroll-behavior: auto !important;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .wordmark-dot {
-    animation: none;
-    opacity: 0.55;
-  }
-}
-
 .no-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+.date-wheel-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.date-wheel-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Setup uses one continuous cinematic palette. These tokens are scoped so
+   onboarding can evolve without silently recoloring the rest of the product. */
+.setup-shell {
+  --setup-accent: 217 91% 60%;
+  --setup-accent-strong: 221 83% 53%;
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+  transition: background-color 420ms ease, color 420ms ease;
+}
+
+.setup-theme {
+  --background: 0 0% 5%;
+  --foreground: 40 33% 96%;
+  --card: 0 0% 8.5%;
+  --card-foreground: 40 33% 96%;
+  --border: 0 0% 16%;
+  --input: 0 0% 16%;
+  --muted: 0 0% 10%;
+  --muted-foreground: 30 4% 59%;
+}
+
+.setup-atmosphere {
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+  z-index: -1;
+}
+
+.setup-theme .setup-atmosphere {
+  background:
+    radial-gradient(circle at 84% 8%, hsl(var(--setup-accent) / 0.16), transparent 28rem),
+    radial-gradient(circle at 12% 92%, hsl(24 62% 42% / 0.09), transparent 24rem),
+    linear-gradient(145deg, hsl(0 0% 4%), hsl(0 0% 7%) 58%, hsl(220 18% 8%));
+}
+
+.setup-shell::after {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.28'/%3E%3C/svg%3E");
+  content: '';
+  inset: 0;
+  opacity: 0.025;
+  pointer-events: none;
+  position: fixed;
+  z-index: 0;
+}
+
+.setup-shell :focus-visible {
+  outline-color: hsl(var(--setup-accent) / 0.72);
 }

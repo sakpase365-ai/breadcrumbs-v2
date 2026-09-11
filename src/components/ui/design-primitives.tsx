@@ -33,13 +33,14 @@ interface ScreenHeaderProps {
   title: string;
   leftAction?: ReactNode;
   rightAction?: ReactNode;
+  titleClassName?: string;
 }
 
-export function ScreenHeader({ title, leftAction, rightAction }: ScreenHeaderProps) {
+export function ScreenHeader({ title, leftAction, rightAction, titleClassName }: ScreenHeaderProps) {
   return (
     <header className="flex items-center justify-between pt-2">
       <div className="min-w-[64px]">{leftAction}</div>
-      <h1 className="font-display text-xl text-foreground">{title}</h1>
+      <h1 className={clsx('font-display text-xl text-foreground', titleClassName)}>{title}</h1>
       <div className="min-w-[64px] flex justify-end">{rightAction}</div>
     </header>
   );
@@ -110,13 +111,15 @@ export function Row({ title, subtitle, right, onClick, disabled = false, classNa
   );
 
   if (!onClick || disabled) {
-    return <div className={disabled ? 'opacity-60' : ''}>{content}</div>;
+    return <div className={disabled ? 'opacity-60' : ''} aria-disabled={disabled || undefined}>{content}</div>;
   }
 
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
+      aria-disabled={disabled}
       className="w-full text-left hover:bg-foreground/5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
     >
       {content}
@@ -192,7 +195,7 @@ export function InlineAction({ children, onClick, ariaLabel }: InlineActionProps
       type="button"
       aria-label={ariaLabel}
       onClick={onClick}
-      className="text-sm text-muted-foreground hover:text-foreground transition min-h-[44px] min-w-[44px] flex items-center justify-center"
+      className="text-sm text-muted-foreground hover:text-foreground transition min-h-[44px] min-w-[44px] flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 rounded-sm"
     >
       {children}
     </button>

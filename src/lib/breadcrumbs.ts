@@ -89,18 +89,39 @@ export const VALUE_TAGS = [
 export type ValueTag = typeof VALUE_TAGS[number];
 
 export const FOUNDATION_QUESTIONS = [
-  { key: 'roots_upbringing',     question: 'Where did you grow up, and what shaped you most?' },
-  { key: 'heritage_origins',     question: 'Where are your parents and grandparents from?' },
-  { key: 'family_sacrifices',    question: 'What sacrifices or values were passed down through your family?' },
-  { key: 'partner_meeting',      question: "How did you meet your child's mother/father?" },
-  { key: 'partner_attraction',   question: 'What drew you to them?' },
-  { key: 'relationship_lessons', question: 'What did that relationship teach you about love, family, faith, or commitment?' },
-  { key: 'core_values',          question: 'What values are most important in your family?' },
-  { key: 'life_lesson',          question: 'What is one thing your children should always remember about life?' },
-  { key: 'handling_failure',     question: 'How should your children deal with failure or discouragement?' },
-  { key: 'defining_moment',      question: 'What is one difficult moment that shaped who you became?' },
-  { key: 'faith_purpose',        question: 'What role does faith, belief, or purpose play in your life?' },
-  { key: 'legacy_message',       question: 'What message do you want passed down through your family for generations?' },
+  // Who You Are
+  { key: 'roots_upbringing',     question: 'Where did you grow up, and what shaped who you are today?' },
+  { key: 'heritage_origins',     question: 'Where are your parents and grandparents from? What did they sacrifice for you to have the life you have?' },
+  { key: 'family_values',        question: 'What values are most important to you — as a parent and as a person?' },
+
+  // The Eight Principles
+  { key: 'optimism',             question: 'What does it mean to stay optimistic, even when life feels impossible? How has the way you think shaped what your life became?' },
+  { key: 'never_comfortable',    question: 'Why is getting too comfortable dangerous? What experience taught you this the hard way?' },
+  { key: 'persistence',          question: 'Tell the story of a time you refused to give up, even when every door was closed against you. What kept you going?' },
+  { key: 'fearlessness',         question: 'What does it mean to be fearless? Tell a story about a moment when you had to jump without knowing where you would land.' },
+  { key: 'consistency',          question: "What does it look like to show up every single day — even when you're tired, frustrated, or unsure? Why does it matter?" },
+  { key: 'honesty_self',         question: 'What does it mean to be honest with yourself? What have you had to face about yourself, honestly, that made you grow?' },
+  { key: 'for_god_not_man',      question: 'What does it mean to do your work for God and not for the approval of people? When did that lesson cost you something real?' },
+  { key: 'gut_instinct',         question: "Tell a story about a time you listened to that inner voice — or God's voice — and it changed the entire direction of your life." },
+
+  // Love & Relationship
+  { key: 'partner_story',        question: 'How did you meet your partner? Tell the full story.' },
+  { key: 'relationship_lessons', question: 'What did your relationship teach you about love, commitment, and choosing the right person?' },
+
+  // Faith
+  { key: 'faith_foundation',     question: "What does your faith mean to you, and how has it shaped the decisions you've made?" },
+  { key: 'faith_hard_times',     question: "Tell a story about a time God showed up for you in a moment that didn't make sense on paper." },
+
+  // Facing Hard Times
+  { key: 'handling_failure',     question: 'How do you deal with failure and discouragement? What would you tell your children when they feel like giving up?' },
+  { key: 'defining_moment',      question: 'What is one difficult season of your life that ultimately shaped who you became?' },
+
+  // Good Character
+  { key: 'good_person',          question: 'What does it mean, in your eyes, to be a truly good person?' },
+
+  // Legacy
+  { key: 'life_advice',          question: 'What are the most important things you want your children to carry with them through life?' },
+  { key: 'legacy_message',       question: 'What is the one message you want passed down through your family for generations?' },
 ] as const;
 
 export type FoundationKey = typeof FOUNDATION_QUESTIONS[number]['key'];

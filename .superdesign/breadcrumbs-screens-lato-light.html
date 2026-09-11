@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Breadcrumbs — Lato Light (Superdesign Foundation)</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+.bca{display:flex;flex-direction:column;align-items:center;padding:1.5rem 0 1rem;gap:1.25rem;}
+.bca *{box-sizing:border-box;margin:0;padding:0;}
+.bc-meta{display:flex;align-items:center;gap:12px;}
+.bc-label{font-family:'Lato',sans-serif;font-size:10px;font-weight:400;letter-spacing:.12em;text-transform:uppercase;color:var(--color-text-secondary);}
+.bc-role{font-family:'Lato',sans-serif;font-size:9px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:4px;}
+.bc-phone{width:288px;height:588px;border-radius:46px;border:8px solid #1C1C1E;overflow:hidden;position:relative;flex-shrink:0;background:#0D0D0D;}
+.bc-island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:86px;height:27px;background:#000;border-radius:20px;z-index:20;pointer-events:none;}
+.bc-scr{width:100%;height:100%;display:none;flex-direction:column;position:absolute;top:0;left:0;}
+.bc-scr.on{display:flex;}
+.bc-sb{display:flex;justify-content:space-between;align-items:center;padding:50px 20px 6px;flex-shrink:0;font-family:'Lato',sans-serif;font-size:12px;font-weight:300;}
+.bc-bd{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:0 18px;}
+.bc-hm{height:26px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:5px;flex-shrink:0;}
+.bc-hp{width:108px;height:4px;border-radius:2px;opacity:.22;}
+.bc-nav{display:flex;align-items:center;gap:16px;}
+.bc-btn{width:38px;height:38px;border-radius:50%;border:.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:'Lato',sans-serif;}
+.bc-btn:hover{background:var(--color-background-secondary);}
+.bc-dots{display:flex;align-items:center;gap:5px;}
+.bc-dot{width:6px;height:6px;border-radius:3px;background:var(--color-border-secondary);transition:all .2s;cursor:pointer;}
+.bc-dot.on{width:20px;background:#3B82F6;}
+
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+:root{
+  --color-text-secondary:#888;
+  --color-border-secondary:#333;
+  --color-background-primary:#1a1a1a;
+  --color-text-primary:#F7F5F2;
+  --color-background-secondary:#222;
+}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#111;font-family:'Lato',sans-serif;}
+</style>
+</head>
+<body>
+
+
+<h2 class="sr-only">Breadcrumbs app mockup with Lato regular weight — 9 screens covering full Giver and Receiver user flows</h2>
+
+<div class="bca">
+  <div class="bc-meta">
+    <div class="bc-label" id="bc-lbl">1 / 9 — Welcome</div>
+    <div class="bc-role" id="bc-rl"></div>
+  </div>
+  <div class="bc-phone" id="bc-ph">
+    <div class="bc-island"></div>
+  </div>
+  <div class="bc-nav">
+    <button class="bc-btn" onclick="bcP()" aria-label="Previous screen">←</button>
+    <div class="bc-dots" id="bc-ds"></div>
+    <button class="bc-btn" onclick="bcN()" aria-label="Next screen">→</button>
+  </div>
+</div>
+
+<script>
+const BL='#3B82F6',OB='#0D0D0D',LN='#F7F5F2',CD='#161616',BD='#242424',SL='#555',EL='#E5E2DC',WH='#fff',F="'Lato',sans-serif";
+
+const scrs=[
+{n:'Welcome',role:null,bg:OB,tc:LN,
+h:`<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+<p style="font-family:${F};font-size:22px;font-weight:400;color:${LN};letter-spacing:-.01em;margin-bottom:18px;">Breadcrumbs<span style="opacity:.45;">...</span></p>
+<h1 style="font-family:${F};font-size:27px;font-weight:400;color:${LN};text-align:center;line-height:1.2;margin-bottom:10px;">Leave something<br>behind.</h1>
+<p style="font-family:${F};font-size:13px;font-weight:300;color:${SL};text-align:center;line-height:1.6;">Be here when it matters.</p>
+</div>
+<div style="padding-bottom:8px;">
+<button style="width:100%;padding:15px;background:${BL};border:none;border-radius:12px;font-family:${F};font-size:15px;font-weight:400;color:#fff;cursor:pointer;letter-spacing:.02em;">Get Started</button>
+</div>`},
+
+{n:'Role Select',role:null,bg:OB,tc:LN,
+h:`<div style="flex:1;display:flex;flex-direction:column;">
+<h1 style="font-family:${F};font-size:26px;font-weight:400;color:${LN};margin-bottom:5px;">Who are you?</h1>
+<p style="font-family:${F};font-size:12px;font-weight:300;color:${SL};margin-bottom:24px;">Choose how you'll use Breadcrumbs.</p>
+<div style="background:#0F0F0F;border:1px solid #2a2a2a;border-radius:13px;padding:16px;margin-bottom:10px;cursor:pointer;">
+<p style="font-family:${F};font-size:9px;font-weight:300;letter-spacing:.14em;text-transform:uppercase;color:#444;margin-bottom:8px;">Giver</p>
+<h2 style="font-family:${F};font-size:17px;font-weight:400;color:${LN};margin-bottom:6px;">I'm leaving<br>breadcrumbs.</h2>
+<p style="font-family:${F};font-size:11px;font-weight:300;color:#444;line-height:1.65;">Share stories, wisdom, and knowledge for the people who matter most.</p>
+</div>
+<div style="background:#050C18;border:1px solid ${BL}33;border-radius:13px;padding:16px;cursor:pointer;">
+<p style="font-family:${F};font-size:9px;font-weight:300;letter-spacing:.14em;text-transform:uppercase;color:${BL}88;margin-bottom:8px;">Receiver</p>
+<h2 style="font-family:${F};font-size:17px;font-weight:400;color:${LN};margin-bottom:6px;">I'm here<br>to receive.</h2>
+<p style="font-family:${F};font-size:11px;font-weight:300;color:#444;line-height:1.65;">Connect with what was left for you. Ask anything. Find guidance.</p>
+</div>
+</div>`},
+
+{n:'Giver — Onboarding',role:'Giver',bg:LN,tc:OB,
+h:`<div style="flex:1;display:flex;flex-direction:column;">
+<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+<div style="display:inline-flex;padding:4px 10px;background:#E8E4DC;border-radius:5px;margin-bottom:22px;width:fit-content;">
+<span style="font-family:${F};font-size:9px;font-weight:300;letter-spacing:.14em;text-transform:uppercase;color:#999;">For Givers</span></div>
+<h1 style="font-family:${F};font-size:28px;font-weight:400;color:${OB};line-height:1.15;margin-bottom:14px;">Start with<br>what's on<br>your mind.</h1>
+<p style="font-family:${F};font-size:12px;font-weight:300;color:#888;line-height:1.75;">Add a story, advice, a memory — anything. No format. No pressure. Just you, leaving something real.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:9px;padding-bottom:8px;">
+<div style="display:flex;align-items:center;gap:10px;">
+<div style="width:26px;height:26px;border-radius:7px;background:#E8E4DC;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:300;">✦</div>
+<p style="font-family:${F};font-size:11px;font-weight:300;color:#888;">Text, voice, video, or photo — your call.</p></div>
+<div style="display:flex;align-items:center;gap:10px;">
+<div style="width:26px;height:26px;border-radius:7px;background:#E8E4DC;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:300;">✦</div>
+<p style="font-family:${F};font-size:11px;font-weight:300;color:#888;">The AI organizes and surfaces everything.</p></div>
+<button style="width:100%;padding:14px;background:${OB};border:none;border-radius:12px;font-family:${F};font-size:14px;font-weight:400;color:${LN};cursor:pointer;margin-top:4px;">Let's go →</button>
+</div></div>`},
+
+{n:'Giver — Home',role:'Giver',bg:LN,tc:OB,
+h:`<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+<div style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+<div style="margin-bottom:18px;">
+<p style="font-family:${F};font-size:11px;font-weight:300;color:#AAA;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;">Sunday</p>
+<h1 style="font-family:${F};font-size:23px;font-weight:400;color:${OB};line-height:1.2;">What do you<br>want to share?</h1>
+</div>
+<div style="display:flex;gap:6px;margin-bottom:18px;">
+<button style="flex:1;padding:10px 4px;background:${WH};border:.5px solid ${EL};border-radius:9px;font-family:${F};font-size:11px;font-weight:400;color:${OB};cursor:pointer;">Text</button>
+<button style="flex:1;padding:10px 4px;background:${WH};border:.5px solid ${EL};border-radius:9px;font-family:${F};font-size:11px;font-weight:400;color:${OB};cursor:pointer;">Voice</button>
+<button style="flex:1;padding:10px 4px;background:${WH};border:.5px solid ${EL};border-radius:9px;font-family:${F};font-size:11px;font-weight:400;color:${OB};cursor:pointer;">Video</button>
+<button style="flex:1;padding:10px 4px;background:${WH};border:.5px solid ${EL};border-radius:9px;font-family:${F};font-size:11px;font-weight:400;color:${OB};cursor:pointer;">Photo</button>
+</div>
+<p style="font-family:${F};font-size:9px;font-weight:300;letter-spacing:.14em;text-transform:uppercase;color:#BBB;margin-bottom:9px;">Recent</p>
+<div style="background:${WH};border:.5px solid ${EL};border-radius:11px;padding:13px;margin-bottom:7px;">
+<p style="font-family:${F};font-size:12px;font-weight:400;color:${OB};margin-bottom:3px;">The lesson I learned too late</p>
+<p style="font-family:${F};font-size:11px;font-weight:300;color:#AAA;line-height:1.55;margin-bottom:5px;">About slowing down and choosing presence over productivity...</p>
+<p style="font-family:${F};font-size:10px;font-weight:300;color:#CCC;">June 19 · Text · 3 min</p>
+</div>
+<div style="background:${WH};border:.5px solid ${EL};border-radius:11px;padding:13px;">
+<p style="font-family:${F};font-size:12px;font-weight:400;color:${OB};margin-bottom:3px;">My grandfather's hands</p>
+<p style="font-family:${F};font-size:11px;font-weight:300;color:#AAA;line-height:1.55;margin-bottom:5px;">I think about him whenever I work with my own kids...</p>
+<p style="font-family:${F};font-size:10px;font-weight:300;color:#CCC;">June 14 · Voice · 4 min</p>
+</div>
+</div>
+<div style="border-top:.5px solid ${EL};padding:8px 0 4px;display:flex;justify-content:space-around;flex-shrink:0;">
+<button style="background:none;border:none;font-family:${F};font-size:9px;font-weight:400;color:${BL};cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;letter-spacing:.06em;text-transform:uppercase;"><i class="ti ti-home" style="font-size:17px;" aria-hidden="true"></i>Home</button>
+<button style="background:none;border:none;font-family:${F};font-size:9px;font-weight:400;color:#BBB;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;letter-spacing:.06em;text-transform:uppercase;"><i class="ti ti-folder" style="font-size:17px;" aria-hidden="true"></i>Library</button>
+<button style="background:none;border:none;font-family:${F};font-size:9px;font-weight:400;color:#BBB;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;letter-spacing:.06em;text-transform:uppercase;"><i class="ti ti-settings" style="font-size:17px;" aria-hidden="true"></i>Settings</button>
+</div>
+</div>`},
+
+{n:'Giver — Capture',role:'Giver',bg:LN,tc:OB,
+h:`<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+<div style="flex:1;display:flex;flex-direction:column;">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+<button style="background:none;border:none;font-family:${F};font-size:12px;font-weight:300;color:#AAA;cursor:pointer;">← Back</button>
+<button style="background:none;border:none;font-family:${F};font-size:12px;font-weight:400;color:${BL};cursor:pointer;">Save</button>
+</div>
+<h1 style="font-family:${F};font-size:22px;font-weight:400;color:${OB};margin-bottom:16px;">Add something</h1>
+<div style="display:flex;gap:5px;margin-bottom:16px;background:#E8E4DC;border-radius:9px;padding:3px;">
+<button style="flex:1;padding:7px 4px;background:${WH};border:none;border-radius:7px;font-family:${F};font-size:11px;font-weight:400;color:${OB};cursor:pointer;">Text</button>
+<button style="flex:1;padding:7px 4px;background:transparent;border:none;border-radius:7px;font-family:${F};font-size:11px;font-weight:300;color:#AAA;cursor:pointer;">Voice</button>
+<button style="flex:1;padding:7px 4px;background:transparent;border:none;border-radius:7px;font-family:${F};font-size:11px;font-weight:300;color:#AAA;cursor:pointer;">Video</button>
+<button style="flex:1;padding:7px 4px;background:transparent;border:none;border-radius:7px;font-family:${F};font-size:11px;font-weight:300;color:#AAA;cursor:pointer;">Photo</button>
+</div>
+<div style="background:${WH};border:.5px solid ${EL};border-radius:11px;padding:13px;flex:1;display:flex;flex-direction:column;">
+<input placeholder="Title..." style="border:none;background:transparent;font-family:${F};font-size:14px;font-weight:400;color:${OB};width:100%;margin-bottom:9px;outline:none;padding:0;" />
+<div style="width:100%;height:.5px;background:${EL};margin-bottom:10px;"></div>
+<textarea placeholder="Write anything. No format required." style="border:none;background:transparent;font-family:${F};font-size:12px;font-weight:300;color:#888;width:100%;flex:1;outline:none;resize:none;line-height:1.75;padding:0;min-height:120px;"></textarea>
+</div>
+</div>
+<div style="padding-top:10px;padding-bottom:8px;flex-shrink:0;">
+<button style="width:100%;padding:14px;background:${OB};border:none;border-radius:12px;font-family:${F};font-size:14px;font-weight:400;color:${LN};cursor:pointer;">Save →</button>
+</div>
+</div>`},
+
+{n:'Receiver — Onboarding',role:'Receiver',bg:OB,tc:LN,
+h:`<div style="flex:1;display:flex;flex-direction:column;">
+<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+<div style="display:inline-flex;padding:4px 10px;background:#050C18;border:.5px solid ${BL}44;border-radius:5px;margin-bottom:22px;width:fit-content;">
+<span style="font-family:${F};font-size:9px;font-weight:300;letter-spacing:.14em;text-transform:uppercase;color:${BL};">For Receivers</span></div>
+<h1 style="font-family:${F};font-size:28px;font-weight:400;color:${LN};line-height:1.15;margin-bottom:14px;">Dad left<br>something<br>for you.</h1>
+<p style="font-family:${F};font-size:12px;font-weight:300;color:${SL};line-height:1.75;">His words. His advice. His stories. Ask anything — the AI brings it together, built only from what he actually shared.</p>
+</div>
+<div style="padding-bottom:8px;">
+<button style="width:100%;padding:14px;background:${BL};border:none;border-radius:12px;font-family:${F};font-size:14px;font-weight:400;color:#fff;cursor:pointer;">Start a conversation →</button>
+</div>
+</div>`},
+
+{n:'Receiver — Home',role:'Receiver',bg:OB,tc:LN,
+h:`<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+<div style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+<div style="margin-bottom:20px;">
+<p style="font-family:${F};font-size:11px;font-weight:300;color:#333;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;">AI Family Agent</p>
+<h1 style="font-family:${F};font-size:26px;font-weight:400;color:${LN};">Ask Dad.</h1>
+</div>
+<p style="font-family:${F};font-size:9px;font-weight:300;letter-spacing:.14em;text-transform:uppercase;color:#333;margin-bottom:9px;">Suggested</p>
+<div style="background:${CD};border:.5px solid ${BD};border-radius:11px;padding:13px;margin-bottom:7px;cursor:pointer;">
+<p style="font-family:${F};font-size:12px;font-weight:400;color:${LN};line-height:1.6;">"What would you tell me about making hard decisions?"</p>
+</div>
+<div style="background:${CD};border:.5px solid ${BD};border-radius:11px;padding:13px;margin-bottom:7px;cursor:pointer;">
+<p style="font-family:${F};font-size:12px;font-weight:400;color:${LN};line-height:1.6;">"What did you want most for me growing up?"</p>
+</div>
+<div style="background:${CD};border:.5px solid ${BD};border-radius:11px;padding:13px;cursor:pointer;">
+<p style="font-family:${F};font-size:12px;font-weight:400;color:${LN};line-height:1.6;">"How did you know when something was worth fighting for?"</p>
+</div>
+</div>
+<div style="border-top:.5px solid ${BD};padding-top:9px;padding-bottom:4px;flex-shrink:0;">
+<div style="background:${CD};border:.5px solid ${BD};border-radius:10px;padding:11px 13px;display:flex;align-items:center;justify-content:space-between;">
+<span style="font-family:${F};font-size:13px;font-weight:300;color:#333;">Ask anything...</span>
+<div style="width:27px;height:27px;border-radius:8px;background:${BL};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+<span style="color:#fff;font-size:13px;">↑</span></div>
+</div></div>
+</div>`},
+
+{n:'Receiver — Conversation',role:'Receiver',bg:OB,tc:LN,
+h:`<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+<div style="display:flex;align-items:center;gap:9px;margin-bottom:14px;flex-shrink:0;">
+<button style="background:none;border:none;font-family:${F};font-size:12px;font-weight:300;color:${SL};cursor:pointer;">←</button>
+<div>
+<p style="font-family:${F};font-size:14px;font-weight:400;color:${LN};">Dad</p>
+<p style="font-family:${F};font-size:10px;font-weight:300;color:#444;">AI Family Agent · 23 reflections</p>
+</div></div>
+<div style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:13px;">
+<div style="display:flex;justify-content:flex-end;">
+<div style="background:#050C18;border:.5px solid ${BL}33;border-radius:12px 12px 3px 12px;padding:11px 13px;max-width:84%;">
+<p style="font-family:${F};font-size:12px;font-weight:300;color:${LN};line-height:1.65;">What would you tell me about making hard decisions?</p>
+</div></div>
+<div style="display:flex;flex-direction:column;gap:7px;">
+<p style="font-family:${F};font-size:9px;font-weight:300;letter-spacing:.12em;text-transform:uppercase;color:#333;">Dad · Based on what he shared</p>
+<div style="background:${CD};border:.5px solid ${BD};border-radius:12px;padding:13px;">
+<p style="font-family:${F};font-size:12px;font-weight:300;color:#C8C4BC;line-height:1.85;margin-bottom:9px;">The hardest decisions I ever made weren't hard because I didn't know the answer. They were hard because I knew it and was afraid of what it cost.</p>
+<p style="font-family:${F};font-size:12px;font-weight:300;color:#C8C4BC;line-height:1.85;margin-bottom:9px;">When two choices both feel wrong, find the one that still feels right in ten years. Not ten days.</p>
+<p style="font-family:${F};font-size:10px;font-weight:300;color:#333;line-height:1.5;">Drawn from 4 reflections — June 2024, March 2023, and 2 others</p>
+</div></div>
+</div>
+<div style="border-top:.5px solid ${BD};padding-top:9px;padding-bottom:4px;flex-shrink:0;">
+<div style="background:${CD};border:.5px solid ${BD};border-radius:10px;padding:11px 13px;display:flex;align-items:center;justify-content:space-between;">
+<span style="font-family:${F};font-size:13px;font-weight:300;color:#333;">Follow up...</span>
+<div style="width:27px;height:27px;border-radius:8px;background:${BL};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+<span style="color:#fff;font-size:13px;">↑</span></div>
+</div></div>
+</div>`},
+
+{n:'Settings',role:null,bg:OB,tc:LN,
+h:`<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+<h1 style="font-family:${F};font-size:27px;font-weight:400;color:${LN};margin-bottom:18px;">Settings</h1>
+<div style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:13px;">
+<div>
+<p style="font-family:${F};font-size:9px;font-weight:300;letter-spacing:.14em;text-transform:uppercase;color:#333;margin-bottom:7px;">Experience</p>
+<div style="background:${CD};border-radius:11px;overflow:hidden;border:.5px solid ${BD};">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 13px;border-bottom:.5px solid ${BD};">
+<span style="font-family:${F};font-size:13px;font-weight:300;color:${LN};">Appearance</span>
+<div style="display:flex;background:#222;border-radius:6px;padding:2px;gap:2px;">
+<span style="font-family:${F};font-size:10px;font-weight:300;color:${SL};padding:4px 6px;border-radius:4px;">Light</span>
+<span style="font-family:${F};font-size:10px;font-weight:400;color:${LN};padding:4px 6px;border-radius:4px;background:#333;">System</span>
+<span style="font-family:${F};font-size:10px;font-weight:300;color:${SL};padding:4px 6px;border-radius:4px;">Dark</span>
+</div></div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 13px;">
+<span style="font-family:${F};font-size:13px;font-weight:300;color:${LN};">Text size</span>
+<span style="font-family:${F};font-size:12px;font-weight:300;color:${SL};">Medium ›</span>
+</div></div></div>
+<div>
+<p style="font-family:${F};font-size:9px;font-weight:300;letter-spacing:.14em;text-transform:uppercase;color:#333;margin-bottom:7px;">Security</p>
+<div style="background:${CD};border-radius:11px;overflow:hidden;border:.5px solid ${BD};">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 13px;border-bottom:.5px solid ${BD};">
+<span style="font-family:${F};font-size:13px;font-weight:300;color:${LN};">Lock app</span>
+<div style="width:40px;height:22px;border-radius:11px;background:${BL};display:flex;align-items:center;justify-content:flex-end;padding:2px;">
+<div style="width:18px;height:18px;border-radius:50%;background:#fff;"></div></div></div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 13px;border-bottom:.5px solid ${BD};">
+<span style="font-family:${F};font-size:13px;font-weight:300;color:${LN};">Passcode</span>
+<span style="font-family:${F};font-size:12px;font-weight:300;color:${SL};">›</span></div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 13px;">
+<span style="font-family:${F};font-size:13px;font-weight:300;color:${LN};">Two-factor auth</span>
+<span style="font-family:${F};font-size:12px;font-weight:300;color:${SL};">›</span></div></div></div>
+<div>
+<p style="font-family:${F};font-size:9px;font-weight:300;letter-spacing:.14em;text-transform:uppercase;color:#333;margin-bottom:7px;">Support</p>
+<div style="background:${CD};border-radius:11px;overflow:hidden;border:.5px solid ${BD};">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 13px;border-bottom:.5px solid ${BD};">
+<span style="font-family:${F};font-size:13px;font-weight:300;color:${LN};">Help</span>
+<span style="font-family:${F};font-size:12px;font-weight:300;color:${SL};">›</span></div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 13px;">
+<span style="font-family:${F};font-size:13px;font-weight:300;color:${LN};">About Breadcrumbs</span>
+<span style="font-family:${F};font-size:12px;font-weight:300;color:${SL};">›</span></div></div></div>
+</div></div>`}
+];
+
+let cur=0;
+const ph=document.getElementById('bc-ph');
+const lbl=document.getElementById('bc-lbl');
+const rl=document.getElementById('bc-rl');
+const ds=document.getElementById('bc-ds');
+
+function buildDots(){
+  ds.innerHTML='';
+  scrs.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='bc-dot'+(i===cur?' on':'');
+    d.onclick=()=>{cur=i;render();};
+    ds.appendChild(d);
+  });
+}
+
+function render(){
+  const s=scrs[cur];
+  ph.querySelectorAll('.bc-scr').forEach(e=>e.remove());
+  const el=document.createElement('div');
+  el.className='bc-scr on';
+  el.style.cssText=`background:${s.bg};`;
+  const isDk=s.bg===OB;
+  const sc=isDk?LN:OB;
+  el.innerHTML=`
+    <div class="bc-sb" style="color:${sc};">
+      <span style="font-family:${F};font-size:13px;font-weight:400;">10:31</span>
+      <span style="font-family:${F};font-size:11px;font-weight:300;opacity:.4;">●●● WiFi 100%</span>
+    </div>
+    <div class="bc-bd">${s.h}</div>
+    <div class="bc-hm"><div class="bc-hp" style="background:${sc};"></div></div>`;
+  ph.appendChild(el);
+  lbl.textContent=`${cur+1} / ${scrs.length} — ${s.n}`;
+  if(s.role){
+    const isRcv=s.role==='Receiver';
+    rl.textContent=s.role;
+    rl.style.cssText=`font-family:${F};font-size:9px;font-weight:300;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:4px;background:${isRcv?'#050C18':'#E8E4DC'};color:${isRcv?BL:'#888'};`;
+  } else {
+    rl.textContent='';rl.style.cssText='';
+  }
+  buildDots();
+}
+
+function bcP(){cur=(cur-1+scrs.length)%scrs.length;render();}
+function bcN(){cur=(cur+1)%scrs.length;render();}
+document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')bcP();if(e.key==='ArrowRight')bcN();});
+render();
+</script>
+
+</body></html>

@@ -40,7 +40,7 @@ export default function Home() {
       <div className="flex flex-col items-center text-center space-y-8">
 
         {/* Wordmark */}
-        <AnimatedWordmark className="text-5xl font-serif font-light tracking-tight text-foreground sm:text-6xl md:text-7xl" />
+        <AnimatedWordmark mode="intro" className="text-5xl font-serif font-light tracking-tight text-foreground sm:text-6xl md:text-7xl" />
 
         {/* Tagline */}
         <p className="max-w-md text-base font-light text-muted-foreground sm:text-lg">

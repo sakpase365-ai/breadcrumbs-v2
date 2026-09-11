@@ -21,9 +21,9 @@ const MEMBER_CAIRO = { id: 'mid-cairo', name: 'Cairo',  role: 'son',    birth_da
 const MEMBER_AVA   = { id: 'mid-ava',   name: 'Ava',    role: 'daughter', birth_date: '2019-07-20' };
 
 const FOUNDATION_ROWS = [
-  { category: 'core_values',   content: 'Faith, honesty, and hard work define who we are.' },
-  { category: 'life_lesson',   content: 'Failure is not the end — it is the teacher.' },
-  { category: 'faith_purpose', content: 'God is the foundation of everything we do.' },
+  { category: 'family_values',    content: 'Faith, honesty, and hard work define who we are.' },
+  { category: 'life_advice',      content: 'Failure is not the end — it is the teacher.' },
+  { category: 'faith_foundation', content: 'God is the foundation of everything we do.' },
 ];
 
 const BREADCRUMB_FOR_CAIRO = {
@@ -218,15 +218,15 @@ describe('scoreBreadcrumb', () => {
 
 describe('scoreFoundationAnswer', () => {
   it('adds +3 for always-include categories', () => {
-    const row   = { category: 'core_values', content: 'faith and family' };
+    const row   = { category: 'family_values', content: 'faith and family' };
     const score = scoreFoundationAnswer(row, []);
     expect(score).toBe(3);
   });
 
   it('adds +1 per keyword hit in content or category', () => {
-    const row   = { category: 'life_lesson', content: 'failure is a teacher' };
+    const row   = { category: 'life_advice', content: 'failure is a teacher' };
     const score = scoreFoundationAnswer(row, ['failure', 'teacher']);
-    // life_lesson is in ALWAYS_INCLUDE_CATEGORIES → +3
+    // life_advice is in ALWAYS_INCLUDE_CATEGORIES → +3
     // 'failure' hits content → +1
     // 'teacher' hits content → +1
     expect(score).toBe(5);
@@ -342,7 +342,7 @@ describe('buildFamilyAgentContext', () => {
       question: 'what values matter',
     });
     expect(ctx.familyProfileContext.length).toBeGreaterThan(0);
-    expect(ctx.familyProfileContext.some((f) => f.category === 'core_values')).toBe(true);
+    expect(ctx.familyProfileContext.some((f) => f.category === 'family_values')).toBe(true);
   });
 
   it('warns when no family context exists at all', async () => {
@@ -482,7 +482,7 @@ describe('formatContextBlock', () => {
   it('includes Foundation section with question labels', () => {
     const block = formatContextBlock({
       ...BASE_CTX,
-      familyProfileContext: [{ category: 'core_values', content: 'Faith and family.' }],
+      familyProfileContext: [{ category: 'family_values', content: 'Faith and family.' }],
     });
     expect(block).toContain('FAMILY FOUNDATION');
     expect(block).toContain('What values are most important');

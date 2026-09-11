@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger';
 const VALID_ROLES = new Set([
   'parent', 'mother', 'father', 'child', 'son', 'daughter', 'sibling', 'brother', 'sister',
   'wife', 'husband', 'grandparent', 'grandmother', 'grandfather',
+  'spouse', 'co_parent',
 ]);
 
 interface MemberInput {
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest) {
       auth_user_id:      session.user.id,
       name:              ownerName.trim(),
       role:              ownerRole,
-      custom_role_label: null,
+      custom_role_label: customOwnerRole?.trim() || null,
       family_name:       familyName?.trim() || null,
     })
     .select('id, name, role, family_name')
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest) {
           user_id:           profile.id,
           name:              m.name.trim(),
           role:              m.role,
-          custom_role_label: null,
+          custom_role_label: m.customRoleLabel?.trim() || null,
           birth_date:        m.birthDate || null,
         }))
       )

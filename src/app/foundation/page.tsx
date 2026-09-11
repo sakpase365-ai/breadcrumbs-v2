@@ -150,7 +150,7 @@ export default function FoundationPage() {
 
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            The core stories, values, and moments that define your family. Answer at your own pace — your answers are saved automatically.
+            Your Family Foundation has started. The core stories, values, and moments that define your family grow as you answer, clarify, and turn memories into Breadcrumbs.
           </p>
           <p className="text-xs text-muted-foreground/60">
             {answeredCount} of {FOUNDATION_QUESTIONS.length} answered

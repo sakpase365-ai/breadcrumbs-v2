@@ -8,7 +8,7 @@ import SettingsSheet from '@/components/SettingsSheet';
 import BottomNav     from '@/components/BottomNav';
 import { formatTagForDisplay } from '@/lib/breadcrumb-tags';
 import { firstName } from '@/lib/nameUtils';
-import { InlineAction, ScreenHeader } from '@/components/ui/design-primitives';
+import { InlineAction, ScreenContainer, ScreenContent, ScreenHeader } from '@/components/ui/design-primitives';
 
 const DOMAIN_ACCENT: Record<string, string> = {
   relationships: 'bg-rose-700/60',
@@ -251,7 +251,7 @@ export default function ArchivePage() {
               <button
                 type="button"
                 onClick={() => toggleExpand(e.id)}
-                className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition min-h-[32px] px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 rounded-sm"
+                className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition min-h-[44px] px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 rounded-sm"
               >
                 {isExpanded ? 'Close ↑' : isAudio ? 'Listen →' : 'Read →'}
               </button>
@@ -263,7 +263,7 @@ export default function ArchivePage() {
   }
 
   return (
-    <main className="min-h-screen bg-background">
+    <ScreenContainer className="!p-0 min-h-screen">
 
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border/40">
@@ -332,8 +332,10 @@ export default function ArchivePage() {
             ].map(({ key, label }) => (
               <button
                 key={key}
+                type="button"
+                aria-pressed={activeFilter === key}
                 onClick={() => setActiveFilter(key)}
-                className={`shrink-0 px-3 py-1 text-xs rounded-full border transition min-h-[36px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 ${
+                className={`shrink-0 px-3 py-1 text-xs rounded-full border transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 ${
                   activeFilter === key
                     ? 'border-foreground text-foreground'
                     : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground/70'
@@ -346,7 +348,7 @@ export default function ArchivePage() {
         )}
       </div>
 
-      <div className="max-w-xl mx-auto px-5 py-8 pb-28 space-y-10">
+      <ScreenContent className="py-8 space-y-10">
 
         {loading && (
           <div className="py-24 text-center">
@@ -417,10 +419,10 @@ export default function ArchivePage() {
           </motion.section>
         ))}
 
-      </div>
+      </ScreenContent>
 
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <BottomNav />
-    </main>
+    </ScreenContainer>
   );
 }
