@@ -122,7 +122,7 @@ export default async function InvitePage({
     const msg = messages[result.reason] ?? messages['not_found'];
 
     return (
-      <main className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
+      <main className="min-h-screen flex flex-col items-center justify-center px-6">
         <div className="w-full max-w-sm text-center space-y-4">
           <p className="font-serif text-foreground text-2xl">{msg.heading}</p>
           <p className="text-sm text-muted-foreground">{msg.body}</p>
@@ -135,7 +135,7 @@ export default async function InvitePage({
 
   // ── Valid invite ──────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12">
+    <main className="min-h-screen flex flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm space-y-8">
 
         <div className="text-center space-y-4">

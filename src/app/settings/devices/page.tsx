@@ -46,7 +46,7 @@ export default function DevicesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background px-5 py-6">
+    <main className="min-h-screen px-5 py-6">
       <div className="max-w-xl mx-auto space-y-8 pb-20">
 
         <div className="flex items-center justify-between pt-2">
@@ -79,7 +79,7 @@ export default function DevicesPage() {
                   <p className="text-xs text-muted-foreground mt-1">Only this device has access to your Breadcrumbs now.</p>
                 </div>
               ) : !showConfirm ? (
-                <button type="button" onClick={() => setShowConfirm(true)} className="w-full border border-border/70 rounded-sm px-5 py-4 text-left hover:border-foreground/30 transition min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40">
+                <button type="button" onClick={() => setShowConfirm(true)} className="w-full border border-border/70 rounded-sm px-5 py-4 text-left hover:border-[#3B82F6]/45 transition min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-[0.9375rem] text-foreground">Sign out all other devices</p>
@@ -94,8 +94,8 @@ export default function DevicesPage() {
                   <p className="text-xs text-muted-foreground leading-relaxed">This will end all other active sessions. You will remain signed in on this device.</p>
                   {error && <p className="text-xs text-red-400/80" role="alert">{error}</p>}
                   <div className="flex gap-2 pt-1">
-                    <button type="button" onClick={() => setShowConfirm(false)} className="flex-1 py-3 border border-border text-muted-foreground text-sm rounded-sm hover:border-foreground/40 transition min-h-[44px]">Cancel</button>
-                    <button type="button" onClick={() => void handleSignOutOthers()} disabled={signingOut} className="flex-1 py-3 border border-foreground text-foreground text-sm rounded-sm disabled:opacity-30 hover:bg-foreground hover:text-background transition min-h-[44px]">
+                    <button type="button" onClick={() => setShowConfirm(false)} className="flex-1 py-3 border border-border text-muted-foreground text-sm rounded-sm hover:border-[#3B82F6]/45 transition min-h-[44px]">Cancel</button>
+                    <button type="button" onClick={() => void handleSignOutOthers()} disabled={signingOut} className="flex-1 py-3 border border-[#3B82F6] bg-[#3B82F6] text-white text-sm rounded-sm disabled:opacity-30 hover:bg-[#2563EB] hover:border-[#2563EB] transition min-h-[44px]">
                       {signingOut ? 'Signing out…' : 'Sign out others'}
                     </button>
                   </div>

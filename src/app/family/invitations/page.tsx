@@ -97,7 +97,7 @@ export default function InvitationsPage() {
   const pendingCount = invitations.filter((i) => i.status === 'pending').length;
 
   return (
-    <main className="min-h-screen bg-background px-6 py-14">
+    <main className="min-h-screen px-6 py-14">
       <div className="max-w-xl mx-auto space-y-8">
 
         {/* Header */}
@@ -137,7 +137,7 @@ export default function InvitationsPage() {
             </p>
             <a
               href="/family/invite"
-              className="mt-4 inline-block py-3 px-8 border border-foreground text-foreground text-sm tracking-wide hover:bg-foreground hover:text-background transition"
+              className="mt-4 inline-block py-3 px-8 border border-[#3B82F6] bg-[#3B82F6] text-white text-sm tracking-wide hover:bg-[#2563EB] hover:border-[#2563EB] transition"
             >
               Send an invitation
             </a>

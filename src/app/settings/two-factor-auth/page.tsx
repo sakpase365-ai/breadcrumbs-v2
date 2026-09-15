@@ -72,7 +72,7 @@ export default function TwoFactorAuthPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background px-5 py-6">
+    <main className="min-h-screen px-5 py-6">
       <div className="max-w-xl mx-auto space-y-8 pb-20">
 
         <div className="flex items-center justify-between pt-2">
@@ -89,7 +89,7 @@ export default function TwoFactorAuthPage() {
         {state === 'error' && (
           <div className="space-y-4 pt-4">
             <p className="text-sm text-muted-foreground">Unable to load 2FA settings. Please try again.</p>
-            <button type="button" onClick={() => { setState('loading'); void loadFactors(); }} className="text-sm text-foreground border border-border rounded-sm px-4 py-2 hover:border-foreground transition">Retry</button>
+            <button type="button" onClick={() => { setState('loading'); void loadFactors(); }} className="text-sm text-foreground border border-border rounded-sm px-4 py-2 hover:border-[#3B82F6]/45 transition">Retry</button>
           </div>
         )}
 
@@ -100,7 +100,7 @@ export default function TwoFactorAuthPage() {
               <p className="text-sm text-muted-foreground leading-relaxed">Add a second layer of security. After signing in with your email, you&apos;ll also need a 6-digit code from an authenticator app.</p>
               <p className="text-xs text-muted-foreground/60 leading-relaxed">Works with Google Authenticator, Authy, 1Password, and any standard TOTP app.</p>
             </div>
-            <button type="button" onClick={() => void handleStartEnroll()} disabled={busy} className="w-full py-4 border border-foreground text-foreground text-sm rounded-sm disabled:opacity-30 hover:bg-foreground hover:text-background transition min-h-[52px]">
+            <button type="button" onClick={() => void handleStartEnroll()} disabled={busy} className="w-full py-4 border border-[#3B82F6] bg-[#3B82F6] text-white text-sm rounded-sm disabled:opacity-30 hover:bg-[#2563EB] hover:border-[#2563EB] transition min-h-[52px]">
               {busy ? 'Setting up…' : 'Set Up Two-Factor Authentication'}
             </button>
             {error && <p className="text-sm text-red-400/80" role="alert">{error}</p>}
@@ -123,7 +123,7 @@ export default function TwoFactorAuthPage() {
                 <p className="text-muted-foreground/50 mt-1">Copy this secret into your authenticator app.</p>
               </div>
             </details>
-            <button type="button" onClick={() => { setTotpCode(''); setState('enrolling-verify'); setTimeout(() => codeRef.current?.focus(), 50); }} className="w-full py-4 border border-foreground text-foreground text-sm rounded-sm hover:bg-foreground hover:text-background transition min-h-[52px]">
+            <button type="button" onClick={() => { setTotpCode(''); setState('enrolling-verify'); setTimeout(() => codeRef.current?.focus(), 50); }} className="w-full py-4 border border-[#3B82F6] bg-[#3B82F6] text-white text-sm rounded-sm hover:bg-[#2563EB] hover:border-[#2563EB] transition min-h-[52px]">
               I&apos;ve scanned it →
             </button>
           </div>
@@ -135,9 +135,9 @@ export default function TwoFactorAuthPage() {
               <p className="text-[0.9375rem] text-foreground">Enter the 6-digit code</p>
               <p className="text-sm text-muted-foreground leading-relaxed">Open your authenticator app and enter the current code for Breadcrumbs.</p>
             </div>
-            <input ref={codeRef} type="tel" inputMode="numeric" maxLength={6} value={totpCode} onChange={(e) => { setTotpCode(e.target.value.replace(/\D/g, '')); setError(''); }} onKeyDown={(e) => { if (e.key === 'Enter') void handleVerifyEnroll(); }} placeholder="000000" className="w-full text-center text-3xl tracking-[0.5em] bg-transparent border-b-2 border-border focus:border-foreground outline-none py-4 text-foreground placeholder:text-muted-foreground/30 min-h-[60px]" aria-label="6-digit authentication code" autoComplete="one-time-code" />
+            <input ref={codeRef} type="tel" inputMode="numeric" maxLength={6} value={totpCode} onChange={(e) => { setTotpCode(e.target.value.replace(/\D/g, '')); setError(''); }} onKeyDown={(e) => { if (e.key === 'Enter') void handleVerifyEnroll(); }} placeholder="000000" className="w-full text-center text-3xl tracking-[0.5em] bg-transparent border-b-2 border-border focus:border-[#3B82F6] outline-none py-4 text-foreground placeholder:text-muted-foreground/30 min-h-[60px]" aria-label="6-digit authentication code" autoComplete="one-time-code" />
             {error && <p className="text-sm text-red-400/80" role="alert">{error}</p>}
-            <button type="button" onClick={() => void handleVerifyEnroll()} disabled={totpCode.length !== 6 || busy} className="w-full py-4 border border-foreground text-foreground text-sm rounded-sm disabled:opacity-30 hover:bg-foreground hover:text-background transition min-h-[52px]">
+            <button type="button" onClick={() => void handleVerifyEnroll()} disabled={totpCode.length !== 6 || busy} className="w-full py-4 border border-[#3B82F6] bg-[#3B82F6] text-white text-sm rounded-sm disabled:opacity-30 hover:bg-[#2563EB] hover:border-[#2563EB] transition min-h-[52px]">
               {busy ? 'Verifying…' : 'Verify and Enable'}
             </button>
           </div>
@@ -157,7 +157,7 @@ export default function TwoFactorAuthPage() {
               <p className="text-xs text-muted-foreground leading-relaxed">If you lose access to your authenticator app, email <a href="mailto:support@breadcrumbs.app" className="text-foreground/70 hover:text-foreground transition">support@breadcrumbs.app</a> with your account email to recover your account.</p>
             </div>
             {!showUnenroll ? (
-              <button type="button" onClick={() => setShowUnenroll(true)} className="w-full border border-border/70 rounded-sm px-5 py-4 text-left text-[0.9375rem] text-muted-foreground hover:border-foreground/30 hover:text-foreground transition min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40">
+              <button type="button" onClick={() => setShowUnenroll(true)} className="w-full border border-border/70 rounded-sm px-5 py-4 text-left text-[0.9375rem] text-muted-foreground hover:border-[#3B82F6]/45 hover:text-foreground transition min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35">
                 Turn Off Two-Factor Authentication
               </button>
             ) : (
@@ -166,8 +166,8 @@ export default function TwoFactorAuthPage() {
                 <p className="text-xs text-muted-foreground leading-relaxed">Your account will only require your email link to sign in. This is less secure.</p>
                 {error && <p className="text-xs text-red-400/80" role="alert">{error}</p>}
                 <div className="flex gap-2 pt-1">
-                  <button type="button" onClick={() => setShowUnenroll(false)} className="flex-1 py-3 border border-border text-muted-foreground text-sm rounded-sm hover:border-foreground/40 transition min-h-[44px]">Keep it on</button>
-                  <button type="button" onClick={() => void handleUnenroll()} disabled={busy} className="flex-1 py-3 border border-border text-muted-foreground text-sm rounded-sm hover:border-foreground hover:text-foreground transition disabled:opacity-30 min-h-[44px]">
+                  <button type="button" onClick={() => setShowUnenroll(false)} className="flex-1 py-3 border border-border text-muted-foreground text-sm rounded-sm hover:border-[#3B82F6]/45 transition min-h-[44px]">Keep it on</button>
+                  <button type="button" onClick={() => void handleUnenroll()} disabled={busy} className="flex-1 py-3 border border-border text-muted-foreground text-sm rounded-sm hover:border-[#3B82F6]/45 hover:text-foreground transition disabled:opacity-30 min-h-[44px]">
                     {busy ? 'Disabling…' : 'Turn off'}
                   </button>
                 </div>

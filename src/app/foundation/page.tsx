@@ -116,7 +116,7 @@ export default function FoundationPage() {
 
   if (stage === 'loading') {
     return (
-      <main className="min-h-screen bg-background flex items-center justify-center">
+      <main className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground text-sm animate-pulse">Loading your Foundation…</p>
       </main>
     );
@@ -124,7 +124,7 @@ export default function FoundationPage() {
 
   if (stage === 'error') {
     return (
-      <main className="min-h-screen bg-background flex items-center justify-center px-6">
+      <main className="min-h-screen flex items-center justify-center px-6">
         <div className="text-center space-y-4">
           <p className="font-serif text-foreground text-xl">Something went wrong.</p>
         </div>
@@ -134,7 +134,7 @@ export default function FoundationPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background px-6 py-14">
+    <main className="min-h-screen px-6 py-14">
       <div className="max-w-xl mx-auto space-y-10">
 
         {/* Header */}
@@ -181,7 +181,7 @@ export default function FoundationPage() {
                   onChange={(e) => handleChange(key, e.target.value)}
                   rows={4}
                   placeholder="Write your answer…"
-                  className="w-full bg-card border border-border rounded-sm px-5 py-4 text-foreground text-sm leading-relaxed placeholder:text-muted-foreground focus:border-foreground/60 transition resize-none"
+                  className="field-input resize-none rounded-sm px-5 py-4 text-sm leading-relaxed"
                 />
 
                 <div className="flex items-center justify-between">
@@ -215,7 +215,7 @@ export default function FoundationPage() {
         <div className="pt-4 pb-24 flex gap-4">
           <button
             onClick={() => router.push('/capture')}
-            className="flex-1 py-3 border border-foreground text-foreground text-sm tracking-wide hover:bg-foreground hover:text-background transition"
+            className="flex-1 py-3 border border-[#3B82F6] bg-[#3B82F6] text-white text-sm tracking-wide hover:bg-[#2563EB] hover:border-[#2563EB] transition"
           >
             Start writing breadcrumbs →
           </button>

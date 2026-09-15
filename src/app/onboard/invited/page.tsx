@@ -5,11 +5,10 @@ import { useRouter } from 'next/navigation';
 import AnimatedWordmark from '@/components/AnimatedWordmark';
 import { ScreenContainer, ScreenContent } from '@/components/ui/design-primitives';
 
-const INPUT =
-  'w-full min-h-[48px] bg-card border border-border px-4 py-3 text-foreground text-sm placeholder:text-muted-foreground/60 focus:border-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 transition rounded-sm';
+const INPUT = 'field-input';
 
 const PRIMARY_BUTTON =
-  'w-full min-h-[52px] border border-foreground bg-foreground text-background text-sm tracking-wide hover:bg-transparent hover:text-foreground transition disabled:opacity-30 disabled:cursor-not-allowed rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40';
+  'btn-primary';
 
 interface ProfileResponse {
   profile: {
@@ -96,7 +95,7 @@ export default function InvitedOnboardPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-background flex items-center justify-center">
+      <main className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground text-sm animate-pulse">Loading…</p>
       </main>
     );
@@ -160,7 +159,7 @@ export default function InvitedOnboardPage() {
                 placeholder="e.g. I am Cairo's grandfather and Shama's father."
                 value={relationshipContext}
                 onChange={(e) => setRelationshipContext(e.target.value)}
-                className="w-full min-h-[104px] bg-card border border-border px-4 py-3 text-foreground text-sm leading-relaxed placeholder:text-muted-foreground/60 focus:border-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 transition rounded-sm resize-none"
+                className="field-input min-h-[104px] leading-relaxed resize-none"
               />
             </label>
             <p className="text-xs text-muted-foreground/50">

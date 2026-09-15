@@ -8,7 +8,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: 'cover',
-  themeColor: '#171516',
+  themeColor: '#0D0D0D',
 };
 
 export const metadata: Metadata = {
@@ -33,10 +33,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen bg-background antialiased">
+      <body className="min-h-screen antialiased">
+        <div className="app-atmosphere" aria-hidden="true" />
         <ClientProviders>
           <SettingsBootstrap />
-          {children}
+          <div className="relative z-10 min-h-screen">{children}</div>
         </ClientProviders>
       </body>
     </html>

@@ -87,7 +87,8 @@ interface DateParts {
 
 interface FamilyMemberDraft {
   localId: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   birthDate: DateParts;
   birthDateTouched: boolean;
 }
@@ -130,10 +131,15 @@ function nextLocalId() {
 function createFamilyMemberDraft(yearOffset: number): FamilyMemberDraft {
   return {
     localId: nextLocalId(),
-    name: '',
+    firstName: '',
+    lastName: '',
     birthDate: defaultDateParts(yearOffset),
     birthDateTouched: false,
   };
+}
+
+function fullName(person: Pick<FamilyMemberDraft, 'firstName' | 'lastName'>) {
+  return `${person.firstName ?? ''} ${person.lastName ?? ''}`.trim();
 }
 
 function defaultDateParts(yearOffset: number): DateParts {
@@ -177,12 +183,13 @@ function buildNumberOptions(min: number, max: number): WheelOption[] {
 
 function formatFamilyMemberDrafts(people: FamilyMemberDraft[]) {
   return people
-    .filter((person) => person.name.trim())
-    .map((person) =>
-      person.birthDateTouched
-        ? `${person.name.trim()} (birthday: ${datePartsToIso(person.birthDate)})`
-        : person.name.trim(),
-    )
+    .filter((person) => fullName(person))
+    .map((person) => {
+      const name = fullName(person);
+      return person.birthDateTouched
+        ? `${name} (birthday: ${datePartsToIso(person.birthDate)})`
+        : name;
+    })
     .join('\n');
 }
 
@@ -541,7 +548,6 @@ function DateWheelPicker({
 
 function FamilyMemberCard({
   person,
-  namePlaceholder,
   birthdayLabel,
   birthdayPlaceholder,
   removeLabel,
@@ -549,28 +555,41 @@ function FamilyMemberCard({
   onRemove,
 }: {
   person: FamilyMemberDraft;
-  namePlaceholder: string;
   birthdayLabel: string;
   birthdayPlaceholder: string;
   removeLabel: string;
   onChange: (person: FamilyMemberDraft) => void;
   onRemove: () => void;
 }) {
+  const memberInput =
+    'w-full min-h-[48px] bg-card border border-border px-4 py-3 text-foreground text-sm placeholder:text-muted-foreground/60 focus:border-[#3B82F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 transition rounded-none shadow-sm';
+
   return (
-    <div className="space-y-3 rounded-xl border border-border bg-card/85 px-4 py-4 shadow-sm">
-      <div className="flex items-center gap-2">
-        <input
-          type="text"
-          placeholder={namePlaceholder}
-          value={person.name}
-          onChange={(e) => onChange({ ...person, name: e.target.value })}
-          className={INPUT}
-        />
+    <div className="space-y-3 rounded-none border border-border bg-card/85 px-4 py-4 shadow-sm">
+      <div className="flex items-start gap-2">
+        <div className="grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-2">
+          <input
+            type="text"
+            placeholder="First name"
+            value={person.firstName}
+            onChange={(e) => onChange({ ...person, firstName: e.target.value })}
+            className={memberInput}
+            autoComplete="given-name"
+          />
+          <input
+            type="text"
+            placeholder="Last name"
+            value={person.lastName}
+            onChange={(e) => onChange({ ...person, lastName: e.target.value })}
+            className={memberInput}
+            autoComplete="family-name"
+          />
+        </div>
         <button
           type="button"
           onClick={onRemove}
           aria-label={removeLabel}
-          className="min-h-[48px] min-w-[48px] rounded-xl border border-border text-muted-foreground transition hover:border-red-400/60 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/30"
+          className="min-h-[48px] min-w-[48px] shrink-0 rounded-none border border-border text-muted-foreground transition hover:border-red-400/60 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/30"
         >
           x
         </button>
@@ -595,7 +614,6 @@ function RelationshipQuestion({
   emptyBody,
   people,
   yearOffset,
-  namePlaceholder,
   removeLabel,
   onChange,
 }: {
@@ -607,7 +625,6 @@ function RelationshipQuestion({
   emptyBody: string;
   people: FamilyMemberDraft[];
   yearOffset: number;
-  namePlaceholder: string;
   removeLabel: string;
   onChange: (people: FamilyMemberDraft[]) => void;
 }) {
@@ -658,7 +675,6 @@ function RelationshipQuestion({
                 >
                   <FamilyMemberCard
                     person={person}
-                    namePlaceholder={namePlaceholder}
                     birthdayLabel="Birthday, optional"
                     birthdayPlaceholder="Add birthday"
                     removeLabel={removeLabel}
@@ -697,7 +713,8 @@ export default function SetupPage() {
   const [inviteLink, setInviteLink] = useState('');
 
   const [familyName, setFamilyName] = useState('');
-  const [ownerName, setOwnerName] = useState('');
+  const [ownerFirstName, setOwnerFirstName] = useState('');
+  const [ownerLastName, setOwnerLastName] = useState('');
   const [familyCallName, setFamilyCallName] = useState('');
   const [ownerBirthDate, setOwnerBirthDate] = useState<DateParts>(() => defaultDateParts(40));
   const [ownerBirthDateTouched, setOwnerBirthDateTouched] = useState(false);
@@ -795,8 +812,8 @@ export default function SetupPage() {
 
   function handleIdentityPageNext(e: React.FormEvent) {
     e.preventDefault();
-    if (identityPage === 'name' && !ownerName.trim()) {
-      setError('Add your name so your family knows who this foundation starts with.');
+    if (identityPage === 'name' && !ownerFirstName.trim()) {
+      setError('Add your first name so your family knows who this foundation starts with.');
       return;
     }
 
@@ -827,9 +844,9 @@ export default function SetupPage() {
   }
 
   function validateFamilyMemberDrafts(label: string, people: FamilyMemberDraft[]) {
-    const hasEmptyRow = people.some((person) => !person.name.trim());
+    const hasEmptyRow = people.some((person) => !person.firstName?.trim());
     if (hasEmptyRow) {
-      setError(`Each ${label} row needs a name, or remove the empty row.`);
+      setError(`Each ${label} needs a first name, or remove the empty row.`);
       return false;
     }
     return true;
@@ -918,25 +935,25 @@ export default function SetupPage() {
         (roleChoice.backendRole !== roleChoice.value ? roleChoice.label : null);
       const members = [
         ...spousePartners.map((spousePartner) => ({
-          name: spousePartner.name.trim(),
+          name: fullName(spousePartner),
           role: 'spouse',
           customRoleLabel: 'Spouse / Partner',
           birthDate: spousePartner.birthDateTouched ? datePartsToIso(spousePartner.birthDate) : null,
         })),
         ...children.map((c) => ({
-          name: c.name.trim(),
+          name: fullName(c),
           role: 'child',
           customRoleLabel: null,
           birthDate: c.birthDateTouched ? datePartsToIso(c.birthDate) : null,
         })),
         ...parentFigures.map((parentFigure) => ({
-          name: parentFigure.name.trim(),
+          name: fullName(parentFigure),
           role: 'parent',
           customRoleLabel: 'Parent / Parental Figure',
           birthDate: parentFigure.birthDateTouched ? datePartsToIso(parentFigure.birthDate) : null,
         })),
         ...grandparents.map((grandparent) => ({
-          name: grandparent.name.trim(),
+          name: fullName(grandparent),
           role: 'grandparent',
           customRoleLabel: 'Grandparent / Older Family Member',
           birthDate: grandparent.birthDateTouched ? datePartsToIso(grandparent.birthDate) : null,
@@ -953,27 +970,27 @@ export default function SetupPage() {
             birthplace: birthplace?.label || undefined,
             childhoodPlace: childhoodPlace?.label || undefined,
             spousePartners: spousePartners
-              .filter((spousePartner) => spousePartner.name.trim())
+              .filter((spousePartner) => fullName(spousePartner))
               .map((spousePartner) => ({
-                name: spousePartner.name.trim(),
+                name: fullName(spousePartner),
                 birthDate: spousePartner.birthDateTouched ? datePartsToIso(spousePartner.birthDate) : undefined,
               })),
             children: children
-              .filter((child) => child.name.trim())
+              .filter((child) => fullName(child))
               .map((child) => ({
-                name: child.name.trim(),
+                name: fullName(child),
                 birthDate: child.birthDateTouched ? datePartsToIso(child.birthDate) : undefined,
               })),
             parentFigures: parentFigures
-              .filter((parentFigure) => parentFigure.name.trim())
+              .filter((parentFigure) => fullName(parentFigure))
               .map((parentFigure) => ({
-                name: parentFigure.name.trim(),
+                name: fullName(parentFigure),
                 birthDate: parentFigure.birthDateTouched ? datePartsToIso(parentFigure.birthDate) : undefined,
               })),
             grandparents: grandparents
-              .filter((grandparent) => grandparent.name.trim())
+              .filter((grandparent) => fullName(grandparent))
               .map((grandparent) => ({
-                name: grandparent.name.trim(),
+                name: fullName(grandparent),
                 birthDate: grandparent.birthDateTouched ? datePartsToIso(grandparent.birthDate) : undefined,
               })),
           }),
@@ -986,7 +1003,7 @@ export default function SetupPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ownerName: ownerName.trim(),
+          ownerName: `${ownerFirstName} ${ownerLastName}`.trim(),
           ownerRole: roleChoice.backendRole,
           customOwnerRole,
           familyName: familyName.trim() || null,
@@ -1124,19 +1141,32 @@ export default function SetupPage() {
                     title="What is your name?"
                     body={`${roleChoice.label} is your starting relationship. Begin with the name your family will recognize.`}
                   />
-                  <label className="block space-y-2">
-                    <span className="text-xs text-muted-foreground/70">Full name</span>
-                    <input
-                      type="text"
-                      required
-                      autoFocus
-                      autoComplete="name"
-                      placeholder="e.g. Shama Joseph"
-                      value={ownerName}
-                      onChange={(e) => { setOwnerName(e.target.value); setError(''); }}
-                      className={INPUT}
-                    />
-                  </label>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <label className="block space-y-2">
+                      <span className="text-xs text-muted-foreground/70">First name</span>
+                      <input
+                        type="text"
+                        required
+                        autoFocus
+                        autoComplete="given-name"
+                        placeholder="First name"
+                        value={ownerFirstName}
+                        onChange={(e) => { setOwnerFirstName(e.target.value); setError(''); }}
+                        className={INPUT}
+                      />
+                    </label>
+                    <label className="block space-y-2">
+                      <span className="text-xs text-muted-foreground/70">Last name</span>
+                      <input
+                        type="text"
+                        autoComplete="family-name"
+                        placeholder="Last name"
+                        value={ownerLastName}
+                        onChange={(e) => { setOwnerLastName(e.target.value); setError(''); }}
+                        className={INPUT}
+                      />
+                    </label>
+                  </div>
                 </>
               )}
 
@@ -1236,7 +1266,14 @@ export default function SetupPage() {
 
               {error && <p className="text-sm text-red-500" role="alert">{error}</p>}
               <div className="space-y-2">
-                <button type="submit" className={PRIMARY_BUTTON}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleIdentityPageNext(e as unknown as React.FormEvent);
+                  }}
+                  className={PRIMARY_BUTTON}
+                >
                   {identityPage === 'family-name' ? 'Continue to relationships' : 'Continue'}
                 </button>
                 <button type="button" onClick={handleIdentityBack} className={LINK_BUTTON}>
@@ -1270,7 +1307,6 @@ export default function SetupPage() {
                   emptyBody="Leave this blank if it does not apply. You can always add someone later."
                   people={spousePartners}
                   yearOffset={40}
-                  namePlaceholder="Spouse or partner name"
                   removeLabel="Remove spouse or partner"
                   onChange={setSpousePartners}
                 />
@@ -1286,7 +1322,6 @@ export default function SetupPage() {
                   emptyBody="Skip this page if it does not apply. Family members can be added later."
                   people={children}
                   yearOffset={10}
-                  namePlaceholder="Child name"
                   removeLabel="Remove child"
                   onChange={setChildren}
                 />
@@ -1302,7 +1337,6 @@ export default function SetupPage() {
                   emptyBody="This is optional. Add only the people you want represented in the family graph."
                   people={parentFigures}
                   yearOffset={65}
-                  namePlaceholder="Parent or parental figure name"
                   removeLabel="Remove parent or parental figure"
                   onChange={setParentFigures}
                 />
@@ -1318,7 +1352,6 @@ export default function SetupPage() {
                   emptyBody="This is optional. You can grow the family graph whenever more stories emerge."
                   people={grandparents}
                   yearOffset={85}
-                  namePlaceholder="Grandparent or older family member name"
                   removeLabel="Remove grandparent or older family member"
                   onChange={setGrandparents}
                 />
@@ -1327,8 +1360,12 @@ export default function SetupPage() {
               {error && <p className="text-sm text-red-500" role="alert">{error}</p>}
               <div className="space-y-2">
                 <button
-                  type="submit"
+                  type="button"
                   disabled={relationshipPage === 'grandparents' && busy}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleRelationshipPageNext(e as unknown as React.FormEvent);
+                  }}
                   className={PRIMARY_BUTTON}
                 >
                   {relationshipPage === 'grandparents'

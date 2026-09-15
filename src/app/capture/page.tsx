@@ -88,23 +88,23 @@ async function fetchPromptText(recipientId: string | null, excludePriorPrompts?:
 
 function chipCls(active: boolean, size: 'sm' | 'xs' = 'sm') {
   const text = size === 'xs' ? 'text-xs' : 'text-sm';
-  return `px-3 py-1.5 ${text} border rounded-sm transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 ${
+  return `px-3 py-1.5 ${text} border rounded-sm transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 ${
     active
-      ? 'border-foreground bg-foreground text-background'
-      : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+      ? 'border-[#3B82F6] bg-[#3B82F6] text-white'
+      : 'border-border text-muted-foreground hover:border-[#3B82F6]/45 hover:text-foreground'
   }`;
 }
 
 function recipientChipCls(active: boolean) {
-  return `px-3 py-2 text-sm rounded-full border transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 ${
+  return `px-3 py-2 text-sm rounded-full border transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 ${
     active
-      ? 'border-foreground text-foreground'
-      : 'border-foreground/20 text-foreground/50 hover:border-foreground/45 hover:text-foreground/75'
+      ? 'border-[#3B82F6] text-foreground bg-[#3B82F6]/10'
+      : 'border-border text-foreground/50 hover:border-[#3B82F6]/45 hover:text-foreground/75'
   }`;
 }
 
 const SAVE_BTN =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40';
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35';
 
 function CaptureFlow() {
   const router = useRouter();
@@ -571,7 +571,7 @@ function CaptureFlow() {
               id={inputId}
               value={tagDraft}
               onChange={(e) => setTagDraft(e.target.value)}
-              className="w-full bg-card border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-foreground/60 outline-none"
+              className="field-input !min-h-0 rounded-sm px-3 py-2 text-sm"
               placeholder="parenting, gratitude, life-lesson"
             />
             <div className="flex gap-2">
@@ -579,7 +579,7 @@ function CaptureFlow() {
                 type="button"
                 onClick={() => void saveTagsEdit()}
                 disabled={tagSaving}
-                className="text-xs px-3 py-1.5 border border-foreground text-foreground rounded-sm disabled:opacity-40"
+                className="text-xs px-3 py-1.5 border border-[#3B82F6] bg-[#3B82F6] text-white rounded-sm hover:bg-[#2563EB] hover:border-[#2563EB] disabled:opacity-40"
               >
                 {tagSaving ? 'Saving…' : 'Save tags'}
               </button>
@@ -672,9 +672,9 @@ function CaptureFlow() {
                   role="tab"
                   aria-selected={captureStage === s}
                   onClick={() => handleStageChange(s)}
-                  className={`text-xs tracking-wide capitalize transition border-b pb-px min-h-[44px] px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 rounded-sm ${
+                  className={`text-xs tracking-wide capitalize transition border-b pb-px min-h-[44px] px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 rounded-sm ${
                     captureStage === s
-                      ? 'text-foreground border-foreground/55'
+                      ? 'text-[#3B82F6] border-[#3B82F6]/55'
                       : 'text-foreground/28 border-transparent hover:text-foreground/55'
                   }`}
                 >
@@ -712,7 +712,7 @@ function CaptureFlow() {
 
                     {/* Inline prompt card — shown after 10s hesitation, hidden once writing starts */}
                     {showHesitationHint && entry.trim().length < 20 && (aiPrompt || promptLoading) && (
-                      <div className="border-t border-foreground/[0.06] pt-3 space-y-2" aria-live="polite">
+                      <div className="border-t border-border/40 pt-3 space-y-2" aria-live="polite">
                         <p className="type-label text-foreground/22">Today&apos;s Spark</p>
                         {promptLoading ? (
                           <p className="text-xs text-foreground/18">···</p>
@@ -801,7 +801,7 @@ function CaptureFlow() {
                         className={`flex items-center justify-center gap-3 px-10 rounded-full border transition-colors min-h-[64px] min-w-[176px] text-[0.9375rem] select-none ${
                           recording
                             ? 'border-[#c45c5c]/55 text-foreground/85 bg-[#c45c5c]/[0.07]'
-                            : 'border-foreground/28 text-foreground/60 hover:border-foreground/50 hover:text-foreground/85'
+                            : 'border-[#3B82F6]/35 text-foreground/60 hover:border-[#3B82F6]/55 hover:text-foreground/85'
                         }`}
                       >
                         {recording ? (
@@ -859,7 +859,7 @@ function CaptureFlow() {
 
             {/* Pre-save — appears when content exists */}
             {hasContent && (
-              <div className="space-y-5 border-t border-foreground/[0.07] pt-5">
+              <div className="space-y-5 border-t border-border/40 pt-5">
 
                 {/* Type picker — required before save */}
                 <div className="space-y-2.5">
@@ -871,10 +871,10 @@ function CaptureFlow() {
                         type="button"
                         aria-pressed={breadcrumbType === opt.value}
                         onClick={() => setBreadcrumbType(opt.value)}
-                        className={`px-4 py-2 text-sm border rounded-sm transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 ${
+                        className={`px-4 py-2 text-sm border rounded-sm transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 ${
                           breadcrumbType === opt.value
-                            ? 'border-foreground text-foreground bg-foreground/5'
-                            : 'border-foreground/18 text-foreground/40 hover:border-foreground/45 hover:text-foreground/70'
+                            ? 'border-[#3B82F6] text-foreground bg-[#3B82F6]/10'
+                            : 'border-border text-foreground/40 hover:border-[#3B82F6]/45 hover:text-foreground/70'
                         }`}
                       >
                         {opt.label}
@@ -901,7 +901,7 @@ function CaptureFlow() {
                       <button
                         type="button"
                         onClick={() => setConfirmingSave(false)}
-                        className={`flex-1 py-3.5 text-sm border border-border text-muted-foreground rounded-sm hover:border-foreground/40 hover:text-foreground transition min-h-[44px] ${SAVE_BTN}`}
+                        className={`flex-1 py-3.5 text-sm border border-border text-muted-foreground rounded-sm hover:border-[#3B82F6]/45 hover:text-foreground transition min-h-[44px] ${SAVE_BTN}`}
                       >
                         Cancel
                       </button>
@@ -909,7 +909,7 @@ function CaptureFlow() {
                         type="button"
                         onClick={() => void handleSave()}
                         disabled={saving}
-                        className={`flex-1 py-3.5 text-sm border border-foreground text-foreground rounded-sm hover:bg-foreground hover:text-background transition disabled:opacity-30 min-h-[44px] ${SAVE_BTN}`}
+                        className={`flex-1 py-3.5 text-sm border border-[#3B82F6] bg-[#3B82F6] text-white rounded-sm hover:bg-[#2563EB] hover:border-[#2563EB] transition disabled:opacity-30 min-h-[44px] ${SAVE_BTN}`}
                       >
                         {saving ? 'Saving…' : 'Yes, save it'}
                       </button>
@@ -919,7 +919,7 @@ function CaptureFlow() {
                       type="button"
                       onClick={() => void handleSave()}
                       disabled={!breadcrumbType || saving}
-                      className={`w-full py-4 text-sm border border-foreground text-foreground rounded-sm hover:bg-foreground hover:text-background transition disabled:opacity-30 disabled:cursor-not-allowed min-h-[44px] ${SAVE_BTN}`}
+                      className={`w-full py-4 text-sm border border-[#3B82F6] bg-[#3B82F6] text-white rounded-sm hover:bg-[#2563EB] hover:border-[#2563EB] transition disabled:opacity-30 disabled:cursor-not-allowed min-h-[44px] ${SAVE_BTN}`}
                     >
                       {saving ? 'Saving…' : 'Save Breadcrumb'}
                     </button>
@@ -954,8 +954,8 @@ function CaptureFlow() {
                           onClick={() => toggleTag(tag)}
                           className={`px-3 py-1 text-xs border rounded-sm transition ${
                             selectedTags.includes(tag)
-                              ? 'border-foreground/60 text-foreground/80 bg-foreground/5'
-                              : 'border-foreground/15 text-foreground/30 hover:border-foreground/35 hover:text-foreground/60'
+                              ? 'border-[#3B82F6] text-foreground bg-[#3B82F6]/10'
+                              : 'border-border text-foreground/30 hover:border-[#3B82F6]/45 hover:text-foreground/60'
                           }`}
                         >
                           {tag}
@@ -983,7 +983,7 @@ function CaptureFlow() {
             </div>
 
             <textarea
-              className="w-full h-40 bg-card border border-border rounded-sm px-5 py-4 text-foreground text-base leading-relaxed placeholder:text-muted-foreground focus:border-foreground/60 focus:outline-none transition resize-none"
+              className="field-input h-40 !min-h-[10rem] rounded-sm px-5 py-4 text-base leading-relaxed resize-none"
               placeholder="Add to your entry (optional)…"
               value={followUpAddition}
               onChange={(e) => setFollowUpAddition(e.target.value)}
@@ -994,7 +994,7 @@ function CaptureFlow() {
                 type="button"
                 onClick={() => setStage('done')}
                 disabled={saving}
-                className="flex-1 py-3 px-6 border border-border text-muted-foreground text-sm tracking-wide hover:border-foreground hover:text-foreground disabled:opacity-30 transition"
+                className="flex-1 py-3 px-6 border border-border text-muted-foreground text-sm tracking-wide hover:border-[#3B82F6]/45 hover:text-foreground disabled:opacity-30 transition"
               >
                 Skip — I&apos;m done
               </button>
@@ -1025,7 +1025,7 @@ function CaptureFlow() {
                   }
                 }}
                 disabled={saving}
-                className="flex-1 py-3 px-6 border border-foreground text-foreground text-sm tracking-wide disabled:opacity-30 hover:bg-foreground hover:text-background transition"
+                className="flex-1 py-3 px-6 border border-[#3B82F6] bg-[#3B82F6] text-white text-sm tracking-wide disabled:opacity-30 hover:bg-[#2563EB] hover:border-[#2563EB] transition"
               >
                 {saving ? 'Saving…' : 'Add and finish'}
               </button>
@@ -1051,14 +1051,14 @@ function CaptureFlow() {
               <button
                 type="button"
                 onClick={() => router.push('/archive')}
-                className="py-3 px-6 border border-border text-muted-foreground text-sm tracking-wide hover:border-foreground hover:text-foreground transition"
+                className="py-3 px-6 border border-border text-muted-foreground text-sm tracking-wide hover:border-[#3B82F6]/45 hover:text-foreground transition"
               >
                 Family Library
               </button>
               <button
                 type="button"
                 onClick={() => router.push('/')}
-                className="py-3 px-6 border border-foreground text-foreground text-sm tracking-wide hover:bg-foreground hover:text-background transition"
+                className="py-3 px-6 border border-[#3B82F6] bg-[#3B82F6] text-white text-sm tracking-wide hover:bg-[#2563EB] hover:border-[#2563EB] transition"
               >
                 Done
               </button>
@@ -1087,7 +1087,7 @@ function CaptureFlow() {
                 setConfirmingSave(false);
                 setStage('capture');
               }}
-              className="mt-4 py-3 px-6 border border-foreground text-foreground text-sm tracking-wide hover:bg-foreground hover:text-background transition"
+              className="mt-4 py-3 px-6 border border-[#3B82F6] bg-[#3B82F6] text-white text-sm tracking-wide hover:bg-[#2563EB] hover:border-[#2563EB] transition"
             >
               Try again
             </button>
@@ -1110,7 +1110,7 @@ function CompleteMagicLinkFromCapture({ code }: { code: string }) {
     );
   }, [code, router]);
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
+    <main className="min-h-screen flex flex-col items-center justify-center px-6">
       <p className="text-muted-foreground text-sm">Completing sign-in…</p>
     </main>
   );
@@ -1127,7 +1127,7 @@ export default function CapturePage() {
     <ErrorBoundary>
       <Suspense
         fallback={(
-          <main className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
+          <main className="min-h-screen flex flex-col items-center justify-center px-6">
             <p className="text-muted-foreground text-sm">Loading…</p>
           </main>
         )}

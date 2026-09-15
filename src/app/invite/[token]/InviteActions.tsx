@@ -3,14 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-const BUTTON_PRIMARY =
-  'w-full py-3 border border-foreground text-foreground text-sm tracking-wide hover:bg-foreground hover:text-background transition disabled:opacity-30';
+const BUTTON_PRIMARY = 'btn-primary';
 
 const BUTTON_SECONDARY =
-  'w-full py-3 border border-border text-muted-foreground text-sm tracking-wide hover:border-foreground/40 hover:text-foreground transition disabled:opacity-30';
+  'w-full min-h-[48px] border border-border bg-card/60 text-foreground text-sm tracking-wide hover:border-[#3B82F6]/55 hover:text-[#3B82F6] transition rounded-xl disabled:opacity-30';
 
-const INPUT =
-  'w-full bg-card border border-border px-4 py-3 text-foreground text-sm placeholder:text-muted-foreground focus:border-foreground/60 transition rounded-sm outline-none';
+const INPUT = 'field-input';
 
 type View = 'actions' | 'correction' | 'declined' | 'correction_sent';
 

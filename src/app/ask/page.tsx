@@ -115,7 +115,7 @@ export default function HearPage() {
 
   if (profileLoading) {
     return (
-      <main className="min-h-screen bg-background text-foreground flex items-center justify-center">
+      <main className="min-h-screen text-foreground flex items-center justify-center">
         <p className="text-sm text-muted-foreground">Loading…</p>
       </main>
     );
@@ -132,7 +132,7 @@ export default function HearPage() {
     .filter((d) => domainPrompt(d, discovery?.contributorName ?? ''));
 
   return (
-    <main className="min-h-screen bg-background text-foreground px-4 py-10 sm:py-16 pb-28">
+    <main className="min-h-screen text-foreground px-4 py-10 sm:py-16 pb-28">
       <div className="max-w-2xl mx-auto space-y-8">
 
         {/* Contributor presence header */}
@@ -156,7 +156,7 @@ export default function HearPage() {
 
         {/* Discovery — featured excerpt */}
         {discovery?.featuredExcerpt && !result && (
-          <div className="border-l-2 border-foreground/10 pl-4 space-y-1">
+          <div className="border-l-2 border-[#3B82F6]/25 pl-4 space-y-1">
             <p className="text-[0.625rem] text-muted-foreground/60 uppercase tracking-widest">
               From {contributorFirst} — {formatMonthYear(discovery.featuredExcerpt.created_at)}
             </p>
@@ -179,7 +179,7 @@ export default function HearPage() {
                   key={domain}
                   type="button"
                   onClick={() => setQuestion(domainPrompt(domain, discovery!.contributorName))}
-                  className="text-xs px-3 py-1.5 border border-border text-muted-foreground hover:border-foreground hover:text-foreground transition rounded-sm"
+                  className="text-xs px-3 py-1.5 border border-border text-muted-foreground hover:border-[#3B82F6]/45 hover:text-foreground transition rounded-sm"
                 >
                   {domainPrompt(domain, discovery!.contributorName)}
                 </button>
@@ -197,7 +197,7 @@ export default function HearPage() {
             rows={4}
             maxLength={1000}
             disabled={loading}
-            className="w-full bg-transparent border border-border text-sm text-foreground placeholder:text-muted-foreground/50 px-4 py-3 resize-none focus:outline-none focus:border-foreground/40 transition"
+            className="field-input resize-none bg-transparent"
           />
 
           {familyMembers.length > 0 && (
@@ -208,8 +208,8 @@ export default function HearPage() {
                   disabled={loading}
                   className={`text-xs px-3 py-1.5 border rounded-sm transition ${
                     selectedRecipient === null
-                      ? 'border-foreground text-foreground'
-                      : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+                      ? 'border-[#3B82F6] text-foreground bg-[#3B82F6]/10'
+                      : 'border-border text-muted-foreground hover:border-[#3B82F6]/45 hover:text-foreground'
                   }`}
                 >
                   Everyone
@@ -222,8 +222,8 @@ export default function HearPage() {
                     disabled={loading}
                     className={`text-xs px-3 py-1.5 border rounded-sm transition ${
                       selectedRecipient === m.id
-                        ? 'border-foreground text-foreground'
-                        : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+                        ? 'border-[#3B82F6] text-foreground bg-[#3B82F6]/10'
+                        : 'border-border text-muted-foreground hover:border-[#3B82F6]/45 hover:text-foreground'
                     }`}
                   >
                     {firstName(m.name)}
@@ -235,7 +235,7 @@ export default function HearPage() {
           <button
             type="submit"
             disabled={loading || !question.trim()}
-            className="w-full py-4 px-8 border border-foreground text-foreground text-sm tracking-wide hover:bg-foreground hover:text-background transition disabled:opacity-40 disabled:cursor-not-allowed"
+            className="btn-primary"
           >
             {loading ? 'Asking…' : 'Ask'}
           </button>
@@ -256,7 +256,7 @@ export default function HearPage() {
                   In {contributorFirst}&apos;s own words
                 </p>
                 {result.breadcrumbExcerpts.map((bc, i) => (
-                  <blockquote key={i} className="border-l-2 border-foreground/10 pl-4 space-y-1">
+                  <blockquote key={i} className="border-l-2 border-[#3B82F6]/25 pl-4 space-y-1">
                     <p className="text-sm font-display text-foreground/70 leading-relaxed italic">
                       &ldquo;{bc.excerpt}{bc.truncated ? '…' : '”'}
                     </p>

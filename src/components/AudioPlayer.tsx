@@ -82,7 +82,7 @@ export default function AudioPlayer({ src }: Props) {
           type="button"
           onClick={togglePlay}
           aria-label={playing ? 'Pause' : 'Play'}
-          className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full border border-foreground/25 text-foreground/60 hover:border-foreground/50 hover:text-foreground/90 transition"
+          className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full border border-[#3B82F6]/35 text-foreground/60 hover:border-[#3B82F6]/55 hover:text-foreground/90 transition"
         >
           {playing ? (
             <svg width="11" height="13" viewBox="0 0 11 13" fill="currentColor" aria-hidden="true">

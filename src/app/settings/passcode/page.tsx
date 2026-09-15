@@ -54,7 +54,7 @@ export default function PasscodePage() {
   const PinDots = ({ value }: { value: string }) => (
     <div className="flex gap-4 justify-center py-4" aria-hidden="true">
       {Array.from({ length: 6 }, (_, i) => (
-        <div key={i} className={`w-3 h-3 rounded-full border-2 transition-colors ${i < value.length ? 'bg-foreground border-foreground' : 'bg-transparent border-border'}`} />
+        <div key={i} className={`w-3 h-3 rounded-full border-2 transition-colors ${i < value.length ? 'bg-[#3B82F6] border-[#3B82F6]' : 'bg-transparent border-border'}`} />
       ))}
     </div>
   );
@@ -67,7 +67,7 @@ export default function PasscodePage() {
     : (v: string) => { setConfirmedPin(v); setError(''); };
 
   return (
-    <main className="min-h-screen bg-background px-5 py-6">
+    <main className="min-h-screen px-5 py-6">
       <div className="max-w-xl mx-auto space-y-8 pb-20">
 
         <div className="flex items-center justify-between pt-2">
@@ -89,7 +89,7 @@ export default function PasscodePage() {
               <p className="text-[0.9375rem] text-foreground">Passcode Lock is off</p>
               <p className="text-sm text-muted-foreground leading-relaxed">Set a 4–6 digit PIN to protect your Breadcrumbs from others who may pick up your device.</p>
             </div>
-            <button type="button" onClick={() => setFlow('setup-pin')} className="w-full py-4 border border-foreground text-foreground text-sm rounded-sm hover:bg-foreground hover:text-background transition min-h-[52px]">
+            <button type="button" onClick={() => setFlow('setup-pin')} className="w-full py-4 border border-[#3B82F6] bg-[#3B82F6] text-white text-sm rounded-sm hover:bg-[#2563EB] hover:border-[#2563EB] transition min-h-[52px]">
               Turn On Passcode
             </button>
           </div>
@@ -117,15 +117,15 @@ export default function PasscodePage() {
               <button type="button" onClick={() => {
                 if (isConfirmFlow) setFlow(flow === 'change-confirm' ? 'change-pin' : 'setup-pin');
                 else setFlow(flow === 'change-pin' ? 'enabled' : 'disabled');
-              }} className="flex-1 py-3.5 border border-border text-muted-foreground text-sm rounded-sm hover:border-foreground/40 transition min-h-[52px]">
+              }} className="flex-1 py-3.5 border border-border text-muted-foreground text-sm rounded-sm hover:border-[#3B82F6]/45 transition min-h-[52px]">
                 {isConfirmFlow ? 'Back' : 'Cancel'}
               </button>
               {isConfirmFlow ? (
-                <button type="button" onClick={() => void handleSavePin(pin, confirmedPin)} disabled={confirmedPin.length < 4 || saving} className="flex-1 py-3.5 border border-foreground text-foreground text-sm rounded-sm disabled:opacity-30 hover:bg-foreground hover:text-background transition min-h-[52px]">
+                <button type="button" onClick={() => void handleSavePin(pin, confirmedPin)} disabled={confirmedPin.length < 4 || saving} className="flex-1 py-3.5 border border-[#3B82F6] bg-[#3B82F6] text-white text-sm rounded-sm disabled:opacity-30 hover:bg-[#2563EB] hover:border-[#2563EB] transition min-h-[52px]">
                   {saving ? 'Saving…' : 'Set PIN'}
                 </button>
               ) : (
-                <button type="button" onClick={() => setFlow(flow === 'change-pin' ? 'change-confirm' : 'setup-confirm')} disabled={pin.length < 4} className="flex-1 py-3.5 border border-foreground text-foreground text-sm rounded-sm disabled:opacity-30 hover:bg-foreground hover:text-background transition min-h-[52px]">
+                <button type="button" onClick={() => setFlow(flow === 'change-pin' ? 'change-confirm' : 'setup-confirm')} disabled={pin.length < 4} className="flex-1 py-3.5 border border-[#3B82F6] bg-[#3B82F6] text-white text-sm rounded-sm disabled:opacity-30 hover:bg-[#2563EB] hover:border-[#2563EB] transition min-h-[52px]">
                   Next
                 </button>
               )}
@@ -143,11 +143,11 @@ export default function PasscodePage() {
               </div>
               <span className="text-xs text-emerald-500/80 uppercase tracking-widest">Active</span>
             </div>
-            <button type="button" onClick={() => { setPin(''); setFlow('change-pin'); }} className="w-full border border-border/70 rounded-sm px-5 py-4 text-left text-[0.9375rem] text-foreground hover:border-foreground/30 transition min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40">
+            <button type="button" onClick={() => { setPin(''); setFlow('change-pin'); }} className="w-full border border-border/70 rounded-sm px-5 py-4 text-left text-[0.9375rem] text-foreground hover:border-[#3B82F6]/45 transition min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35">
               Change PIN →
             </button>
             {!showDisable ? (
-              <button type="button" onClick={() => setShowDisable(true)} className="w-full border border-border/70 rounded-sm px-5 py-4 text-left text-[0.9375rem] text-muted-foreground hover:border-foreground/30 hover:text-foreground transition min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40">
+              <button type="button" onClick={() => setShowDisable(true)} className="w-full border border-border/70 rounded-sm px-5 py-4 text-left text-[0.9375rem] text-muted-foreground hover:border-[#3B82F6]/45 hover:text-foreground transition min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35">
                 Turn Off Passcode
               </button>
             ) : (
@@ -155,8 +155,8 @@ export default function PasscodePage() {
                 <p className="text-sm text-foreground">Turn off Passcode Lock?</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">Anyone with access to your device will be able to open your Breadcrumbs.</p>
                 <div className="flex gap-2 pt-1">
-                  <button type="button" onClick={() => setShowDisable(false)} className="flex-1 py-3 border border-border text-muted-foreground text-sm rounded-sm hover:border-foreground/40 transition min-h-[44px]">Keep it on</button>
-                  <button type="button" onClick={handleDisable} className="flex-1 py-3 border border-border text-muted-foreground text-sm rounded-sm hover:border-foreground hover:text-foreground transition min-h-[44px]">Turn off</button>
+                  <button type="button" onClick={() => setShowDisable(false)} className="flex-1 py-3 border border-border text-muted-foreground text-sm rounded-sm hover:border-[#3B82F6]/45 transition min-h-[44px]">Keep it on</button>
+                  <button type="button" onClick={handleDisable} className="flex-1 py-3 border border-border text-muted-foreground text-sm rounded-sm hover:border-[#3B82F6]/45 hover:text-foreground transition min-h-[44px]">Turn off</button>
                 </div>
               </div>
             )}

@@ -17,10 +17,15 @@ import { buildAuthCallbackUrl } from '@/lib/auth-callback-url';
 
 // ─── Shared style tokens ──────────────────────────────────────
 const INPUT =
-  'w-full bg-card border border-border px-4 py-3 text-foreground text-sm placeholder:text-muted-foreground focus:border-foreground/60 transition rounded-sm outline-none';
+  'field-input';
 
 const SELECT =
-  'w-full bg-card border border-border px-4 py-3 text-foreground text-sm focus:border-foreground/60 transition rounded-sm outline-none';
+  'field-input';
+
+const PRIMARY_BUTTON = 'btn-primary';
+
+const SECONDARY_BUTTON =
+  'w-full min-h-[48px] border border-border bg-card/60 text-foreground text-sm tracking-wide hover:border-[#3B82F6]/55 hover:text-[#3B82F6] transition rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35';
 
 // ─── Owner role selector ──────────────────────────────────────
 function OwnerRoleSelector({
@@ -50,8 +55,8 @@ function OwnerRoleSelector({
             onClick={() => handlePrimary(r.value)}
             className={`py-2.5 text-xs tracking-wide border transition rounded-sm ${
               value === r.value
-                ? 'border-foreground text-foreground bg-foreground/5'
-                : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground/80'
+                ? 'border-[#3B82F6] text-foreground bg-[#3B82F6]/10'
+                : 'border-border text-muted-foreground hover:border-[#3B82F6]/45 hover:text-foreground/80'
             }`}
           >
             {r.label}
@@ -123,13 +128,13 @@ function MemberRow({
           placeholder="Name"
           value={member.name}
           onChange={(e) => onChange({ ...member, name: e.target.value })}
-          className="flex-1 bg-card border border-border px-4 py-3 text-foreground text-sm placeholder:text-muted-foreground focus:border-foreground/60 transition rounded-sm outline-none"
+          className="flex-1 bg-card border border-border px-4 py-3 text-foreground text-sm placeholder:text-muted-foreground focus:border-[#3B82F6] transition rounded-sm outline-none"
         />
         <button
           type="button"
           onClick={onRemove}
           aria-label="Remove member"
-          className="shrink-0 w-10 h-10 flex items-center justify-center border border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground transition rounded-sm text-base"
+          className="shrink-0 w-10 h-10 flex items-center justify-center border border-border text-muted-foreground hover:border-[#3B82F6]/45 hover:text-foreground transition rounded-sm text-base"
         >
           ×
         </button>
@@ -294,7 +299,7 @@ export default function SignupPage() {
 
   if (step === 'sent') {
     return (
-      <main className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
+      <main className="flex min-h-screen flex-col items-center justify-center px-6">
         <div className="w-full max-w-sm text-center space-y-4">
           <p className="font-serif text-foreground text-2xl">Almost there.</p>
           <p className="text-sm text-muted-foreground">
@@ -315,7 +320,7 @@ export default function SignupPage() {
   };
 
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12">
+    <main className="flex min-h-screen flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm space-y-8">
 
         {/* Header */}
@@ -358,13 +363,13 @@ export default function SignupPage() {
                 placeholder="Phone number"
                 value={phone}
                 onChange={(e) => { setPhone(e.target.value); setError(''); }}
-                className="flex-1 bg-card border border-border px-4 py-3 text-foreground text-sm placeholder:text-muted-foreground focus:border-foreground/60 transition rounded-r-sm outline-none"
+                className="flex-1 bg-card border border-border px-4 py-3 text-foreground text-sm placeholder:text-muted-foreground focus:border-[#3B82F6] transition rounded-r-sm outline-none"
               />
             </div>
             {error && <p className="text-xs text-red-400">{error}</p>}
             <button
               type="submit"
-              className="w-full py-3 border border-foreground text-foreground text-sm tracking-wide hover:bg-foreground hover:text-background transition"
+              className={PRIMARY_BUTTON}
             >
               Continue
             </button>
@@ -394,7 +399,7 @@ export default function SignupPage() {
 
             <button
               type="submit"
-              className="w-full py-3 border border-foreground text-foreground text-sm tracking-wide hover:bg-foreground hover:text-background transition"
+              className={PRIMARY_BUTTON}
             >
               Continue
             </button>
@@ -445,7 +450,7 @@ export default function SignupPage() {
                   },
                 ])
               }
-              className="w-full py-3 border border-border text-muted-foreground text-sm tracking-wide hover:border-foreground/40 hover:text-foreground transition"
+              className={SECONDARY_BUTTON}
             >
               + Add family member
             </button>
@@ -455,7 +460,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={busy}
-              className="w-full py-3 border border-foreground text-foreground text-sm tracking-wide disabled:opacity-30 hover:bg-foreground hover:text-background transition"
+              className={PRIMARY_BUTTON}
             >
               {busy ? 'Creating account…' : 'Continue'}
             </button>

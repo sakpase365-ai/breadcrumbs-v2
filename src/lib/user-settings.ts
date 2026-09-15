@@ -90,10 +90,6 @@ export function applyDisplaySettings(settings: UserSettings): void {
   // Reduced motion — CSS attribute + reflect for framer-motion consumers
   document.documentElement.dataset.motion = settings.reduceMotion ? 'reduce' : 'default';
 
-  // Theme — 'system' removes the override and lets the CSS media query decide
-  if (settings.appearance === 'system') {
-    delete document.documentElement.dataset.theme;
-  } else {
-    document.documentElement.dataset.theme = settings.appearance;
-  }
+  // Always cinematic dark — light/system settings map to the same visual tokens
+  document.documentElement.dataset.theme = 'dark';
 }

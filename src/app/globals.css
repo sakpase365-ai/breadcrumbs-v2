@@ -3,45 +3,50 @@
 @tailwind utilities;
 
 @layer base {
-  /* ── Dark theme (default) ─────────────────────────── */
+  /* ── Dark theme (default) — cinematic product palette ─ */
   :root {
-    --background: 330 4.55% 8.63%; /* #171516 warm dark */
-    --foreground: 37 39% 94%;      /* #F5F0E8 warm off-white */
-    --card: 30 13% 12%;            /* #231F1B elevated surface */
-    --card-foreground: 37 39% 94%;
-    --border: 30 10% 18%;          /* subtle warm divider */
-    --input: 30 10% 18%;
-    --muted: 30 13% 11%;           /* #221E1A bgElevated */
-    --muted-foreground: 30 4% 55%; /* ~55% opacity warm text */
+    --background: 0 0% 5%;           /* near-black canvas */
+    --foreground: 40 33% 96%;        /* warm off-white */
+    --card: 0 0% 8.5%;               /* elevated surface */
+    --card-foreground: 40 33% 96%;
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 30 4% 59%;
+    --accent: 217 91% 60%;           /* #3B82F6 */
+    --accent-strong: 221 83% 53%;    /* #2563EB */
     --radius: 0.5rem;
     --font-display: "Playfair Display", "Hoefler Text", Georgia, serif;
     --font-ui: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   }
 
-  /* ── Light theme (System preference) ──────────────── */
+  /* Light / system preference keep the same cinematic tokens — no cream divergence */
   @media (prefers-color-scheme: light) {
     :root:not([data-theme='dark']) {
-      --background: 37 30% 95%;      /* warm cream */
-      --foreground: 30 13% 9%;       /* warm near-black */
-      --card: 37 25% 91%;            /* slightly darker cream */
-      --card-foreground: 30 13% 9%;
-      --border: 30 10% 78%;          /* warm soft divider */
-      --input: 30 10% 78%;
-      --muted: 37 28% 93%;
-      --muted-foreground: 30 8% 42%;
+      --background: 0 0% 5%;
+      --foreground: 40 33% 96%;
+      --card: 0 0% 8.5%;
+      --card-foreground: 40 33% 96%;
+      --border: 0 0% 16%;
+      --input: 0 0% 16%;
+      --muted: 0 0% 10%;
+      --muted-foreground: 30 4% 59%;
+      --accent: 217 91% 60%;
+      --accent-strong: 221 83% 53%;
     }
   }
 
-  /* ── Light theme (explicit override) ──────────────── */
   :root[data-theme='light'] {
-    --background: 37 30% 95%;
-    --foreground: 30 13% 9%;
-    --card: 37 25% 91%;
-    --card-foreground: 30 13% 9%;
-    --border: 30 10% 78%;
-    --input: 30 10% 78%;
-    --muted: 37 28% 93%;
-    --muted-foreground: 30 8% 42%;
+    --background: 0 0% 5%;
+    --foreground: 40 33% 96%;
+    --card: 0 0% 8.5%;
+    --card-foreground: 40 33% 96%;
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 30 4% 59%;
+    --accent: 217 91% 60%;
+    --accent-strong: 221 83% 53%;
   }
 
   * {
@@ -57,9 +62,11 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-family: var(--font-ui);
+    isolation: isolate;
     min-height: 100%;
     -webkit-font-smoothing: antialiased;
     letter-spacing: -0.01em;
+    position: relative;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -68,7 +75,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid hsl(var(--foreground) / 0.45);
+    outline: 2px solid hsl(var(--accent) / 0.72);
     outline-offset: 2px;
   }
 
@@ -108,7 +115,7 @@
 
   .screen-main {
     min-height: 100vh;
-    background: hsl(var(--background));
+    background: transparent;
     padding-inline: 1.25rem;
     padding-block: 1.5rem;
   }
@@ -205,43 +212,20 @@ html[data-motion='reduce'] *::after {
   display: none;
 }
 
-/* Setup uses one continuous cinematic palette. These tokens are scoped so
-   onboarding can evolve without silently recoloring the rest of the product. */
-.setup-shell {
-  --setup-accent: 217 91% 60%;
-  --setup-accent-strong: 221 83% 53%;
-  isolation: isolate;
-  overflow: hidden;
-  position: relative;
-  transition: background-color 420ms ease, color 420ms ease;
-}
-
-.setup-theme {
-  --background: 0 0% 5%;
-  --foreground: 40 33% 96%;
-  --card: 0 0% 8.5%;
-  --card-foreground: 40 33% 96%;
-  --border: 0 0% 16%;
-  --input: 0 0% 16%;
-  --muted: 0 0% 10%;
-  --muted-foreground: 30 4% 59%;
-}
-
+/* Shared cinematic atmosphere + grain for the whole product */
+.app-atmosphere,
 .setup-atmosphere {
   inset: 0;
   pointer-events: none;
   position: fixed;
   z-index: -1;
-}
-
-.setup-theme .setup-atmosphere {
   background:
-    radial-gradient(circle at 84% 8%, hsl(var(--setup-accent) / 0.16), transparent 28rem),
+    radial-gradient(circle at 84% 8%, hsl(var(--accent) / 0.16), transparent 28rem),
     radial-gradient(circle at 12% 92%, hsl(24 62% 42% / 0.09), transparent 24rem),
     linear-gradient(145deg, hsl(0 0% 4%), hsl(0 0% 7%) 58%, hsl(220 18% 8%));
 }
 
-.setup-shell::after {
+body::after {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.28'/%3E%3C/svg%3E");
   content: '';
   inset: 0;
@@ -251,6 +235,78 @@ html[data-motion='reduce'] *::after {
   z-index: 0;
 }
 
+.btn-primary {
+  width: 100%;
+  min-height: 52px;
+  border: 1px solid hsl(var(--accent));
+  background: hsl(var(--accent));
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  box-shadow: 0 12px 32px rgba(59, 130, 246, 0.22);
+  transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease, opacity 150ms ease;
+  border-radius: 0.75rem;
+}
+
+.btn-primary:hover:not(:disabled) {
+  border-color: hsl(var(--accent-strong));
+  background: hsl(var(--accent-strong));
+  transform: translateY(-2px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--accent) / 0.45);
+}
+
+.field-input {
+  width: 100%;
+  min-height: 48px;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  padding: 0.75rem 1rem;
+  color: hsl(var(--foreground));
+  font-size: 0.875rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.field-input::placeholder {
+  color: hsl(var(--muted-foreground) / 0.6);
+}
+
+.field-input:focus {
+  border-color: hsl(var(--accent));
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--accent) / 0.35);
+}
+
+/* Setup keeps shell helpers; tokens now come from the global palette */
+.setup-shell {
+  --setup-accent: var(--accent);
+  --setup-accent-strong: var(--accent-strong);
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+  transition: background-color 420ms ease, color 420ms ease;
+}
+
+.setup-theme {
+  /* Marker class for onboarding; palette comes from global :root */
+}
+
+.setup-shell::after {
+  display: none;
+}
+
 .setup-shell :focus-visible {
-  outline-color: hsl(var(--setup-accent) / 0.72);
+  outline-color: hsl(var(--accent) / 0.72);
 }

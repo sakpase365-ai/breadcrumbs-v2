@@ -250,7 +250,7 @@ function MainView({
               <button
                 type="button"
                 onClick={() => setConfirmSignOut(false)}
-                className="flex-1 py-3 text-sm border border-border rounded-sm text-muted-foreground hover:border-foreground/30 transition"
+                className="flex-1 py-3 text-sm border border-border rounded-sm text-muted-foreground hover:border-[#3B82F6]/45 transition"
               >
                 Cancel
               </button>
@@ -258,7 +258,7 @@ function MainView({
                 type="button"
                 onClick={onSignOut}
                 disabled={signingOut}
-                className="flex-1 py-3 text-sm border border-foreground/40 rounded-sm text-foreground hover:bg-foreground/5 transition disabled:opacity-50"
+                className="flex-1 py-3 text-sm border border-[#3B82F6] rounded-sm text-white bg-[#3B82F6] hover:bg-[#2563EB] hover:border-[#2563EB] transition disabled:opacity-50"
               >
                 {signingOut ? 'Signing out…' : 'Sign Out'}
               </button>

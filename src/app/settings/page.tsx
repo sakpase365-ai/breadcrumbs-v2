@@ -38,7 +38,7 @@ function SettingsLinkRow({ title, href, description, badge }: SettingsLinkRowPro
   return (
     <Link
       href={href}
-      className="w-full border border-border/70 rounded-sm px-4 py-4 text-left hover:border-foreground/30 transition flex items-center justify-between gap-3 min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
+      className="w-full border border-border/70 rounded-sm px-4 py-4 text-left hover:border-[#3B82F6]/45 transition flex items-center justify-between gap-3 min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35"
     >
       <div className="space-y-0.5 flex-1">
         <p className="text-[0.9375rem] text-foreground">{title}</p>
@@ -221,7 +221,7 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => setConfirmSignOut(true)}
-              className="w-full py-4 text-[0.9375rem] text-muted-foreground hover:text-foreground transition text-left px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 rounded-sm"
+              className="w-full py-4 text-[0.9375rem] text-muted-foreground hover:text-foreground transition text-left px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 rounded-sm"
             >
               Sign Out
             </button>
@@ -232,7 +232,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setConfirmSignOut(false)}
-                  className="flex-1 py-2.5 text-sm border border-border rounded-sm text-muted-foreground hover:border-foreground/40 hover:text-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
+                  className="flex-1 py-2.5 text-sm border border-border rounded-sm text-muted-foreground hover:border-[#3B82F6]/45 hover:text-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35"
                 >
                   Cancel
                 </button>
@@ -240,7 +240,7 @@ export default function SettingsPage() {
                   type="button"
                   onClick={() => void handleSignOut()}
                   disabled={signingOut}
-                  className="flex-1 py-2.5 text-sm border border-foreground/40 rounded-sm text-foreground hover:bg-foreground/5 transition disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
+                  className="flex-1 py-2.5 text-sm border border-[#3B82F6] rounded-sm text-white bg-[#3B82F6] hover:bg-[#2563EB] hover:border-[#2563EB] transition disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35"
                 >
                   {signingOut ? 'Signing out…' : 'Sign Out'}
                 </button>

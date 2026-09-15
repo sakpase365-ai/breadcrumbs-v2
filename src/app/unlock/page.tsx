@@ -78,7 +78,7 @@ function UnlockForm() {
 
   return (
     <main
-      className="min-h-screen bg-background flex flex-col items-center justify-center px-5 select-none"
+      className="flex min-h-screen flex-col items-center justify-center px-5 select-none"
       onClick={() => inputRef.current?.focus()}
     >
       <div className="flex flex-col items-center gap-14 text-center">
@@ -104,7 +104,7 @@ function UnlockForm() {
               key={i}
               className={`w-2.5 h-2.5 rounded-full border transition-all duration-150 ${
                 filled
-                  ? 'bg-foreground border-foreground scale-110'
+                  ? 'bg-[#3B82F6] border-[#3B82F6] scale-110'
                   : 'bg-transparent border-border/50'
               }`}
             />
@@ -142,7 +142,7 @@ function UnlockForm() {
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); void handleForgotPin(); }}
-        className="absolute bottom-10 text-xs text-muted-foreground/30 hover:text-muted-foreground/60 transition min-h-[44px] px-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 rounded-sm"
+        className="absolute bottom-10 text-xs text-muted-foreground/30 hover:text-muted-foreground/60 transition min-h-[44px] px-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 rounded-sm"
       >
         Forgot PIN? Sign out and reset
       </button>
@@ -152,7 +152,7 @@ function UnlockForm() {
 
 export default function UnlockPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+    <Suspense fallback={<div className="min-h-screen" />}>
       <UnlockForm />
     </Suspense>
   );

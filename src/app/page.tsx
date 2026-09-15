@@ -36,7 +36,7 @@ export default function Home() {
   if (authState === 'loading') return null;
 
   return (
-    <main className="min-h-screen w-full bg-background flex flex-col items-center justify-center px-4 py-8">
+    <main className="flex min-h-screen w-full flex-col items-center justify-center px-4 py-8">
       <div className="flex flex-col items-center text-center space-y-8">
 
         {/* Wordmark */}
@@ -64,7 +64,7 @@ export default function Home() {
           {/* Primary — capture layer */}
           <Link
             href="/capture"
-            className="w-full py-4 px-8 border border-foreground text-foreground text-sm font-normal tracking-wide text-center hover:bg-foreground hover:text-background transition"
+            className="btn-primary flex items-center justify-center text-center"
           >
             Leave A Breadcrumb
           </Link>
@@ -72,7 +72,7 @@ export default function Home() {
           {/* Primary — guidance layer */}
           <Link
             href="/ask"
-            className="w-full py-4 px-8 border border-border text-muted-foreground text-sm font-normal tracking-wide text-center hover:border-foreground/40 hover:text-foreground transition"
+            className="w-full min-h-[48px] flex items-center justify-center py-4 px-8 border border-border bg-card/60 text-foreground text-sm font-normal tracking-wide text-center hover:border-[#3B82F6]/55 hover:text-[#3B82F6] transition rounded-xl"
           >
             Ask the Family Agent
           </Link>

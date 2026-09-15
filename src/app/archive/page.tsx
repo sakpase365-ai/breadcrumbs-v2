@@ -251,7 +251,7 @@ export default function ArchivePage() {
               <button
                 type="button"
                 onClick={() => toggleExpand(e.id)}
-                className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition min-h-[44px] px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 rounded-sm"
+                className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition min-h-[44px] px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 rounded-sm"
               >
                 {isExpanded ? 'Close ↑' : isAudio ? 'Listen →' : 'Read →'}
               </button>
@@ -301,21 +301,21 @@ export default function ArchivePage() {
               if (!e.target.value.trim()) clearSearch();
             }}
             placeholder="Search breadcrumbs…"
-            className="flex-1 bg-transparent border-b border-border text-sm text-foreground placeholder:text-muted-foreground/30 py-1.5 focus:outline-none focus:border-foreground/40 transition min-h-[44px]"
+            className="flex-1 bg-transparent border-b border-border text-sm text-foreground placeholder:text-muted-foreground/30 py-1.5 focus:outline-none focus:border-[#3B82F6] transition min-h-[44px]"
             aria-label="Search breadcrumbs"
           />
           {searchInput ? (
             <button
               type="button"
               onClick={clearSearch}
-              className="text-xs text-muted-foreground/40 hover:text-foreground transition shrink-0 min-h-[44px] px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 rounded-sm"
+              className="text-xs text-muted-foreground/40 hover:text-foreground transition shrink-0 min-h-[44px] px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 rounded-sm"
             >
               Clear
             </button>
           ) : (
             <button
               type="submit"
-              className="text-xs text-muted-foreground/40 hover:text-foreground transition shrink-0 min-h-[44px] px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 rounded-sm"
+              className="text-xs text-muted-foreground/40 hover:text-foreground transition shrink-0 min-h-[44px] px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 rounded-sm"
             >
               Search
             </button>
@@ -335,10 +335,10 @@ export default function ArchivePage() {
                 type="button"
                 aria-pressed={activeFilter === key}
                 onClick={() => setActiveFilter(key)}
-                className={`shrink-0 px-3 py-1 text-xs rounded-full border transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 ${
+                className={`shrink-0 px-3 py-1 text-xs rounded-full border transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 ${
                   activeFilter === key
-                    ? 'border-foreground text-foreground'
-                    : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground/70'
+                    ? 'border-[#3B82F6] text-foreground bg-[#3B82F6]/10'
+                    : 'border-border text-muted-foreground hover:border-[#3B82F6]/45 hover:text-foreground/70'
                 }`}
               >
                 {label}
@@ -373,7 +373,7 @@ export default function ArchivePage() {
             <p className="text-muted-foreground text-sm">Your first entry is one prompt away.</p>
             <button
               onClick={() => router.push('/capture')}
-              className="mt-2 inline-block py-3 px-8 border border-foreground text-foreground text-sm tracking-wide hover:bg-foreground hover:text-background transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
+              className="mt-2 inline-block py-3 px-8 border border-[#3B82F6] bg-[#3B82F6] text-white text-sm tracking-wide hover:bg-[#2563EB] hover:border-[#2563EB] transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35"
             >
               Leave A Breadcrumb
             </button>

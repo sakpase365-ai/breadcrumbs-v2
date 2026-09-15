@@ -6,8 +6,7 @@ import { buildAuthCallbackUrl } from '@/lib/auth-callback-url';
 
 export const dynamic = 'force-dynamic';
 
-const INPUT =
-  'w-full bg-card border border-border px-4 py-3 text-foreground text-sm placeholder:text-muted-foreground focus:border-foreground/60 transition rounded-sm outline-none';
+const INPUT = 'field-input';
 
 type Step = 'email' | 'sent';
 
@@ -58,7 +57,7 @@ export default function InviteJoinPage({
 
   if (step === 'sent') {
     return (
-      <main className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
+      <main className="min-h-screen flex flex-col items-center justify-center px-6">
         <div className="w-full max-w-sm text-center space-y-4">
           <p className="font-serif text-foreground text-2xl">Almost there.</p>
           <p className="text-sm text-muted-foreground">
@@ -76,7 +75,7 @@ export default function InviteJoinPage({
   }
 
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12">
+    <main className="min-h-screen flex flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm space-y-8">
 
         <div className="text-center space-y-4">
@@ -105,7 +104,7 @@ export default function InviteJoinPage({
           <button
             type="submit"
             disabled={busy}
-            className="w-full py-3 border border-foreground text-foreground text-sm tracking-wide disabled:opacity-30 hover:bg-foreground hover:text-background transition"
+            className="btn-primary"
           >
             {busy ? 'Sending link…' : 'Send sign-in link'}
           </button>

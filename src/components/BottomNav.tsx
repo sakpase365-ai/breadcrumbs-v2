@@ -61,9 +61,9 @@ export default function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] tap-target transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 ${
+              className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] tap-target transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 ${
                 active
-                  ? 'text-foreground'
+                  ? 'text-[#3B82F6]'
                   : 'text-muted-foreground/40 hover:text-muted-foreground'
               }`}
               aria-current={active ? 'page' : undefined}

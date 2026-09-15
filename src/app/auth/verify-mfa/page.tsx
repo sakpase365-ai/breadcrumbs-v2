@@ -38,15 +38,15 @@ function VerifyMfaForm() {
   }
 
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center justify-center px-5">
+    <main className="min-h-screen flex flex-col items-center justify-center px-5">
       <div className="w-full max-w-xs space-y-8 text-center">
         <div>
           <h1 className="font-display text-2xl text-foreground">Enter your code</h1>
           <p className="text-sm text-muted-foreground mt-2">Open your authenticator app and enter the 6-digit code for Breadcrumbs.</p>
         </div>
-        <input ref={codeRef} type="tel" inputMode="numeric" maxLength={6} value={code} onChange={(e) => { setCode(e.target.value.replace(/\D/g, '')); setError(''); }} onKeyDown={(e) => { if (e.key === 'Enter') void handleVerify(); }} placeholder="000000" className="w-full text-center text-3xl tracking-[0.5em] bg-transparent border-b-2 border-border focus:border-foreground outline-none py-4 text-foreground placeholder:text-muted-foreground/30" aria-label="6-digit authentication code" autoComplete="one-time-code" />
+        <input ref={codeRef} type="tel" inputMode="numeric" maxLength={6} value={code} onChange={(e) => { setCode(e.target.value.replace(/\D/g, '')); setError(''); }} onKeyDown={(e) => { if (e.key === 'Enter') void handleVerify(); }} placeholder="000000" className="w-full text-center text-3xl tracking-[0.5em] bg-transparent border-b-2 border-border focus:border-[#3B82F6] outline-none py-4 text-foreground placeholder:text-muted-foreground/30" aria-label="6-digit authentication code" autoComplete="one-time-code" />
         {error && <p className="text-sm text-red-400/80" role="alert">{error}</p>}
-        <button type="button" onClick={() => void handleVerify()} disabled={code.length !== 6 || verifying} className="w-full py-3.5 border border-foreground/50 text-foreground/75 rounded-sm disabled:opacity-30 hover:border-foreground hover:text-foreground transition text-sm min-h-[52px]">
+        <button type="button" onClick={() => void handleVerify()} disabled={code.length !== 6 || verifying} className="btn-primary">
           {verifying ? 'Verifying…' : 'Continue'}
         </button>
         <p className="text-xs text-muted-foreground/50 leading-relaxed">Locked out? Email <a href="mailto:support@breadcrumbs.app" className="text-foreground/60 hover:text-foreground transition">support@breadcrumbs.app</a></p>
@@ -57,7 +57,7 @@ function VerifyMfaForm() {
 
 export default function VerifyMfaPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+    <Suspense fallback={<div className="min-h-screen" />}>
       <VerifyMfaForm />
     </Suspense>
   );

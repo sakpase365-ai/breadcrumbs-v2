@@ -84,7 +84,7 @@ interface SurfaceCardProps {
 
 export function SurfaceCard({ children, className }: SurfaceCardProps) {
   return (
-    <div className={clsx('w-full border border-border/70 rounded-sm', className)}>
+    <div className={clsx('w-full border border-border rounded-xl', className)}>
       {children}
     </div>
   );
@@ -120,7 +120,7 @@ export function Row({ title, subtitle, right, onClick, disabled = false, classNa
       onClick={onClick}
       disabled={disabled}
       aria-disabled={disabled}
-      className="w-full text-left hover:bg-foreground/5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
+      className="w-full text-left hover:bg-[#3B82F6]/5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35"
     >
       {content}
     </button>
@@ -146,7 +146,7 @@ export function ToggleVisual({ checked, label: _ }: ToggleVisualProps) {
       aria-hidden="true"
       className={clsx(
         'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border-2 transition-colors',
-        checked ? 'bg-foreground border-foreground' : 'bg-transparent border-border',
+        checked ? 'bg-[#3B82F6] border-[#3B82F6]' : 'bg-transparent border-border',
       )}
     >
       <span
@@ -172,10 +172,10 @@ export function SegmentedOption({ active, label, onClick }: SegmentedOptionProps
       aria-pressed={active}
       onClick={onClick}
       className={clsx(
-        'flex-1 min-w-[60px] px-3 py-2.5 text-sm border rounded-sm transition text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40',
+        'flex-1 min-w-[60px] px-3 py-2.5 text-sm border rounded-sm transition text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35',
         active
-          ? 'border-foreground text-foreground bg-foreground/5'
-          : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground/80',
+          ? 'border-[#3B82F6] text-foreground bg-[#3B82F6]/10'
+          : 'border-border text-muted-foreground hover:border-[#3B82F6]/45 hover:text-foreground/80',
       )}
     >
       {label}
@@ -195,7 +195,7 @@ export function InlineAction({ children, onClick, ariaLabel }: InlineActionProps
       type="button"
       aria-label={ariaLabel}
       onClick={onClick}
-      className="text-sm text-muted-foreground hover:text-foreground transition min-h-[44px] min-w-[44px] flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 rounded-sm"
+      className="text-sm text-muted-foreground hover:text-foreground transition min-h-[44px] min-w-[44px] flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 rounded-sm"
     >
       {children}
     </button>

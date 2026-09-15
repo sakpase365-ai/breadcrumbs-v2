@@ -5,11 +5,8 @@ import { INVITE_IDENTITY_ROLES, APP_PERMISSION_ROLES } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
-const INPUT =
-  'w-full bg-card border border-border px-4 py-3 text-foreground text-sm placeholder:text-muted-foreground focus:border-foreground/60 transition rounded-sm outline-none';
-
-const SELECT =
-  'w-full bg-card border border-border px-4 py-3 text-foreground text-sm focus:border-foreground/60 transition rounded-sm outline-none';
+const INPUT = 'field-input';
+const SELECT = 'field-input';
 
 type Step = 'form' | 'sent';
 
@@ -64,7 +61,7 @@ export default function InviteFamilyMemberPage() {
   // ── Success: show invite link ─────────────────────────────
   if (step === 'sent') {
     return (
-      <main className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12">
+      <main className="min-h-screen flex flex-col items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm space-y-8">
 
           <div className="text-center space-y-2">
@@ -84,7 +81,7 @@ export default function InviteFamilyMemberPage() {
 
             <button
               onClick={handleCopy}
-              className="w-full py-3 border border-foreground text-foreground text-sm tracking-wide hover:bg-foreground hover:text-background transition"
+              className="btn-primary"
             >
               {copied ? 'Copied!' : 'Copy invite link'}
             </button>
@@ -128,7 +125,7 @@ export default function InviteFamilyMemberPage() {
 
   // ── Form ──────────────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12">
+    <main className="min-h-screen flex flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm space-y-8">
 
         <div className="text-center space-y-2">
@@ -217,7 +214,7 @@ export default function InviteFamilyMemberPage() {
           <button
             type="submit"
             disabled={busy}
-            className="w-full py-3 border border-foreground text-foreground text-sm tracking-wide disabled:opacity-30 hover:bg-foreground hover:text-background transition"
+            className="btn-primary"
           >
             {busy ? 'Creating invite…' : 'Create invite link'}
           </button>

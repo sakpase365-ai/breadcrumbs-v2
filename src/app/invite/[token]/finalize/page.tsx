@@ -149,7 +149,7 @@ function ErrorPage({
   action?: { label: string; href: string };
 }) {
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
+    <main className="min-h-screen flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm text-center space-y-4">
         <p className="font-serif text-foreground text-2xl">{heading}</p>
         <p className="text-sm text-muted-foreground">{body}</p>

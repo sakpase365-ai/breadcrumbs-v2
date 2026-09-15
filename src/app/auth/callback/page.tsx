@@ -67,7 +67,7 @@ function CallbackHandler() {
   }, [router, searchParams]);
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center">
       <p className="text-sm text-muted-foreground">Signing you in…</p>
     </div>
   );
@@ -75,7 +75,7 @@ function CallbackHandler() {
 
 export default function AuthCallbackPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+    <Suspense fallback={<div className="min-h-screen" />}>
       <CallbackHandler />
     </Suspense>
   );

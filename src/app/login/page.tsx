@@ -89,7 +89,7 @@ function LoginForm() {
   }
 
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
+    <main className="flex min-h-screen flex-col items-center justify-center px-6">
       <div className="w-full max-w-xs space-y-6">
         <div className="text-center space-y-3">
           <AnimatedWordmark className="text-5xl font-serif font-light tracking-tight text-foreground sm:text-6xl md:text-7xl" />
@@ -118,14 +118,11 @@ function LoginForm() {
               placeholder="Your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-card border border-border px-3 py-2.5 text-foreground text-sm placeholder:text-muted-foreground focus:border-foreground/60 transition rounded-sm"
+              className="field-input"
+              autoComplete="email"
             />
-            {error && <p className="text-xs text-red-400 sm:text-sm">{error}</p>}
-            <button
-              type="submit"
-              disabled={busy}
-              className="w-full py-2.5 border border-foreground text-foreground text-xs tracking-wide disabled:opacity-30 hover:bg-foreground hover:text-background transition sm:text-sm"
-            >
+            {error && <p className="text-xs text-red-400 sm:text-sm" role="alert">{error}</p>}
+            <button type="submit" disabled={busy} className="btn-primary">
               {busy ? 'Sending…' : 'Send sign-in link'}
             </button>
           </form>
@@ -133,7 +130,7 @@ function LoginForm() {
 
         <p className="text-center text-[0.6875rem] text-muted-foreground sm:text-xs">
           First time?{' '}
-          <a href="/signup" className="underline hover:text-foreground transition">
+          <a href="/signup" className="text-[#3B82F6] underline-offset-2 hover:underline transition">
             Create an account
           </a>
         </p>
