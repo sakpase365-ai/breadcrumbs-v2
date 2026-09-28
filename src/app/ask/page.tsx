@@ -5,6 +5,13 @@ import { useRouter } from 'next/navigation';
 import { getBrowserSupabase } from '@/lib/supabase-browser';
 import { firstName } from '@/lib/nameUtils';
 import BottomNav from '@/components/BottomNav';
+import {
+  ScreenContainer,
+  ScreenContent,
+  ScreenHeader,
+  SectionHeading,
+  SurfaceCard,
+} from '@/components/ui/design-primitives';
 
 interface FamilyMember { id: string; name: string; role: string; }
 
@@ -24,6 +31,14 @@ type Discovery = {
 
 function formatMonthYear(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+function chipCls(active: boolean) {
+  return `px-3 py-2 text-sm rounded-full border transition min-h-[44px] ${
+    active
+      ? 'border-foreground text-foreground'
+      : 'border-border text-foreground/50 hover:border-foreground/40 hover:text-foreground/80'
+  }`;
 }
 
 function domainPrompt(domain: string, contributorName: string): string {
@@ -115,9 +130,9 @@ export default function HearPage() {
 
   if (profileLoading) {
     return (
-      <main className="min-h-screen text-foreground flex items-center justify-center">
+      <ScreenContainer className="flex items-center justify-center">
         <p className="text-sm text-muted-foreground">Loading…</p>
-      </main>
+      </ScreenContainer>
     );
   }
 
@@ -132,54 +147,45 @@ export default function HearPage() {
     .filter((d) => domainPrompt(d, discovery?.contributorName ?? ''));
 
   return (
-    <main className="min-h-screen text-foreground px-4 py-10 sm:py-16 pb-28">
-      <div className="max-w-2xl mx-auto space-y-8">
+    <ScreenContainer className="screen-main-safe !py-0">
+      <ScreenContent className="space-y-8 !pb-28">
 
-        {/* Contributor presence header */}
-        {discovery?.contributorName && (
-          <div className="space-y-1">
-            <h1 className="text-2xl font-serif font-light tracking-tight">{contributorFirst}</h1>
-            {groundingLine && (
-              <p className="text-sm text-muted-foreground">{groundingLine}</p>
-            )}
-          </div>
-        )}
-
-        {!discovery?.contributorName && (
-          <div className="space-y-1">
-            <h1 className="text-2xl font-serif font-light tracking-tight">Hear from them</h1>
-            <p className="text-sm text-muted-foreground">
+        <div className="space-y-2">
+          <ScreenHeader
+            title={discovery?.contributorName ? contributorFirst : 'Hear'}
+            titleClassName="font-display text-xl font-light tracking-tight"
+          />
+          {groundingLine ? (
+            <p className="text-center text-sm text-muted-foreground">{groundingLine}</p>
+          ) : !discovery?.contributorName ? (
+            <p className="text-center text-sm text-muted-foreground">
               Draws from everything they&apos;ve shared — their Foundation and their Breadcrumbs.
             </p>
-          </div>
-        )}
+          ) : null}
+        </div>
 
-        {/* Discovery — featured excerpt */}
         {discovery?.featuredExcerpt && !result && (
-          <div className="border-l-2 border-[#3B82F6]/25 pl-4 space-y-1">
-            <p className="text-[0.625rem] text-muted-foreground/60 uppercase tracking-widest">
+          <blockquote className="border-l-2 border-foreground/15 pl-4 space-y-1">
+            <p className="type-label text-muted-foreground">
               From {contributorFirst} — {formatMonthYear(discovery.featuredExcerpt.created_at)}
             </p>
-            <p className="text-sm font-display text-foreground/60 leading-relaxed italic">
+            <p className="text-sm font-display text-foreground/70 leading-relaxed italic">
               &ldquo;{discovery.featuredExcerpt.content.trimEnd()}
               {discovery.featuredExcerpt.content.length >= 180 ? '…' : '”'}
             </p>
-          </div>
+          </blockquote>
         )}
 
-        {/* Discovery — domain shortcuts */}
         {discoveryDomains.length > 0 && !result && (
-          <div className="space-y-2">
-            <p className="text-xs text-muted-foreground/40 uppercase tracking-widest">
-              Explore what {contributorFirst} shared
-            </p>
+          <div className="space-y-3">
+            <SectionHeading title={`Explore what ${contributorFirst} shared`} />
             <div className="flex flex-wrap gap-2">
               {discoveryDomains.map((domain) => (
                 <button
                   key={domain}
                   type="button"
                   onClick={() => setQuestion(domainPrompt(domain, discovery!.contributorName))}
-                  className="text-xs px-3 py-1.5 border border-border text-muted-foreground hover:border-[#3B82F6]/45 hover:text-foreground transition rounded-sm"
+                  className="text-xs px-3 py-2 border border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground transition rounded-full min-h-[44px]"
                 >
                   {domainPrompt(domain, discovery!.contributorName)}
                 </button>
@@ -188,7 +194,6 @@ export default function HearPage() {
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <textarea
             value={question}
@@ -201,16 +206,14 @@ export default function HearPage() {
           />
 
           {familyMembers.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="space-y-2">
+              <SectionHeading title="About (optional)" />
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => setSelectedRecipient(null)}
                   disabled={loading}
-                  className={`text-xs px-3 py-1.5 border rounded-sm transition ${
-                    selectedRecipient === null
-                      ? 'border-[#3B82F6] text-foreground bg-[#3B82F6]/10'
-                      : 'border-border text-muted-foreground hover:border-[#3B82F6]/45 hover:text-foreground'
-                  }`}
+                  className={chipCls(selectedRecipient === null)}
                 >
                   Everyone
                 </button>
@@ -220,15 +223,12 @@ export default function HearPage() {
                     type="button"
                     onClick={() => setSelectedRecipient(m.id)}
                     disabled={loading}
-                    className={`text-xs px-3 py-1.5 border rounded-sm transition ${
-                      selectedRecipient === m.id
-                        ? 'border-[#3B82F6] text-foreground bg-[#3B82F6]/10'
-                        : 'border-border text-muted-foreground hover:border-[#3B82F6]/45 hover:text-foreground'
-                    }`}
+                    className={chipCls(selectedRecipient === m.id)}
                   >
                     {firstName(m.name)}
                   </button>
                 ))}
+              </div>
             </div>
           )}
 
@@ -243,24 +243,21 @@ export default function HearPage() {
 
         {error && <p className="text-sm text-red-400">{error}</p>}
 
-        {/* Answer */}
         {result && (
-          <div className="space-y-3">
-            <div className="border border-border px-6 py-5">
+          <div className="space-y-4">
+            <SurfaceCard className="px-6 py-5">
               <p className="text-sm font-light leading-relaxed whitespace-pre-wrap">{result.answer}</p>
-            </div>
+            </SurfaceCard>
 
             {result.breadcrumbExcerpts.length > 0 && (
               <div className="space-y-3 pt-1">
-                <p className="text-xs text-muted-foreground/40 uppercase tracking-widest">
-                  In {contributorFirst}&apos;s own words
-                </p>
+                <SectionHeading title={`In ${contributorFirst}'s own words`} />
                 {result.breadcrumbExcerpts.map((bc, i) => (
-                  <blockquote key={i} className="border-l-2 border-[#3B82F6]/25 pl-4 space-y-1">
+                  <blockquote key={i} className="border-l-2 border-foreground/15 pl-4 space-y-1">
                     <p className="text-sm font-display text-foreground/70 leading-relaxed italic">
                       &ldquo;{bc.excerpt}{bc.truncated ? '…' : '”'}
                     </p>
-                    <p className="text-[0.625rem] text-muted-foreground/40">{bc.contributorLabel}</p>
+                    <p className="text-[0.625rem] text-muted-foreground/50">{bc.contributorLabel}</p>
                   </blockquote>
                 ))}
               </div>
@@ -269,15 +266,15 @@ export default function HearPage() {
             <button
               type="button"
               onClick={() => { setResult(null); setQuestion(''); }}
-              className="text-xs text-muted-foreground/40 hover:text-foreground transition"
+              className="text-xs text-muted-foreground/40 hover:text-foreground transition min-h-[44px]"
             >
               ← Ask something else
             </button>
           </div>
         )}
 
-      </div>
+      </ScreenContent>
       <BottomNav />
-    </main>
+    </ScreenContainer>
   );
 }
