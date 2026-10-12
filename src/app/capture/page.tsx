@@ -27,6 +27,7 @@ import VoiceWaveform   from '@/components/VoiceWaveform';
 import AudioPlayer    from '@/components/AudioPlayer';
 import SettingsSheet  from '@/components/SettingsSheet';
 import BottomNav      from '@/components/BottomNav';
+import { CaptureIntro } from '@/components/MemoryExperience';
 import { InlineAction, ScreenContainer, ScreenContent, ScreenHeader } from '@/components/ui/design-primitives';
 
 const DRAFT_KEY     = 'breadcrumbs_draft';
@@ -112,6 +113,14 @@ function CaptureFlow() {
   const [profile,            setProfile]           = useState<Profile | null>(null);
   const [familyMembers,      setFamilyMembers]     = useState<FamilyMember[]>([]);
   const [selectedRecipient,  setSelectedRecipient] = useState<FamilyMember | null>(null);
+  const [recipientChosen, setRecipientChosen] = useState(false);
+  const [preparingVoice, setPreparingVoice] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
+  const [voiceMediaRef, setVoiceMediaRef] = useState<string | null>(null);
+  const voiceGeneration = useRef(0);
+  const saveInFlight = useRef(false);
+  const draftKeyRef = useRef<string | null>(null);
+  const [draftStatus, setDraftStatus] = useState('');
   const [selectedTags,       setSelectedTags]      = useState<string[]>([]);
   const [showTags,           setShowTags]          = useState(false);
   const [stage,              setStage]             = useState<Stage>('loading');
@@ -157,9 +166,19 @@ function CaptureFlow() {
   const touchStartX        = useRef<number>(0);
   const touchStartY        = useRef<number>(0);
 
-  // Revoke object URL on unmount
+  // Stop microphone and flush/clear timers when leaving the screen.
   useEffect(() => () => {
+    const mr = mediaRecorderRef.current;
+    if (mr) {
+      mr.onstop = null;
+      mr.stream.getTracks().forEach((track) => track.stop());
+      if (mr.state !== 'inactive') mr.stop();
+    }
+    void audioContextRef.current?.close();
     if (audioObjectUrlRef.current) URL.revokeObjectURL(audioObjectUrlRef.current);
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    if (hesitationTimerRef.current) clearTimeout(hesitationTimerRef.current);
+    voiceGeneration.current += 1;
   }, []);
 
   // Recording duration ticker
@@ -210,7 +229,7 @@ function CaptureFlow() {
       el.removeEventListener('touchend',   onEnd);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [audioBlob, captureStage]);
 
   // Auto-focus textarea when entering write stage
   useEffect(() => {
@@ -236,6 +255,7 @@ function CaptureFlow() {
   }
 
   function handleStageChange(next: CaptureStage) {
+    if (saveInFlight.current) return;
     if (next !== 'voice' && captureStage === 'voice' && !audioBlob) cleanupAudio();
     clearHesitationTimer();
     setShowHesitationHint(false);
@@ -245,6 +265,10 @@ function CaptureFlow() {
 
 
   function cleanupAudio() {
+    voiceGeneration.current += 1;
+    setPreparingVoice(false);
+    setVoiceMediaRef(null);
+    setVoiceTranscript('');
     analyserRef.current = null;
     try { void audioContextRef.current?.close(); } catch { /* noop */ }
     audioContextRef.current = null;
@@ -254,7 +278,11 @@ function CaptureFlow() {
     }
     try {
       const mr = mediaRecorderRef.current;
-      if (mr && mr.state !== 'inactive') mr.stop();
+      if (mr) {
+        mr.onstop = null;
+        mr.stream.getTracks().forEach((track) => track.stop());
+        if (mr.state !== 'inactive') mr.stop();
+      }
     } catch { /* noop */ }
     mediaRecorderRef.current = null;
     audioChunksRef.current   = [];
@@ -321,13 +349,15 @@ function CaptureFlow() {
     setRecording(false);
   }
 
-  // Restore draft or prefill from Foundation
-  useEffect(() => {
-    setUserSettings(readUserSettings());
-    const prefillRaw = localStorage.getItem(PREFILL_KEY);
-    if (prefillRaw) {
-      try {
-        const prefill = JSON.parse(prefillRaw) as { content?: string; breadcrumbType?: string };
+  useEffect(() => { setUserSettings(readUserSettings()); }, []);
+
+  function restoreDraft(viewerId: string) {
+    const key = `${DRAFT_KEY}:v2:${viewerId}`;
+    draftKeyRef.current = key;
+    try {
+      const prefillRaw = localStorage.getItem(PREFILL_KEY);
+      if (prefillRaw) {
+        const prefill = JSON.parse(prefillRaw) as { content?: string };
         if (prefill.content) {
           setEntry(prefill.content);
           setCharCount(prefill.content.length);
@@ -335,18 +365,16 @@ function CaptureFlow() {
           setCaptureStage('write');
         }
         localStorage.removeItem(PREFILL_KEY);
-        localStorage.removeItem(DRAFT_KEY);
         return;
-      } catch { /* ignore */ }
-    }
-    const saved = localStorage.getItem(DRAFT_KEY);
-    if (saved) {
-      setEntry(saved);
-      setCharCount(saved.length);
-      setDraftRestored(true);
-      setCaptureStage('write');
-    }
-  }, []);
+      }
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        setEntry(saved);
+        setCharCount(saved.length);
+        setDraftRestored(true);
+      }
+    } catch { setDraftStatus('Draft storage is unavailable on this device.'); }
+  }
 
   function excludePriorPromptsForFetch(currentPrompt: string): string[] | undefined {
     const seen = new Set<string>();
@@ -394,7 +422,8 @@ function CaptureFlow() {
         if (res.status === 401) { router.push('/login?next=/capture'); return; }
         if (res.status === 422) { router.push('/setup'); return; }
         if (!res.ok) { setStage('error'); return; }
-        const { profile: p, familyMembers: fm } = await res.json();
+        const { profile: p, familyMembers: fm, access } = await res.json();
+        if (access?.viewerUserId) restoreDraft(access.viewerUserId);
         setProfile(p);
         setFamilyMembers(fm ?? []);
         setStage('capture');
@@ -422,15 +451,17 @@ function CaptureFlow() {
   function handleEntryChange(value: string) {
     setEntry(value);
     setCharCount(value.length);
-    if (!userSettings.autoSaveDrafts) {
-      localStorage.removeItem(DRAFT_KEY);
-      return;
-    }
-    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
-    autosaveTimer.current = setTimeout(() => {
-      if (value.trim()) localStorage.setItem(DRAFT_KEY, value);
-      else              localStorage.removeItem(DRAFT_KEY);
-    }, 500);
+    const key = draftKeyRef.current;
+    if (!key) return;
+    try {
+      if (userSettings.autoSaveDrafts && value.trim()) {
+        localStorage.setItem(key, value);
+        setDraftStatus('Draft saved on this device');
+      } else {
+        localStorage.removeItem(key);
+        setDraftStatus('');
+      }
+    } catch { setDraftStatus('Draft could not be saved on this device. Keep this screen open.'); }
   }
 
   function onWriteAreaChange(e: ChangeEvent<HTMLTextAreaElement>) {
@@ -445,15 +476,45 @@ function CaptureFlow() {
     });
   }
 
+  async function prepareVoice() {
+    if (!audioBlob || preparingVoice) return;
+    if (audioBlob.size > 6 * 1024 * 1024) {
+      setRecordError('Recording is too large. Try a shorter clip.');
+      return;
+    }
+    const generation = voiceGeneration.current;
+    setPreparingVoice(true);
+    setRecordError('');
+    try {
+      const b64 = await blobToBase64(audioBlob);
+      const res = await fetch('/api/upload-voice', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audioBase64: b64, mimeType: audioBlob.type || 'audio/webm' }),
+      });
+      const data = await res.json() as { error?: string; url?: string; path?: string; transcript?: string | null };
+      if (generation !== voiceGeneration.current) return;
+      if (!res.ok || !(data.path || data.url)) throw new Error(data.error || 'Could not prepare your recording.');
+      setVoiceMediaRef(data.path || data.url || null);
+      setVoiceTranscript(data.transcript?.trim() || '');
+    } catch (err) {
+      if (generation === voiceGeneration.current) setRecordError(err instanceof Error ? err.message : 'Could not prepare recording. Try again.');
+    } finally {
+      if (generation === voiceGeneration.current) setPreparingVoice(false);
+    }
+  }
+
   async function handleSave() {
-    const textOk  = entry.trim().length > 0;
-    const audioOk = !!audioBlob;
-    if ((!textOk && !audioOk) || saving) return;
+    const textOk  = captureStage === 'write' && entry.trim().length > 0;
+    const audioOk = captureStage === 'voice' && !!audioBlob;
+    if ((!textOk && !audioOk) || saving || saveInFlight.current) return;
+    if (!breadcrumbType || (familyMembers.length > 0 && !recipientChosen)) return;
+    if (audioOk && !voiceMediaRef) { setRecordError('Review your transcript before saving.'); return; }
     if (userSettings.confirmBeforePublishing && !confirmingSave) {
       setConfirmingSave(true);
       return;
     }
     setConfirmingSave(false);
+    saveInFlight.current = true;
     setSaving(true);
     setSaveError('');
     try {
@@ -463,28 +524,8 @@ function CaptureFlow() {
         tags:            selectedTags,
       };
 
-      if (audioBlob) {
-        if (audioBlob.size > 6 * 1024 * 1024) {
-          setSaveError('Recording is too large. Try a shorter clip.');
-          return;
-        }
-        const b64  = await blobToBase64(audioBlob);
-        const up   = await fetch('/api/upload-voice', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ audioBase64: b64, mimeType: audioBlob.type || 'audio/webm' }),
-        });
-        const upData = (await up.json()) as { error?: string; url?: string; path?: string; transcript?: string | null };
-        if (!up.ok) {
-          setSaveError(typeof upData.error === 'string' ? upData.error : 'Could not upload recording.');
-          setStage('error');
-          return;
-        }
-        // url is a signed URL (preferred); path is the raw storage path returned when signing fails
-        const mediaRef = upData.url ?? upData.path;
-        // Use Whisper transcript as the searchable text content when available
-        const voiceContent = upData.transcript?.trim() || 'Voice note — something I want them to hear.';
-        payload = { ...payload, content: voiceContent, contentType: 'audio', mediaUrl: mediaRef };
+      if (audioOk) {
+        payload = { ...payload, content: voiceTranscript.trim() || 'Voice note — something I want them to hear.', contentType: 'audio', mediaUrl: voiceMediaRef };
       } else {
         payload = { ...payload, content: entry };
       }
@@ -510,12 +551,13 @@ function CaptureFlow() {
       setSavedAt(bc.created_at ?? new Date().toISOString());
       setSavedTags(Array.isArray(bc.tags) ? bc.tags : []);
       setTagEditorOpen(false);
-      localStorage.removeItem(DRAFT_KEY);
+      try { if (draftKeyRef.current) localStorage.removeItem(draftKeyRef.current); } catch { /* remote save already succeeded */ }
       setStage('follow-up');
     } catch {
       setSaveError('Network error. Check your connection and try again.');
       setStage('error');
     } finally {
+      saveInFlight.current = false;
       setSaving(false);
     }
   }
@@ -539,7 +581,7 @@ function CaptureFlow() {
     }
   }
 
-  const hasContent = entry.trim().length > 0 || !!audioBlob;
+  const hasContent = captureStage === 'voice' ? !!audioBlob : entry.trim().length > 0;
 
   const collective = collectiveLabel(familyMembers);
   const doneLine   = selectedRecipient
@@ -635,17 +677,19 @@ function CaptureFlow() {
         {stage === 'capture' && profile && (
           <div ref={swipeContainerRef} className="space-y-5" style={{ touchAction: 'pan-y' }}>
 
+            <CaptureIntro name={firstName(profile.name)} />
+
             {/* Recipient — always visible, not gated by content */}
             {familyMembers.length > 0 && (
               <div className="space-y-2">
-                <p className="type-label text-foreground/35 text-center">Who are you speaking to today?</p>
+                <p className="type-label text-muted-foreground">Who are you speaking to today?</p>
                 <div className="flex gap-2 flex-wrap justify-center">
                   {familyMembers.map((m) => (
                     <button
                       type="button"
                       key={m.id}
                       aria-pressed={selectedRecipient?.id === m.id}
-                      onClick={() => setSelectedRecipient(selectedRecipient?.id === m.id ? null : m)}
+                      onClick={() => { setSelectedRecipient(m); setRecipientChosen(true); }}
                       className={recipientChipCls(selectedRecipient?.id === m.id)}
                     >
                       {firstName(m.name)}
@@ -653,9 +697,9 @@ function CaptureFlow() {
                   ))}
                   <button
                     type="button"
-                    aria-pressed={!selectedRecipient}
-                    onClick={() => setSelectedRecipient(null)}
-                    className={recipientChipCls(!selectedRecipient)}
+                    aria-pressed={recipientChosen && !selectedRecipient}
+                    onClick={() => { setSelectedRecipient(null); setRecipientChosen(true); }}
+                    className={recipientChipCls(recipientChosen && !selectedRecipient)}
                   >
                     Everyone
                   </button>
@@ -664,21 +708,22 @@ function CaptureFlow() {
             )}
 
             {/* Stage navigation — Write / Voice only */}
-            <div className="flex items-center justify-center gap-6" role="tablist" aria-label="Capture mode">
+            <div className="flex items-center gap-2 rounded-2xl border border-border/70 bg-card p-1.5" role="tablist" aria-label="Capture mode">
               {STAGE_ORDER.map((s) => (
                 <button
                   key={s}
                   type="button"
                   role="tab"
                   aria-selected={captureStage === s}
+                  disabled={saving || preparingVoice || recording}
                   onClick={() => handleStageChange(s)}
-                  className={`text-xs tracking-wide capitalize transition border-b pb-px min-h-[44px] px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 rounded-sm ${
+                  className={`flex-1 text-sm tracking-wide transition border min-h-[48px] px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 rounded-sm ${
                     captureStage === s
-                      ? 'text-[#3B82F6] border-[#3B82F6]/55'
-                      : 'text-foreground/28 border-transparent hover:text-foreground/55'
+                      ? 'text-foreground bg-blue-500/15 border-blue-500/30'
+                      : 'text-muted-foreground border-transparent hover:text-foreground'
                   }`}
                 >
-                  {s}
+                  {s === 'voice' ? 'Record Audio' : 'Write'}
                 </button>
               ))}
             </div>
@@ -698,8 +743,9 @@ function CaptureFlow() {
                     className="space-y-3"
                   >
                     <textarea
+                      aria-label="Your breadcrumb"
                       ref={writeAreaRef}
-                      className="w-full min-h-[38vh] sm:min-h-[42vh] bg-transparent border-0 px-0 py-2 text-foreground text-[1.0625rem] leading-[1.55] tracking-[-0.01em] placeholder:text-foreground/18 focus:outline-none resize-none"
+                      className="w-full min-h-[30vh] sm:min-h-[34vh] bg-card border border-border/70 rounded-2xl px-5 py-4 text-foreground text-[1.0625rem] leading-[1.55] tracking-[-0.01em] placeholder:text-foreground/18 focus:outline-none resize-none"
                       placeholder="What do you want them to remember?"
                       value={entry}
                       onChange={onWriteAreaChange}
@@ -776,8 +822,7 @@ function CaptureFlow() {
                     {recording && (
                       <span
                         className="text-sm text-foreground/40 tabular-nums tracking-widest"
-                        aria-live="polite"
-                        aria-atomic="true"
+                        aria-label="Recording duration"
                       >
                         {`${Math.floor(recordSec / 60)}:${String(recordSec % 60).padStart(2, '0')}`}
                       </span>
@@ -832,9 +877,21 @@ function CaptureFlow() {
                     {audioPreviewUrl && !recording && (
                       <div className="w-full space-y-5">
                         <AudioPlayer src={audioPreviewUrl} />
+                        {!voiceMediaRef ? (
+                          <button type="button" onClick={() => void prepareVoice()} disabled={preparingVoice} className="btn-primary">
+                            {preparingVoice ? 'Preparing transcript…' : 'Review transcript'}
+                          </button>
+                        ) : (
+                          <label className="block space-y-2 text-sm text-muted-foreground">
+                            Review your words
+                            <textarea aria-label="Review voice transcript" value={voiceTranscript} onChange={(e) => setVoiceTranscript(e.target.value)} className="field-input mt-2 min-h-[160px]" placeholder="Transcription unavailable. Add your words here, or save the original audio." />
+                            <span className="block text-xs">Your original recording stays with this breadcrumb.</span>
+                          </label>
+                        )}
                         <div className="flex justify-center">
                           <button
                             type="button"
+                            disabled={preparingVoice || saving}
                             onClick={() => { cleanupAudio(); setRecordError(''); }}
                             className="text-xs text-foreground/25 hover:text-foreground/55 transition"
                           >
@@ -848,6 +905,8 @@ function CaptureFlow() {
 
               </AnimatePresence>
             </div>
+
+            {draftStatus && <p role="status" className="text-xs text-muted-foreground">{draftStatus}</p>}
 
             {/* Draft / prefill notices */}
             {(draftRestored || prefillRestored) && (
@@ -918,12 +977,13 @@ function CaptureFlow() {
                     <button
                       type="button"
                       onClick={() => void handleSave()}
-                      disabled={!breadcrumbType || saving}
+                      disabled={!breadcrumbType || saving || preparingVoice || recording || (familyMembers.length > 0 && !recipientChosen) || (captureStage === 'voice' && !!audioBlob && !voiceMediaRef)}
                       className={`w-full py-4 text-sm border border-[#3B82F6] bg-[#3B82F6] text-white rounded-sm hover:bg-[#2563EB] hover:border-[#2563EB] transition disabled:opacity-30 disabled:cursor-not-allowed min-h-[44px] ${SAVE_BTN}`}
                     >
                       {saving ? 'Saving…' : 'Save Breadcrumb'}
                     </button>
                   )}
+                  {familyMembers.length > 0 && !recipientChosen && <p className="text-xs text-center text-muted-foreground">Choose who this is for, or select Everyone.</p>}
                   {!breadcrumbType && (
                     <p className="text-xs text-center text-foreground/30">
                       Choose a breadcrumb type above to save
@@ -975,7 +1035,12 @@ function CaptureFlow() {
         {/* Follow-up */}
         {stage === 'follow-up' && (
           <div className="space-y-6">
+            <div role="status" className="rounded-2xl bg-blue-500/10 border border-blue-500/25 p-5 space-y-2">
+              <p className="font-display text-xl">Your breadcrumb is saved.</p>
+              <button type="button" onClick={() => router.push(`/archive?entry=${encodeURIComponent(savedBreadcrumbId ?? '')}`)} className="text-sm text-blue-400 min-h-[44px]">Open it in your library →</button>
+            </div>
             {renderTagEditor('tag-draft-followup')}
+            {saveError && <p role="alert" className="text-sm text-red-400">{saveError}</p>}
 
             <div className="glass-card px-6 py-5">
               <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3">One more thought</p>
@@ -1013,13 +1078,11 @@ function CaptureFlow() {
                     if (!res.ok) {
                       const data = await res.json().catch(() => ({})) as { error?: string };
                       setSaveError(data.error ?? `Could not append follow-up (${res.status}).`);
-                      setStage('error');
                       return;
                     }
                     setStage('done');
                   } catch {
                     setSaveError('Network error while saving follow-up. Try again.');
-                    setStage('error');
                   } finally {
                     setSaving(false);
                   }
@@ -1078,12 +1141,7 @@ function CaptureFlow() {
               type="button"
               onClick={() => {
                 setSaveError('');
-                cleanupAudio();
-                setCaptureStage('write');
                 setShowHesitationHint(false);
-                setEntry('');
-                setCharCount(0);
-                setBreadcrumbType(null);
                 setConfirmingSave(false);
                 setStage('capture');
               }}

@@ -129,6 +129,8 @@ describe('POST /api/family-agent', () => {
     expect(Array.isArray(body.warnings)).toBe(true);
     expect(body.breadcrumbExcerpts[0].contributorLabel).toMatch(/^From Marcus — /);
     expect(body.breadcrumbExcerpts[0].recipientLabel).toBe('For Cairo');
+    expect(body.breadcrumbExcerpts[0].id).toBe('bc-1');
+    expect(body.breadcrumbExcerpts[0].href).toBe('/archive?entry=bc-1');
   });
 
   it('passes recipientId to buildFamilyAgentContext', async () => {

@@ -15,7 +15,7 @@
     --muted-foreground: 30 4% 59%;
     --accent: 217 91% 60%;           /* #3B82F6 */
     --accent-strong: 221 83% 53%;    /* #2563EB */
-    --radius: 0.5rem;
+    --radius: 1rem;
     --font-display: "Playfair Display", "Hoefler Text", Georgia, serif;
     --font-ui: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   }

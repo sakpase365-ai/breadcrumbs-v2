@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 const TABS = [
   {
     href:  '/capture',
-    label: 'Write',
+    label: 'Capture',
     icon:  (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 20h9" />
