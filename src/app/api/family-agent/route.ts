@@ -88,7 +88,10 @@ export async function POST(req: NextRequest) {
       answer,
       contextSources:     context.contextSources,
       warnings:           context.warnings,
-      breadcrumbExcerpts: context.relevantBreadcrumbs.slice(0, 2).map((bc) => ({
+      breadcrumbExcerpts: context.relevantBreadcrumbs.map((bc) => ({
+        id:               bc.id,
+        title:            bc.title,
+        href:             `/archive?entry=${encodeURIComponent(bc.id)}`,
         excerpt:          bc.content.slice(0, 220).trimEnd(),
         contributorLabel: contributorLabel(context.ownerName, bc.created_at),
         recipientLabel:   bc.recipientLabel,

@@ -922,7 +922,9 @@ export default function SetupPage() {
 
   async function handleFinalSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return;
     setError('');
+    if (!ownerFirstName.trim()) { setError('Add your first name to continue.'); return; }
     if (!validateFamilyMemberDrafts('spouse or partner', spousePartners)) return;
     if (!validateFamilyMemberDrafts('child', children)) return;
     if (!validateFamilyMemberDrafts('parent or parental figure', parentFigures)) return;
@@ -1276,6 +1278,12 @@ export default function SetupPage() {
                 >
                   {identityPage === 'family-name' ? 'Continue to relationships' : 'Continue'}
                 </button>
+                {identityPage !== 'family-name' && (
+                  <button type="button" onClick={() => {
+                    if (!ownerFirstName.trim()) { setError('Add your first name to continue.'); return; }
+                    setError(''); setPageDirection(1); setIdentityPage('family-name');
+                  }} className={SECONDARY_BUTTON}>Add the rest of my story later</button>
+                )}
                 <button type="button" onClick={handleIdentityBack} className={LINK_BUTTON}>
                   Back
                 </button>
@@ -1372,6 +1380,11 @@ export default function SetupPage() {
                     ? busy ? 'Creating family foundation...' : 'Create family foundation'
                     : 'Continue'}
                 </button>
+                {relationshipPage !== 'grandparents' && (
+                  <button type="button" disabled={busy} onClick={(event) => void handleFinalSubmit(event)} className={SECONDARY_BUTTON}>
+                    {busy ? 'Creating family foundation…' : 'Start with these people — add others later'}
+                  </button>
+                )}
                 <button type="button" onClick={handleRelationshipBack} className={LINK_BUTTON}>
                   Back
                 </button>

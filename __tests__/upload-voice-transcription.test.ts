@@ -34,7 +34,7 @@ describe('transcribeAudio (via mock)', () => {
   });
 
   it('falls back to placeholder when transcript is absent', () => {
-    const transcript: string | null | undefined = null;
+    const transcript = null as string | null | undefined;
     const voiceContent = transcript?.trim() || 'Voice note — something I want them to hear.';
     expect(voiceContent).toBe('Voice note — something I want them to hear.');
   });

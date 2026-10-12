@@ -5,19 +5,20 @@ import { useRouter } from 'next/navigation';
 import { getBrowserSupabase } from '@/lib/supabase-browser';
 import { firstName } from '@/lib/nameUtils';
 import BottomNav from '@/components/BottomNav';
+import { SourceCard, GeneratedAnswer } from '@/components/MemoryExperience';
 import {
   ScreenContainer,
   ScreenContent,
   ScreenHeader,
   SectionHeading,
-  SurfaceCard,
 } from '@/components/ui/design-primitives';
 
 interface FamilyMember { id: string; name: string; role: string; }
 
 type AgentResult = {
   answer: string;
-  breadcrumbExcerpts: { excerpt: string; contributorLabel: string; truncated: boolean }[];
+  warnings: string[];
+  breadcrumbExcerpts: { id: string; title: string | null; href: string; excerpt: string; contributorLabel: string; truncated: boolean }[];
 };
 
 type Discovery = {
@@ -88,6 +89,8 @@ export default function HearPage() {
         if (discoverRes.ok) {
           setDiscovery(await discoverRes.json() as Discovery);
         }
+      } catch {
+        setError('Could not load family context. Please refresh to try again.');
       } finally {
         setProfileLoading(false);
       }
@@ -119,6 +122,7 @@ export default function HearPage() {
       const data = await res.json();
       setResult({
         answer:             data.answer as string,
+        warnings:           (data.warnings ?? []) as string[],
         breadcrumbExcerpts: (data.breadcrumbExcerpts ?? []) as AgentResult['breadcrumbExcerpts'],
       });
     } catch {
@@ -194,10 +198,11 @@ export default function HearPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-border/70 bg-card p-4">
           <textarea
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
+            aria-label="Ask the family agent"
             placeholder="Ask about faith, work, how they handled hard times…"
             rows={4}
             maxLength={1000}
@@ -245,20 +250,13 @@ export default function HearPage() {
 
         {result && (
           <div className="space-y-4">
-            <SurfaceCard className="px-6 py-5">
-              <p className="text-sm font-light leading-relaxed whitespace-pre-wrap">{result.answer}</p>
-            </SurfaceCard>
+            <GeneratedAnswer answer={result.answer} warnings={result.warnings} />
 
             {result.breadcrumbExcerpts.length > 0 && (
               <div className="space-y-3 pt-1">
                 <SectionHeading title={`In ${contributorFirst}'s own words`} />
-                {result.breadcrumbExcerpts.map((bc, i) => (
-                  <blockquote key={i} className="border-l-2 border-foreground/15 pl-4 space-y-1">
-                    <p className="text-sm font-display text-foreground/70 leading-relaxed italic">
-                      &ldquo;{bc.excerpt}{bc.truncated ? '…' : '”'}
-                    </p>
-                    <p className="text-[0.625rem] text-muted-foreground/50">{bc.contributorLabel}</p>
-                  </blockquote>
+                {result.breadcrumbExcerpts.map((bc) => (
+                  <SourceCard key={bc.id} {...bc} />
                 ))}
               </div>
             )}

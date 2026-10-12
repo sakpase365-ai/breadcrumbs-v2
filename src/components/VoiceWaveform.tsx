@@ -16,7 +16,6 @@ const H         = 48;
 export default function VoiceWaveform({ analyser, active, reducedMotion }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef    = useRef<number>(0);
-  const phaseRef  = useRef<number>(0);
 
   useEffect(() => {
     cancelAnimationFrame(rafRef.current);
@@ -62,16 +61,9 @@ export default function VoiceWaveform({ analyser, active, reducedMotion }: Props
           ctx.fillRect(i * (barW + BAR_GAP), (H - barH) / 2, barW, barH);
         }
       } else {
-        // Organic sine placeholder — only shown when analyser unavailable
-        phaseRef.current += 0.048;
-        const p = phaseRef.current;
+        // A static baseline indicates that input visualization is unavailable.
         for (let i = 0; i < BAR_COUNT; i++) {
-          const t    = i / BAR_COUNT;
-          const amp  =
-            0.22 + 0.30 * Math.sin(p + t * Math.PI * 2.2)
-                 + 0.18 * Math.sin(p * 1.65 + t * Math.PI * 4.5);
-          const barH = Math.max(3, amp * H * 0.88);
-          ctx.fillRect(i * (barW + BAR_GAP), (H - barH) / 2, barW, barH);
+          ctx.fillRect(i * (barW + BAR_GAP), (H - 3) / 2, barW, 3);
         }
       }
 

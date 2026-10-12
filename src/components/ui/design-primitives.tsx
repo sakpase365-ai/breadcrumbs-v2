@@ -84,7 +84,7 @@ interface SurfaceCardProps {
 
 export function SurfaceCard({ children, className }: SurfaceCardProps) {
   return (
-    <div className={clsx('w-full border border-border rounded-xl', className)}>
+    <div className={clsx('w-full border border-border/70 bg-card rounded-2xl', className)}>
       {children}
     </div>
   );

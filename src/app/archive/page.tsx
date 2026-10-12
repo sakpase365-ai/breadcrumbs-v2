@@ -88,12 +88,19 @@ export default function ArchivePage() {
   const [settingsOpen,  setSettingsOpen]  = useState(false);
   const [searchQuery,   setSearchQuery]   = useState('');
   const [searchInput,   setSearchInput]   = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [topicFilter, setTopicFilter] = useState('all');
+
+  useEffect(() => {
+    setExpandedId(new URLSearchParams(window.location.search).get('entry'));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        if (!searchQuery) setLoading(true);
+        setLoading(true);
+        setError(false);
         const url = searchQuery
           ? `/api/entries?q=${encodeURIComponent(searchQuery)}`
           : '/api/entries';
@@ -126,10 +133,12 @@ export default function ArchivePage() {
   }, [router, searchQuery]);
 
   const filtered = useMemo(() => {
-    if (activeFilter === 'all') return entries;
-    if (activeFilter === 'everyone') return entries.filter((e) => !e.recipient_name);
-    return entries.filter((e) => e.recipient_name === activeFilter);
-  }, [entries, activeFilter]);
+    return entries.filter((e) =>
+      (activeFilter === 'all' || (activeFilter === 'everyone' ? !e.recipient_name : e.recipient_name === activeFilter)) &&
+      (typeFilter === 'all' || e.breadcrumb_type === typeFilter) &&
+      (topicFilter === 'all' || e.domain === topicFilter)
+    );
+  }, [entries, activeFilter, typeFilter, topicFilter]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, EntryCard[]>();
@@ -140,6 +149,12 @@ export default function ArchivePage() {
     }
     return Array.from(map.entries());
   }, [filtered]);
+
+  useEffect(() => {
+    if (loading || !expandedId) return;
+    const element = document.getElementById(`breadcrumb-${expandedId}`);
+    element?.scrollIntoView({ block: 'center' });
+  }, [loading, expandedId]);
 
   function toggleExpand(id: string) {
     setExpandedId((prev) => (prev === id ? null : id));
@@ -161,8 +176,9 @@ export default function ArchivePage() {
     return (
       <motion.article
         key={e.id}
+        id={`breadcrumb-${e.id}`}
         layout
-        className="relative overflow-hidden rounded-sm border border-border/60 bg-card"
+        className="relative overflow-hidden rounded-2xl border border-border/70 bg-card scroll-mt-72"
       >
         <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${accentColor}`} />
         <div className="pl-4 pr-5 py-4 space-y-2.5">
@@ -250,6 +266,7 @@ export default function ArchivePage() {
             {hasBody && (
               <button
                 type="button"
+                aria-expanded={isExpanded}
                 onClick={() => toggleExpand(e.id)}
                 className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition min-h-[44px] px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 rounded-sm"
               >
@@ -290,7 +307,7 @@ export default function ArchivePage() {
 
         {/* Search */}
         <form
-          onSubmit={(e) => { e.preventDefault(); setSearchQuery(searchInput.trim()); }}
+          onSubmit={(e) => { e.preventDefault(); setSearchQuery(searchInput.trim()); setTypeFilter('all'); setTopicFilter('all'); setActiveFilter('all'); }}
           className="max-w-xl mx-auto px-5 pb-2 flex items-center gap-2"
         >
           <input
@@ -322,8 +339,24 @@ export default function ArchivePage() {
           )}
         </form>
 
-        {/* Filter pills — hidden during search */}
-        {entries.length > 0 && !searchQuery && (
+        <div className="max-w-xl mx-auto px-5 pb-3 flex gap-3">
+          <label className="flex-1 text-xs text-muted-foreground">
+            Type
+            <select aria-label="Filter by type" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="field-input mt-1 !min-h-[44px] !py-2">
+              <option value="all">All types</option>
+              {[...new Set(entries.map((e) => e.breadcrumb_type))].map((type) => <option key={type} value={type}>{BREADCRUMB_TYPE_LABEL[type] ?? type}</option>)}
+            </select>
+          </label>
+          <label className="flex-1 text-xs text-muted-foreground">
+            Topic
+            <select aria-label="Filter by topic" value={topicFilter} onChange={(e) => setTopicFilter(e.target.value)} className="field-input mt-1 !min-h-[44px] !py-2">
+              <option value="all">All topics</option>
+              {[...new Set(entries.map((e) => e.domain))].map((topic) => <option key={topic} value={topic}>{topic}</option>)}
+            </select>
+          </label>
+        </div>
+        {/* Recipient filters */}
+        {entries.length > 0 && (
           <div className="max-w-xl mx-auto px-5 pb-3 flex gap-2 overflow-x-auto no-scrollbar">
             {[
               { key: 'all',      label: `All ${entries.length}` },
@@ -362,15 +395,15 @@ export default function ArchivePage() {
           </div>
         )}
 
-        {!loading && !error && entries.length === 0 && (
+        {!loading && !error && !searchQuery && entries.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             className="py-28 text-center space-y-5"
           >
-            <p className="font-display text-foreground text-3xl font-light">No letters yet.</p>
-            <p className="text-muted-foreground text-sm">Your first entry is one prompt away.</p>
+            <p className="font-display text-foreground text-3xl font-light">Your family library starts here.</p>
+            <p className="text-muted-foreground text-sm">Write a message or record something you want them to hear.</p>
             <button
               onClick={() => router.push('/capture')}
               className="mt-2 inline-block py-3 px-8 border border-[#3B82F6] bg-[#3B82F6] text-white text-sm tracking-wide hover:bg-[#2563EB] hover:border-[#2563EB] transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35"
@@ -386,23 +419,27 @@ export default function ArchivePage() {
           </div>
         )}
 
+        {!loading && !error && expandedId && !entries.some((entry) => entry.id === expandedId) && (
+          <p role="status" className="text-sm text-muted-foreground">This breadcrumb is not available in your family library.</p>
+        )}
+
         {/* Search results — flat list */}
-        {!loading && searchQuery && (
+        {!loading && !error && searchQuery && (
           <div className="space-y-4">
             <p className="text-xs text-muted-foreground/40">
-              {entries.length} {entries.length === 1 ? 'result' : 'results'} for &ldquo;{searchQuery}&rdquo;
+              {filtered.length} {filtered.length === 1 ? 'result' : 'results'} for &ldquo;{searchQuery}&rdquo;
             </p>
-            {entries.length === 0 && (
+            {filtered.length === 0 && (
               <p className="py-12 text-center text-muted-foreground/40 text-sm">No breadcrumbs match.</p>
             )}
             <div className="space-y-3">
-              {entries.map((e) => renderEntryCard(e))}
+              {filtered.map((e) => renderEntryCard(e))}
             </div>
           </div>
         )}
 
         {/* Grouped entries — default view */}
-        {!loading && !searchQuery && grouped.map(([month, monthEntries], gi) => (
+        {!loading && !error && !searchQuery && grouped.map(([month, monthEntries], gi) => (
           <motion.section
             key={month}
             initial={{ opacity: 0, y: 10 }}

@@ -85,6 +85,10 @@ export default function Home() {
             Family Library
           </Link>
 
+          <Link href="/preview" className="min-h-[44px] flex items-center justify-center text-sm text-blue-400">
+            Explore the updated experience
+          </Link>
+
           {/* Auth — only when not signed in */}
           {authState !== 'authenticated' && (
             <Link
