@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getBrowserSupabase } from '@/lib/supabase-browser';
 import { firstName } from '@/lib/nameUtils';
+import { ArrowUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import { SourceCard, GeneratedAnswer } from '@/components/MemoryExperience';
 import {
   ScreenContainer,
   ScreenContent,
-  ScreenHeader,
   SectionHeading,
 } from '@/components/ui/design-primitives';
 
@@ -34,14 +34,6 @@ function formatMonthYear(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
 
-function chipCls(active: boolean) {
-  return `px-3 py-2 text-sm rounded-full border transition min-h-[44px] ${
-    active
-      ? 'border-foreground text-foreground'
-      : 'border-border text-foreground/50 hover:border-foreground/40 hover:text-foreground/80'
-  }`;
-}
-
 function domainPrompt(domain: string, contributorName: string): string {
   const name = firstName(contributorName);
   const prompts: Record<string, string> = {
@@ -62,6 +54,7 @@ export default function HearPage() {
   const [familyMembers,     setFamilyMembers]     = useState<FamilyMember[]>([]);
   const [selectedRecipient, setSelectedRecipient] = useState<string | null>(null);
   const [question,          setQuestion]          = useState('');
+  const [askedQuestion, setAskedQuestion] = useState('');
   const [result,            setResult]            = useState<AgentResult | null>(null);
   const [discovery,         setDiscovery]         = useState<Discovery | null>(null);
   const [error,             setError]             = useState<string | null>(null);
@@ -101,6 +94,7 @@ export default function HearPage() {
     e.preventDefault();
     if (!question.trim() || loading) return;
 
+    setAskedQuestion(question.trim());
     setLoading(true);
     setResult(null);
     setError(null);
@@ -125,6 +119,7 @@ export default function HearPage() {
         warnings:           (data.warnings ?? []) as string[],
         breadcrumbExcerpts: (data.breadcrumbExcerpts ?? []) as AgentResult['breadcrumbExcerpts'],
       });
+      setQuestion('');
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {
@@ -152,20 +147,12 @@ export default function HearPage() {
 
   return (
     <ScreenContainer className="screen-main-safe !py-0">
-      <ScreenContent className="space-y-8 !pb-28">
+      <ScreenContent className="space-y-6 !pb-48">
 
+        <button className="iroh-back" onClick={() => router.push('/home')}><ChevronLeft size={15} />Home</button>
         <div className="space-y-2">
-          <ScreenHeader
-            title={discovery?.contributorName ? contributorFirst : 'Hear'}
-            titleClassName="font-display text-xl font-light tracking-tight"
-          />
-          {groundingLine ? (
-            <p className="text-center text-sm text-muted-foreground">{groundingLine}</p>
-          ) : !discovery?.contributorName ? (
-            <p className="text-center text-sm text-muted-foreground">
-              Draws from everything they&apos;ve shared — their Foundation and their Breadcrumbs.
-            </p>
-          ) : null}
+          <h1 className="text-2xl font-semibold">{discovery?.contributorName ? `Hear from ${contributorFirst}.` : 'Hear a familiar perspective.'}</h1>
+          <p className="text-xs text-muted-foreground">{groundingLine ?? 'A perspective shaped by what they have shared.'}</p>
         </div>
 
         {discovery?.featuredExcerpt && !result && (
@@ -183,73 +170,35 @@ export default function HearPage() {
         {discoveryDomains.length > 0 && !result && (
           <div className="space-y-3">
             <SectionHeading title={`Explore what ${contributorFirst} shared`} />
-            <div className="flex flex-wrap gap-2">
+            <div className="space-y-2">
               {discoveryDomains.map((domain) => (
                 <button
                   key={domain}
                   type="button"
                   onClick={() => setQuestion(domainPrompt(domain, discovery!.contributorName))}
-                  className="text-xs px-3 py-2 border border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground transition rounded-full min-h-[44px]"
+                  className="iroh-suggestion"
                 >
-                  {domainPrompt(domain, discovery!.contributorName)}
+                  <span className="flex-1">{domainPrompt(domain, discovery!.contributorName)}</span><ChevronRight size={15} />
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-border/70 bg-card p-4">
-          <textarea
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            aria-label="Ask the family agent"
-            placeholder="Ask about faith, work, how they handled hard times…"
-            rows={4}
-            maxLength={1000}
-            disabled={loading}
-            className="field-input resize-none bg-transparent"
-          />
+        <div className="iroh-dock"><form onSubmit={handleSubmit} className="iroh-composer">
+          <textarea id="family-question" value={question} onChange={(event) => setQuestion(event.target.value)} aria-label="Ask the family agent" placeholder="Ask from your family memory…" rows={2} maxLength={1000} disabled={loading} className="w-full" />
+          <div className="flex items-center justify-between gap-3 px-1">
+            {familyMembers.length ? <select aria-label="Who this question is about" value={selectedRecipient ?? ''} onChange={(event) => setSelectedRecipient(event.target.value || null)} disabled={loading} className="bg-transparent text-[11px] text-muted-foreground max-w-[75%] min-h-[40px] rounded-md"><option value="">Everyone · family memory</option>{familyMembers.map((member) => <option key={member.id} value={member.id}>{firstName(member.name)}</option>)}</select> : <span className="text-[11px] text-muted-foreground">Family memory</span>}
+            <button aria-label={loading ? 'Asking the family agent' : 'Ask'} type="submit" disabled={loading || !question.trim()} className="iroh-send"><ArrowUp size={19} /></button>
+          </div>
+        </form></div>
 
-          {familyMembers.length > 0 && (
-            <div className="space-y-2">
-              <SectionHeading title="About (optional)" />
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedRecipient(null)}
-                  disabled={loading}
-                  className={chipCls(selectedRecipient === null)}
-                >
-                  Everyone
-                </button>
-                {familyMembers.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => setSelectedRecipient(m.id)}
-                    disabled={loading}
-                    className={chipCls(selectedRecipient === m.id)}
-                  >
-                    {firstName(m.name)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading || !question.trim()}
-            className="btn-primary"
-          >
-            {loading ? 'Asking…' : 'Ask'}
-          </button>
-        </form>
-
+        {loading && <p role="status" className="text-xs text-muted-foreground">Reading your family memory…</p>}
         {error && <p className="text-sm text-red-400">{error}</p>}
 
         {result && (
           <div className="space-y-4">
+            <div className="flex justify-end"><p className="text-sm bg-[#172340] px-4 py-3 rounded-xl max-w-[85%]">{askedQuestion}</p></div>
             <GeneratedAnswer answer={result.answer} warnings={result.warnings} />
 
             {result.breadcrumbExcerpts.length > 0 && (

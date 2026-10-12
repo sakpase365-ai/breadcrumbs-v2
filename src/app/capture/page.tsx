@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense, type ChangeEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { ReferenceCapture } from '@/components/iroh/ReferenceCapture';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getBrowserSupabase } from '@/lib/supabase-browser';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -27,8 +28,7 @@ import VoiceWaveform   from '@/components/VoiceWaveform';
 import AudioPlayer    from '@/components/AudioPlayer';
 import SettingsSheet  from '@/components/SettingsSheet';
 import BottomNav      from '@/components/BottomNav';
-import { CaptureIntro } from '@/components/MemoryExperience';
-import { InlineAction, ScreenContainer, ScreenContent, ScreenHeader } from '@/components/ui/design-primitives';
+import { ScreenContainer, ScreenContent } from '@/components/ui/design-primitives';
 
 const DRAFT_KEY     = 'breadcrumbs_draft';
 const PREFILL_KEY   = 'breadcrumbs_prefill';
@@ -89,25 +89,14 @@ async function fetchPromptText(recipientId: string | null, excludePriorPrompts?:
 
 function chipCls(active: boolean, size: 'sm' | 'xs' = 'sm') {
   const text = size === 'xs' ? 'text-xs' : 'text-sm';
-  return `px-3 py-1.5 ${text} border rounded-sm transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 ${
+  return `px-3 py-1.5 ${text} border rounded-xl transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 ${
     active
       ? 'border-[#3B82F6] bg-[#3B82F6] text-white'
       : 'border-border text-muted-foreground hover:border-[#3B82F6]/45 hover:text-foreground'
   }`;
 }
 
-function recipientChipCls(active: boolean) {
-  return `px-3 py-2 text-sm rounded-full border transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 ${
-    active
-      ? 'border-[#3B82F6] text-foreground bg-[#3B82F6]/10'
-      : 'border-border text-foreground/50 hover:border-[#3B82F6]/45 hover:text-foreground/75'
-  }`;
-}
-
-const SAVE_BTN =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35';
-
-function CaptureFlow() {
+function CaptureFlow({ initialMode = 'voice' }: { initialMode?: CaptureStage }) {
   const router = useRouter();
 
   const [profile,            setProfile]           = useState<Profile | null>(null);
@@ -124,7 +113,7 @@ function CaptureFlow() {
   const [selectedTags,       setSelectedTags]      = useState<string[]>([]);
   const [showTags,           setShowTags]          = useState(false);
   const [stage,              setStage]             = useState<Stage>('loading');
-  const [captureStage,       setCaptureStage]      = useState<CaptureStage>('write');
+  const [captureStage,       setCaptureStage]      = useState<CaptureStage>(initialMode);
   const [entry,              setEntry]             = useState('');
   const [charCount,          setCharCount]         = useState(0);
   const [draftRestored,      setDraftRestored]     = useState(false);
@@ -591,7 +580,7 @@ function CaptureFlow() {
   function renderTagEditor(inputId: string) {
     if (savedTags.length === 0) return null;
     return (
-      <div className="space-y-3 rounded-sm border border-border/60 bg-card/30 px-4 py-3">
+      <div className="space-y-3 rounded-xl border border-border/60 bg-card/30 px-4 py-3">
         <p className="text-sm text-foreground">
           <span className="text-muted-foreground">Tags: </span>
           {savedTags.map((t, i) => (
@@ -613,7 +602,7 @@ function CaptureFlow() {
               id={inputId}
               value={tagDraft}
               onChange={(e) => setTagDraft(e.target.value)}
-              className="field-input !min-h-0 rounded-sm px-3 py-2 text-sm"
+              className="field-input !min-h-0 rounded-xl px-3 py-2 text-sm"
               placeholder="parenting, gratitude, life-lesson"
             />
             <div className="flex gap-2">
@@ -621,14 +610,14 @@ function CaptureFlow() {
                 type="button"
                 onClick={() => void saveTagsEdit()}
                 disabled={tagSaving}
-                className="text-xs px-3 py-1.5 border border-[#3B82F6] bg-[#3B82F6] text-white rounded-sm hover:bg-[#2563EB] hover:border-[#2563EB] disabled:opacity-40"
+                className="text-xs px-3 py-1.5 border border-[#3B82F6] bg-[#3B82F6] text-white rounded-xl hover:bg-[#2563EB] hover:border-[#2563EB] disabled:opacity-40"
               >
                 {tagSaving ? 'Saving…' : 'Save tags'}
               </button>
               <button
                 type="button"
                 onClick={() => setTagEditorOpen(false)}
-                className="text-xs px-3 py-1.5 border border-border text-muted-foreground rounded-sm"
+                className="text-xs px-3 py-1.5 border border-border text-muted-foreground rounded-xl"
               >
                 Cancel
               </button>
@@ -640,23 +629,14 @@ function CaptureFlow() {
   }
 
   return (
-    <ScreenContainer className="screen-main-safe !px-5 sm:!px-6 !py-0 flex flex-col items-center justify-start">
-      <ScreenContent className="space-y-5 !pb-28">
+    <ScreenContainer className="reference-live !px-5 sm:!px-6 !py-0 flex flex-col items-center justify-start">
+      <ScreenContent className="space-y-5 !pb-48">
 
-        <ScreenHeader
-          title={new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-          titleClassName="text-xs font-sans font-normal text-muted-foreground/50 uppercase tracking-widest"
-          rightAction={(
-            <InlineAction onClick={() => setSettingsOpen(true)} ariaLabel="Open settings">
-              <span className="text-sm">Settings</span>
-            </InlineAction>
-          )}
-        />
 
         {/* Loading */}
         {stage === 'loading' && (
           <div className="py-24 text-center">
-            <p className="text-foreground/30 text-sm">
+            <p className="text-muted-foreground text-sm">
               <span className="inline-flex">
                 {[0, 1, 2].map((i) => (
                   <motion.span
@@ -673,369 +653,33 @@ function CaptureFlow() {
           </div>
         )}
 
-        {/* ── CAPTURE ── */}
         {stage === 'capture' && profile && (
-          <div ref={swipeContainerRef} className="space-y-5" style={{ touchAction: 'pan-y' }}>
-
-            <CaptureIntro name={firstName(profile.name)} />
-
-            {/* Recipient — always visible, not gated by content */}
-            {familyMembers.length > 0 && (
-              <div className="space-y-2">
-                <p className="type-label text-muted-foreground">Who are you speaking to today?</p>
-                <div className="flex gap-2 flex-wrap justify-center">
-                  {familyMembers.map((m) => (
-                    <button
-                      type="button"
-                      key={m.id}
-                      aria-pressed={selectedRecipient?.id === m.id}
-                      onClick={() => { setSelectedRecipient(m); setRecipientChosen(true); }}
-                      className={recipientChipCls(selectedRecipient?.id === m.id)}
-                    >
-                      {firstName(m.name)}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    aria-pressed={recipientChosen && !selectedRecipient}
-                    onClick={() => { setSelectedRecipient(null); setRecipientChosen(true); }}
-                    className={recipientChipCls(recipientChosen && !selectedRecipient)}
-                  >
-                    Everyone
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Stage navigation — Write / Voice only */}
-            <div className="flex items-center gap-2 rounded-2xl border border-border/70 bg-card p-1.5" role="tablist" aria-label="Capture mode">
-              {STAGE_ORDER.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  role="tab"
-                  aria-selected={captureStage === s}
-                  disabled={saving || preparingVoice || recording}
-                  onClick={() => handleStageChange(s)}
-                  className={`flex-1 text-sm tracking-wide transition border min-h-[48px] px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 rounded-sm ${
-                    captureStage === s
-                      ? 'text-foreground bg-blue-500/15 border-blue-500/30'
-                      : 'text-muted-foreground border-transparent hover:text-foreground'
-                  }`}
-                >
-                  {s === 'voice' ? 'Record Audio' : 'Write'}
-                </button>
-              ))}
-            </div>
-
-            {/* Stage content */}
-            <div>
-              <AnimatePresence mode="wait" initial={false}>
-
-                {/* ── WRITE ── */}
-                {captureStage === 'write' && (
-                  <motion.div
-                    key="write"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="space-y-3"
-                  >
-                    <textarea
-                      aria-label="Your breadcrumb"
-                      ref={writeAreaRef}
-                      className="w-full min-h-[30vh] sm:min-h-[34vh] bg-card border border-border/70 rounded-2xl px-5 py-4 text-foreground text-[1.0625rem] leading-[1.55] tracking-[-0.01em] placeholder:text-foreground/18 focus:outline-none resize-none"
-                      placeholder="What do you want them to remember?"
-                      value={entry}
-                      onChange={onWriteAreaChange}
-                      onFocus={() => {
-                        setShowHesitationHint(false);
-                        if (!entry.trim()) scheduleWriteHesitation();
-                      }}
-                      onBlur={clearHesitationTimer}
-                    />
-
-                    {/* Inline prompt card — shown after 10s hesitation, hidden once writing starts */}
-                    {showHesitationHint && entry.trim().length < 20 && (aiPrompt || promptLoading) && (
-                      <div className="border-t border-border/40 pt-3 space-y-2" aria-live="polite">
-                        <p className="type-label text-foreground/22">Today&apos;s Spark</p>
-                        {promptLoading ? (
-                          <p className="text-xs text-foreground/18">···</p>
-                        ) : (
-                          <AnimatePresence mode="wait">
-                            <motion.p
-                              key={aiPrompt ?? 'prompt'}
-                              initial={{ opacity: 0, y: 4 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -4 }}
-                              transition={{ duration: 0.3 }}
-                              className="text-sm leading-[1.65] text-foreground/50"
-                            >
-                              {aiPrompt}
-                            </motion.p>
-                          </AnimatePresence>
-                        )}
-                        {!promptLoading && (
-                          <button
-                            type="button"
-                            onClick={() => void handleNewPrompt()}
-                            className={`text-xs text-foreground/20 hover:text-foreground/50 transition min-h-[44px] px-2 ${SAVE_BTN}`}
-                          >
-                            ↻ New spark
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-
-                {/* ── VOICE ── */}
-                {captureStage === 'voice' && (
-                  <motion.div
-                    key="voice"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="min-h-[44vh] sm:min-h-[48vh] flex flex-col items-center justify-center py-8 gap-7"
-                  >
-                    {recordError && (
-                      <p className="text-xs text-red-400/75 text-center">{recordError}</p>
-                    )}
-
-                    {/* Waveform zone — reserved height prevents layout jump */}
-                    {!audioBlob && (
-                      <div
-                        className={`transition-opacity duration-500 ${recording ? 'opacity-100' : 'opacity-0'}`}
-                        aria-hidden="true"
-                      >
-                        <VoiceWaveform
-                          analyser={analyserRef.current}
-                          active={recording}
-                          reducedMotion={userSettings.reduceMotion}
-                        />
-                      </div>
-                    )}
-
-                    {/* Timer */}
-                    {recording && (
-                      <span
-                        className="text-sm text-foreground/40 tabular-nums tracking-widest"
-                        aria-label="Recording duration"
-                      >
-                        {`${Math.floor(recordSec / 60)}:${String(recordSec % 60).padStart(2, '0')}`}
-                      </span>
-                    )}
-
-                    {/* Idle helper text */}
-                    {!audioBlob && !recording && (
-                      <p className="text-xs text-foreground/30 text-center tracking-wide">
-                        Say it in your own voice.
-                      </p>
-                    )}
-
-                    {/* Record / Stop — large pill */}
-                    {!audioBlob && (
-                      <motion.button
-                        type="button"
-                        onClick={recording ? stopRecording : () => void startRecording()}
-                        aria-label={recording ? 'Stop recording' : 'Start recording'}
-                        whileTap={{ scale: 0.95 }}
-                        transition={{ type: 'spring', stiffness: 420, damping: 26 }}
-                        className={`flex items-center justify-center gap-3 px-10 rounded-full border transition-colors min-h-[64px] min-w-[176px] text-[0.9375rem] select-none ${
-                          recording
-                            ? 'border-[#c45c5c]/55 text-foreground/85 bg-[#c45c5c]/[0.07]'
-                            : 'border-[#3B82F6]/35 text-foreground/60 hover:border-[#3B82F6]/55 hover:text-foreground/85'
-                        }`}
-                      >
-                        {recording ? (
-                          <>
-                            <motion.span
-                              className="w-3.5 h-3.5 rounded-full bg-[#c45c5c] shrink-0"
-                              animate={{ opacity: [1, 0.3, 1] }}
-                              transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut' }}
-                              aria-hidden="true"
-                            />
-                            Stop
-                          </>
-                        ) : (
-                          <>
-                            <motion.span
-                              className="w-3.5 h-3.5 rounded-full bg-[#c45c5c] shrink-0"
-                              animate={{ opacity: [0.5, 1, 0.5], scale: [0.88, 1.12, 0.88] }}
-                              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                              aria-hidden="true"
-                            />
-                            Record
-                          </>
-                        )}
-                      </motion.button>
-                    )}
-
-                    {/* Playback preview after recording */}
-                    {audioPreviewUrl && !recording && (
-                      <div className="w-full space-y-5">
-                        <AudioPlayer src={audioPreviewUrl} />
-                        {!voiceMediaRef ? (
-                          <button type="button" onClick={() => void prepareVoice()} disabled={preparingVoice} className="btn-primary">
-                            {preparingVoice ? 'Preparing transcript…' : 'Review transcript'}
-                          </button>
-                        ) : (
-                          <label className="block space-y-2 text-sm text-muted-foreground">
-                            Review your words
-                            <textarea aria-label="Review voice transcript" value={voiceTranscript} onChange={(e) => setVoiceTranscript(e.target.value)} className="field-input mt-2 min-h-[160px]" placeholder="Transcription unavailable. Add your words here, or save the original audio." />
-                            <span className="block text-xs">Your original recording stays with this breadcrumb.</span>
-                          </label>
-                        )}
-                        <div className="flex justify-center">
-                          <button
-                            type="button"
-                            disabled={preparingVoice || saving}
-                            onClick={() => { cleanupAudio(); setRecordError(''); }}
-                            className="text-xs text-foreground/25 hover:text-foreground/55 transition"
-                          >
-                            Discard and try again
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-
-              </AnimatePresence>
-            </div>
-
-            {draftStatus && <p role="status" className="text-xs text-muted-foreground">{draftStatus}</p>}
-
-            {/* Draft / prefill notices */}
-            {(draftRestored || prefillRestored) && (
-              <div className="text-xs text-foreground/28">
-                {draftRestored   && <p>Draft restored.</p>}
-                {prefillRestored && <p>From your Family Foundation.</p>}
-              </div>
-            )}
-
-            {/* Pre-save — appears when content exists */}
-            {hasContent && (
-              <div className="space-y-5 border-t border-border/40 pt-5">
-
-                {/* Type picker — required before save */}
-                <div className="space-y-2.5">
-                  <p className="type-label text-foreground/30 text-center">What kind of breadcrumb is this?</p>
-                  <div className="flex gap-2 flex-wrap justify-center">
-                    {CAPTURE_INTENT_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        aria-pressed={breadcrumbType === opt.value}
-                        onClick={() => setBreadcrumbType(opt.value)}
-                        className={`px-4 py-2 text-sm border rounded-sm transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 ${
-                          breadcrumbType === opt.value
-                            ? 'border-[#3B82F6] text-foreground bg-[#3B82F6]/10'
-                            : 'border-border text-foreground/40 hover:border-[#3B82F6]/45 hover:text-foreground/70'
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                  {breadcrumbType && (
-                    <motion.p
-                      key={breadcrumbType}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.25 }}
-                      className="text-xs text-foreground/28"
-                    >
-                      {CAPTURE_INTENT_OPTIONS.find((o) => o.value === breadcrumbType)?.description}
-                    </motion.p>
-                  )}
-                </div>
-
-                {/* Save action — inline, right after type picker */}
-                <div className="space-y-2">
-                  {confirmingSave ? (
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setConfirmingSave(false)}
-                        className={`flex-1 py-3.5 text-sm border border-border text-muted-foreground rounded-sm hover:border-[#3B82F6]/45 hover:text-foreground transition min-h-[44px] ${SAVE_BTN}`}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleSave()}
-                        disabled={saving}
-                        className={`flex-1 py-3.5 text-sm border border-[#3B82F6] bg-[#3B82F6] text-white rounded-sm hover:bg-[#2563EB] hover:border-[#2563EB] transition disabled:opacity-30 min-h-[44px] ${SAVE_BTN}`}
-                      >
-                        {saving ? 'Saving…' : 'Yes, save it'}
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => void handleSave()}
-                      disabled={!breadcrumbType || saving || preparingVoice || recording || (familyMembers.length > 0 && !recipientChosen) || (captureStage === 'voice' && !!audioBlob && !voiceMediaRef)}
-                      className={`w-full py-4 text-sm border border-[#3B82F6] bg-[#3B82F6] text-white rounded-sm hover:bg-[#2563EB] hover:border-[#2563EB] transition disabled:opacity-30 disabled:cursor-not-allowed min-h-[44px] ${SAVE_BTN}`}
-                    >
-                      {saving ? 'Saving…' : 'Save Breadcrumb'}
-                    </button>
-                  )}
-                  {familyMembers.length > 0 && !recipientChosen && <p className="text-xs text-center text-muted-foreground">Choose who this is for, or select Everyone.</p>}
-                  {!breadcrumbType && (
-                    <p className="text-xs text-center text-foreground/30">
-                      Choose a breadcrumb type above to save
-                    </p>
-                  )}
-                </div>
-
-                {/* Tag hints — optional, below save */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-foreground/22">
-                      {audioBlob ? 'Voice note ready' : `${charCount} characters`}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setShowTags(!showTags)}
-                      className="text-xs text-foreground/22 hover:text-foreground/50 transition"
-                    >
-                      {showTags ? '− Hide tag hints' : '+ Tag hints'}
-                    </button>
-                  </div>
-                  {showTags && (
-                    <div className="flex flex-wrap gap-2">
-                      {VALUE_TAGS.map((tag) => (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() => toggleTag(tag)}
-                          className={`px-3 py-1 text-xs border rounded-sm transition ${
-                            selectedTags.includes(tag)
-                              ? 'border-[#3B82F6] text-foreground bg-[#3B82F6]/10'
-                              : 'border-border text-foreground/30 hover:border-[#3B82F6]/45 hover:text-foreground/60'
-                          }`}
-                        >
-                          {tag}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-              </div>
-            )}
-
+          <div ref={swipeContainerRef}>
+            <ReferenceCapture recipients={familyMembers.map((member) => ({ id: member.id, name: firstName(member.name) }))}
+              recipient={recipientChosen ? selectedRecipient?.id ?? 'everyone' : ''}
+              onRecipient={(id) => { setRecipientChosen(true); setSelectedRecipient(familyMembers.find((member) => member.id === id) ?? null); }}
+              mode={captureStage} recording={recording} requesting={preparingVoice || saving}
+              onRecord={() => { if (captureStage === 'write') { handleStageChange('voice'); return; } if (recording) stopRecording(); else void startRecording(); }}
+              waveform={recording ? <div className="space-y-2"><VoiceWaveform analyser={analyserRef.current} active reducedMotion={userSettings.reduceMotion} /><p className="text-xs text-center text-muted-foreground tabular-nums">{Math.floor(recordSec / 60)}:{String(recordSec % 60).padStart(2, '0')}</p></div> : undefined}
+              writing={<textarea ref={writeAreaRef} aria-label="Your breadcrumb" placeholder="What do you want them to remember?" value={entry} onChange={onWriteAreaChange} onFocus={() => { if (!entry.trim()) scheduleWriteHesitation(); }} onBlur={clearHesitationTimer} />}
+              audioReview={audioPreviewUrl ? <div className="w-full space-y-4"><AudioPlayer src={audioPreviewUrl} />{!voiceMediaRef ? <button type="button" onClick={() => void prepareVoice()} disabled={preparingVoice} className="btn-primary">{preparingVoice ? 'Preparing transcript…' : 'Review transcript'}</button> : <label className="block text-sm text-muted-foreground">Review your words<textarea aria-label="Review voice transcript" value={voiceTranscript} onChange={(event) => setVoiceTranscript(event.target.value)} className="field-input mt-2 min-h-[130px]" placeholder="Add words, or save your original audio." /><span className="text-xs">Your original audio is preserved.</span></label>}<button type="button" onClick={cleanupAudio} disabled={preparingVoice || saving} className="reference-text-action">Discard and record again</button></div> : undefined}
+              onWrite={() => { if (!recording) handleStageChange('write'); }}
+              onQuestion={() => { if (recording) return; handleStageChange('write'); setShowHesitationHint(true); }}
+              onDraft={() => { if (!recording) handleStageChange('write'); }} hasDraft={!!entry.trim()}
+            >
+              {recordError && <p role="alert" className="text-xs text-red-300 mt-4">{recordError}</p>}
+              {showHesitationHint && captureStage === 'write' && <div className="glass-card p-4 mt-4 space-y-3"><p className="type-label text-muted-foreground">A question to start with</p><p className="text-sm">{promptLoading ? 'Finding a question…' : aiPrompt}</p><button onClick={() => void handleNewPrompt()} className="reference-text-action" disabled={promptLoading}>Try another question</button></div>}
+              {draftStatus && <p role="status" className="text-xs text-muted-foreground mt-3">{draftStatus}</p>}
+              {(draftRestored || prefillRestored) && <p className="text-xs text-muted-foreground mt-2">{draftRestored ? 'Draft restored.' : 'From your Family Foundation.'}</p>}
+              {hasContent && <div className="space-y-3 mt-5"><p className="type-label text-muted-foreground">What kind of breadcrumb is this?</p><div className="flex gap-2">{CAPTURE_INTENT_OPTIONS.map((option) => <button key={option.value} aria-pressed={breadcrumbType === option.value} onClick={() => setBreadcrumbType(option.value)} className="iroh-pill">{option.label}</button>)}</div><button onClick={() => setShowTags(!showTags)} className="reference-text-action">{showTags ? 'Hide tag hints' : 'Add tag hints'}</button>{showTags && <div className="flex flex-wrap gap-2">{VALUE_TAGS.map((tag) => <button key={tag} aria-pressed={selectedTags.includes(tag)} onClick={() => toggleTag(tag)} className="iroh-pill">{tag}</button>)}</div>}{confirmingSave ? <div className="flex gap-2"><button onClick={() => setConfirmingSave(false)} className="iroh-pill">Cancel</button><button onClick={() => void handleSave()} disabled={saving} className="btn-primary">{saving ? 'Saving…' : 'Yes, save it'}</button></div> : <button onClick={() => void handleSave()} disabled={!breadcrumbType || !recipientChosen || saving || preparingVoice || recording || (captureStage === 'voice' && !voiceMediaRef)} className="btn-primary">{saving ? 'Saving…' : 'Save Breadcrumb'}</button>}</div>}
+            </ReferenceCapture>
           </div>
         )}
-
 
         {/* Follow-up */}
         {stage === 'follow-up' && (
           <div className="space-y-6">
-            <div role="status" className="rounded-2xl bg-blue-500/10 border border-blue-500/25 p-5 space-y-2">
+            <div role="status" className="rounded-xl bg-blue-500/10 border border-blue-500/25 p-5 space-y-2">
               <p className="font-display text-xl">Your breadcrumb is saved.</p>
               <button type="button" onClick={() => router.push(`/archive?entry=${encodeURIComponent(savedBreadcrumbId ?? '')}`)} className="text-sm text-blue-400 min-h-[44px]">Open it in your library →</button>
             </div>
@@ -1048,7 +692,7 @@ function CaptureFlow() {
             </div>
 
             <textarea
-              className="field-input h-40 !min-h-[10rem] rounded-sm px-5 py-4 text-base leading-relaxed resize-none"
+              className="field-input h-40 !min-h-[10rem] rounded-xl px-5 py-4 text-base leading-relaxed resize-none"
               placeholder="Add to your entry (optional)…"
               value={followUpAddition}
               onChange={(e) => setFollowUpAddition(e.target.value)}
@@ -1140,6 +784,7 @@ function CaptureFlow() {
             <button
               type="button"
               onClick={() => {
+                if (!profile) { window.location.reload(); return; }
                 setSaveError('');
                 setShowHesitationHint(false);
                 setConfirmingSave(false);
@@ -1177,7 +822,7 @@ function CompleteMagicLinkFromCapture({ code }: { code: string }) {
 function CapturePageGate() {
   const searchParams = useSearchParams();
   const code = searchParams.get('code');
-  return code ? <CompleteMagicLinkFromCapture code={code} /> : <CaptureFlow />;
+  return code ? <CompleteMagicLinkFromCapture code={code} /> : <CaptureFlow initialMode={searchParams.get('mode') === 'write' ? 'write' : 'voice'} />;
 }
 
 export default function CapturePage() {
