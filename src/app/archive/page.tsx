@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BREADCRUMB_TYPE_LABEL } from '@/lib/breadcrumbs';
 import SettingsSheet from '@/components/SettingsSheet';
+import { MemoryRing } from '@/components/iroh/FamilyHome';
+import { countMemoryTopics } from '@/lib/memory-overview';
 import BottomNav     from '@/components/BottomNav';
 import { formatTagForDisplay } from '@/lib/breadcrumb-tags';
 import { firstName } from '@/lib/nameUtils';
@@ -92,7 +94,9 @@ export default function ArchivePage() {
   const [topicFilter, setTopicFilter] = useState('all');
 
   useEffect(() => {
-    setExpandedId(new URLSearchParams(window.location.search).get('entry'));
+    const query = new URLSearchParams(window.location.search);
+    setExpandedId(query.get('entry'));
+    setTopicFilter(query.get('topic') || 'all');
   }, []);
 
   useEffect(() => {
@@ -178,7 +182,7 @@ export default function ArchivePage() {
         key={e.id}
         id={`breadcrumb-${e.id}`}
         layout
-        className="relative overflow-hidden rounded-2xl border border-border/70 bg-card scroll-mt-72"
+        className="relative overflow-hidden rounded-xl border border-border/70 bg-card scroll-mt-72"
       >
         <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${accentColor}`} />
         <div className="pl-4 pr-5 py-4 space-y-2.5">
@@ -191,12 +195,12 @@ export default function ArchivePage() {
               ) : (
                 <p className="font-display text-foreground/50 text-sm italic">For everyone</p>
               )}
-              <p className="text-xs text-muted-foreground/50">{formatDate(e.created_at)}</p>
+              <p className="text-xs text-muted-foreground">{formatDate(e.created_at)}</p>
             </div>
             <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
               <span className={`text-xs font-medium ${textColor}`}>{e.domain}</span>
               <span className="text-muted-foreground/20 text-xs">·</span>
-              <span className="text-xs text-muted-foreground/50">{typeLabel}</span>
+              <span className="text-xs text-muted-foreground">{typeLabel}</span>
             </div>
           </div>
 
@@ -207,7 +211,7 @@ export default function ArchivePage() {
           )}
 
           {e.summary && (
-            <p className="font-display text-muted-foreground/50 text-xs leading-[1.55]">
+            <p className="font-display text-muted-foreground text-xs leading-[1.55]">
               {e.summary}
             </p>
           )}
@@ -240,7 +244,7 @@ export default function ArchivePage() {
               {e.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="text-[0.625rem] px-1.5 py-0.5 border border-border/40 text-muted-foreground/40 rounded-sm"
+                  className="text-[0.625rem] px-1.5 py-0.5 border border-border/40 text-muted-foreground rounded-sm"
                 >
                   {formatTagForDisplay(tag)}
                 </span>
@@ -268,7 +272,7 @@ export default function ArchivePage() {
                 type="button"
                 aria-expanded={isExpanded}
                 onClick={() => toggleExpand(e.id)}
-                className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition min-h-[44px] px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 rounded-sm"
+                className="text-xs text-muted-foreground hover:text-muted-foreground transition min-h-[44px] px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 rounded-sm"
               >
                 {isExpanded ? 'Close ↑' : isAudio ? 'Listen →' : 'Read →'}
               </button>
@@ -283,7 +287,7 @@ export default function ArchivePage() {
     <ScreenContainer className="!p-0 min-h-screen">
 
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border/40">
+      <div className="sticky top-16 z-10 bg-background/95 backdrop-blur-sm border-b border-border/40">
         <div className="max-w-xl mx-auto px-5 py-3">
           <ScreenHeader
             title="Family Library"
@@ -318,21 +322,21 @@ export default function ArchivePage() {
               if (!e.target.value.trim()) clearSearch();
             }}
             placeholder="Search breadcrumbs…"
-            className="flex-1 bg-transparent border-b border-border text-sm text-foreground placeholder:text-muted-foreground/30 py-1.5 focus:outline-none focus:border-[#3B82F6] transition min-h-[44px]"
+            className="flex-1 bg-transparent border-b border-border text-sm text-foreground placeholder:text-muted-foreground py-1.5 focus:outline-none focus:border-[#3B82F6] transition min-h-[44px]"
             aria-label="Search breadcrumbs"
           />
           {searchInput ? (
             <button
               type="button"
               onClick={clearSearch}
-              className="text-xs text-muted-foreground/40 hover:text-foreground transition shrink-0 min-h-[44px] px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 rounded-sm"
+              className="text-xs text-muted-foreground hover:text-foreground transition shrink-0 min-h-[44px] px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 rounded-sm"
             >
               Clear
             </button>
           ) : (
             <button
               type="submit"
-              className="text-xs text-muted-foreground/40 hover:text-foreground transition shrink-0 min-h-[44px] px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 rounded-sm"
+              className="text-xs text-muted-foreground hover:text-foreground transition shrink-0 min-h-[44px] px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35 rounded-sm"
             >
               Search
             </button>
@@ -381,11 +385,12 @@ export default function ArchivePage() {
         )}
       </div>
 
-      <ScreenContent className="py-8 space-y-10">
+      <ScreenContent className="py-8 space-y-8 px-5 !pb-24">
+        {!loading && !error && <div className="flex gap-5 items-center"><MemoryRing topics={countMemoryTopics(entries)} large /><div><p className="text-lg font-medium">Your family memory</p><p className="text-xs text-muted-foreground mt-1">{entries.length} breadcrumbs across {countMemoryTopics(entries).length} topics</p></div></div>}
 
         {loading && (
           <div className="py-24 text-center">
-            <p className="text-muted-foreground/40 text-sm animate-pulse">Loading…</p>
+            <p className="text-muted-foreground text-sm animate-pulse">Loading…</p>
           </div>
         )}
 
@@ -415,7 +420,7 @@ export default function ArchivePage() {
 
         {!loading && !searchQuery && filtered.length === 0 && entries.length > 0 && (
           <div className="py-16 text-center">
-            <p className="text-muted-foreground/50 text-sm">No breadcrumbs match this filter.</p>
+            <p className="text-muted-foreground text-sm">No breadcrumbs match this filter.</p>
           </div>
         )}
 
@@ -426,11 +431,11 @@ export default function ArchivePage() {
         {/* Search results — flat list */}
         {!loading && !error && searchQuery && (
           <div className="space-y-4">
-            <p className="text-xs text-muted-foreground/40">
+            <p className="text-xs text-muted-foreground">
               {filtered.length} {filtered.length === 1 ? 'result' : 'results'} for &ldquo;{searchQuery}&rdquo;
             </p>
             {filtered.length === 0 && (
-              <p className="py-12 text-center text-muted-foreground/40 text-sm">No breadcrumbs match.</p>
+              <p className="py-12 text-center text-muted-foreground text-sm">No breadcrumbs match.</p>
             )}
             <div className="space-y-3">
               {filtered.map((e) => renderEntryCard(e))}
@@ -447,7 +452,7 @@ export default function ArchivePage() {
             transition={{ duration: 0.35, delay: gi * 0.06 }}
           >
             <div className="flex items-center gap-3 mb-5">
-              <span className="type-label text-muted-foreground/40">{month}</span>
+              <span className="type-label text-muted-foreground">{month}</span>
               <div className="flex-1 h-px bg-border/40" />
             </div>
             <div className="space-y-3">

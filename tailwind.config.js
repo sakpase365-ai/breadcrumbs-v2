@@ -16,7 +16,7 @@ module.exports = {
       },
       fontFamily: {
         sans:  ['Inter', 'system-ui', 'sans-serif'],
-        serif: ['Playfair Display', 'Georgia', 'serif'],
+        serif: ['Inter', 'system-ui', 'sans-serif'],
       },
     },
   },
